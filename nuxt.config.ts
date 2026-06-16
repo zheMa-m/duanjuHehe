@@ -36,6 +36,7 @@ export default defineNuxtConfig({
       openAPI: true,
     },
     openAPI: {
+      production: 'runtime', // 生产环境也注册 _openapi.json / _swagger / _scalar 路由（由 05.openapi-auth 中间件保护）
       meta: {
         title: 'HeHe App API',
         description: '单人全栈脚手架 API — Nuxt 4 + Supabase + Stripe，包含认证、支付、广告、营销活动、评价及管理端接口。',
