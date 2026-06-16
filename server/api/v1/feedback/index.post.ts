@@ -76,7 +76,7 @@ export default defineEventHandler(async (event: H3Event) => {
     is_approved: true,
     admin_reply: null,
     created_at: new Date().toISOString(),
-  })
+  }).select('*')
 
   if (error) {
     throw createError({ statusCode: 400, statusMessage: error.message || 'Failed to submit feedback' })
@@ -84,5 +84,5 @@ export default defineEventHandler(async (event: H3Event) => {
 
   await logAuditEvent(event, ctxUser, 'FEEDBACK_SUBMITTED', 'SUCCESS')
 
-  return sendSuccess(event, feedback, 'Feedback submitted successfully', 201)
+  return sendSuccess(event, feedback ? feedback[0] : null, 'Feedback submitted successfully', 201)
 })

@@ -53,6 +53,7 @@ export default defineEventHandler(async (event) => {
   const { data, error } = await db
     .from('products')
     .insert(newRow)
+    .select('*')
 
   if (error) {
     throw createError({

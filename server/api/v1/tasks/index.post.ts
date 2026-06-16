@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   const { data, error } = await db.from('tasks').insert({
     title: body.title,
     tenant_id: user.tenantId
-  })
+  }).select('*')
 
   if (error) {
     await logAuditEvent(event, user, 'TASK_CREATE_FAILED', 'FAILED')

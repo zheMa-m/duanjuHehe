@@ -242,7 +242,9 @@ function getLocalMockDB() {
         return makeChain(tableName, data)
       },
       // ── 写入 ──────────────────────────────────────────────
-      insert: async (data: any) => {
+      insert: (data: any) => {
+        // 内部辅助：执行插入并返回结果
+        const doInsert = () => {
         if (tableName === 'tasks') {
           const newTask = {
             id: Math.random().toString(36).substring(2, 9),
@@ -328,6 +330,14 @@ function getLocalMockDB() {
           return { data: [newFeedback], error: null }
         }
         return { data: [data], error: null }
+        }
+
+        // 支持链式 .insert().select()：返回带 .select() 方法的对象
+        const result = doInsert()
+        return {
+          select: () => Promise.resolve(result),
+          then: (resolve: any) => resolve(result),
+        }
       },
       // ── 更新 ──────────────────────────────────────────────
       update: (data: any) => {
@@ -366,6 +376,30 @@ function getLocalMockDB() {
         return chain
       },
       upsert: async (data: any) => ({ data, error: null })
-    })
+    }),
+
+    // ── Storage 命名空间 Mock ─────────────────────────────────
+    storage: {
+      from: (bucket: string) => ({
+        upload: async (path: string, _fileBody: any) => {
+          return { data: { path }, error: null }
+        },
+        remove: async (_paths: string[]) => {
+          return { data: null, error: null }
+        },
+        getPublicUrl: (path: string) => {
+          return { data: { publicUrl: `/mock-storage/${bucket}/${path}` } }
+        },
+        createSignedUploadUrl: (path: string) => {
+          return { data: { signedUrl: `https://mock-storage.local/upload?bucket=${bucket}&path=${path}` }, error: null }
+        },
+        createSignedUrl: (path: string, expiresIn: number) => {
+          return { data: { signedUrl: `https://mock-storage.local/signed/${bucket}/${path}?exp=${expiresIn}` }, error: null }
+        },
+        list: async (_prefix: string, _opts?: any) => {
+          return { data: [], error: null }
+        },
+      })
+    }
   }
 }

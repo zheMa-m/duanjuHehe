@@ -8,10 +8,11 @@
 --
 -- 通用函数：
 --   set_updated_at()       — updated_at 自动刷新
+--   is_admin()             — SECURITY DEFINER 管理员身份检查（避免 RLS 递归）
 --   handle_new_user()      — Auth 触发器（OAuth email_verified 区分）
 --
 -- ⚠️  可选模块（按需启用，依赖本文件）：
---   0002_campaign_optional.sql    — 营销活动配置 + 预约注册
+--   0002_campaign_optional.sql    — 营销活动配置
 --   0003_ad_optional.sql          — 广告位 + 广告事件（依赖 campaigns）
 --   0004_feedback_optional.sql  — 用户评价
 --   0005_payment_optional.sql     — 商品 + 订单（支付模块）
@@ -60,6 +61,14 @@ CREATE TABLE IF NOT EXISTS "profiles" (
 ALTER TABLE "profiles" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "profiles" FORCE ROW LEVEL SECURITY;
 
+-- 管理员身份检查函数（SECURITY DEFINER 绕过 RLS，避免策略无限递归）
+CREATE OR REPLACE FUNCTION "is_admin"(uid uuid)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = uid AND role = 'admin'
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
 -- username 非空时唯一（部分索引，允许多行 NULL）
 CREATE UNIQUE INDEX IF NOT EXISTS "profiles_username_unique"
   ON "profiles"("username") WHERE "username" IS NOT NULL;
@@ -74,9 +83,7 @@ CREATE POLICY "profiles_update_own" ON "profiles"
 
 -- 管理员全权限
 CREATE POLICY "profiles_admin_all" ON "profiles"
-  FOR ALL TO authenticated USING (
-    EXISTS (SELECT 1 FROM "profiles" WHERE id = auth.uid() AND "role" = 'admin')
-  );
+  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_profiles_device_id" ON "profiles"("device_id") WHERE "device_id" IS NOT NULL;
@@ -112,9 +119,7 @@ CREATE POLICY "tasks_tenant_isolation" ON "tasks"
 
 -- 管理员全权限
 CREATE POLICY "tasks_admin_all" ON "tasks"
-  FOR ALL TO authenticated USING (
-    EXISTS (SELECT 1 FROM "profiles" WHERE id = auth.uid() AND "role" = 'admin')
-  );
+  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_tasks_tenant_id" ON "tasks"("tenant_id");
@@ -148,9 +153,7 @@ CREATE POLICY "activity_logs_user_select_own" ON "activity_logs"
 -- 管理员查看所有日志
 CREATE POLICY "activity_logs_admin_select" ON "activity_logs"
   FOR SELECT TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  USING ("is_admin"(auth.uid()));
 
 -- 认证用户写入自己的认证日志
 CREATE POLICY "activity_logs_auth_insert" ON "activity_logs"

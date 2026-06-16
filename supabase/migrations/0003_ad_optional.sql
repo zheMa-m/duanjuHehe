@@ -33,9 +33,7 @@ CREATE POLICY "ad_slots_public_select" ON "ad_slots"
 -- 管理员全权限
 CREATE POLICY "ad_slots_admin_all" ON "ad_slots"
   FOR ALL TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  USING ("is_admin"(auth.uid()));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_ad_slots_position_active" ON "ad_slots"("position", "is_active");
@@ -67,9 +65,7 @@ CREATE POLICY "ad_events_public_insert" ON "ad_events"
 -- 管理员可查看
 CREATE POLICY "ad_events_admin_select" ON "ad_events"
   FOR SELECT TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  USING ("is_admin"(auth.uid()));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_ad_events_slot_id"     ON "ad_events"("ad_slot_id");

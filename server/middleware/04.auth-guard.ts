@@ -14,6 +14,7 @@ const AUTH_REQUIRED_PREFIXES = [
   '/api/v1/auth/me',
   '/api/v1/auth/link',
   '/api/v1/auth/logout',
+  '/api/v1/storage/',
 ]
 
 // 公开接口（匿名或未登录均可访问）

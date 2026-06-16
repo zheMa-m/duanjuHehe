@@ -32,29 +32,37 @@ function parseRoute(apiDir, filePath) {
   const relative = path.relative(apiDir, filePath)
   const parts = relative.split(path.sep)
   
-  // 最后一项，例如: index.post.ts 或 [id].delete.ts
+  // 最后一项，例如: index.post.ts 或 [id].delete.ts 或 [...path].delete.ts
   const fileName = parts.pop()
   const fileStem = fileName.replace(/\.ts$/, '')
-  const stemParts = fileStem.split('.')
   
-  // 提取方法，如 post, get, delete, patch
+  // 提取方法：从文件名末尾提取 .post / .get / .delete 等
+  // 注意：catch-all 路由如 [...path].delete.ts 中文件名含 '.'，
+  // 需要从右侧匹配 HTTP 方法后缀
+  const methodMatch = fileStem.match(/\.(post|get|put|delete|patch)$/i)
   let method = 'GET'
-  let isDynamic = false
+  let routeFileName = fileStem
   
-  if (stemParts.length >= 2) {
-    method = stemParts[1].toUpperCase()
+  if (methodMatch) {
+    method = methodMatch[1].toUpperCase()
+    routeFileName = fileStem.slice(0, -methodMatch[0].length)
   }
   
   // 拼接路径
   let routePath = '/api/' + parts.join('/')
   
-  // 处理动态参数 [id] 等
-  const lastPart = stemParts[0]
-  if (lastPart.startsWith('[') && lastPart.endsWith(']')) {
+  // 处理动态参数 [id]、[...path] 等
+  let isDynamic = false
+  if (routeFileName.startsWith('[') && routeFileName.endsWith(']')) {
     isDynamic = true
-    routePath += '/mock-id-999' // 占位符作为测试参数
-  } else if (lastPart !== 'index') {
-    routePath += '/' + lastPart
+    // catch-all: [...path] -> 使用占位符
+    if (routeFileName.startsWith('[...')) {
+      routePath += '/mock-id-999/mock-file'
+    } else {
+      routePath += '/mock-id-999' // 普通动态参数 [id]
+    }
+  } else if (routeFileName !== 'index') {
+    routePath += '/' + routeFileName
   }
   
   return {

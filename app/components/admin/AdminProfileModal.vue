@@ -4,11 +4,70 @@ const emit = defineEmits<{
   saved: []
 }>()
 
+const props = defineProps<{
+  avatarUrl?: string | null
+}>()
+
 const newPassword = ref('')
 const confirmPassword = ref('')
 const profileError = ref('')
 const profileSuccess = ref('')
 const isSaving = ref(false)
+
+// 头像上传相关
+const { upload: uploadFile, getPublicUrl } = useStorage()
+const avatarInput = ref<HTMLInputElement | null>(null)
+const isUploading = ref(false)
+const currentAvatarUrl = ref(props.avatarUrl || null)
+
+const handleAvatarClick = () => {
+  avatarInput.value?.click()
+}
+
+const handleAvatarChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  // 校验文件类型
+  if (!file.type.startsWith('image/')) {
+    profileError.value = '请选择图片文件'
+    return
+  }
+
+  // 校验文件大小（2MB）
+  if (file.size > 2 * 1024 * 1024) {
+    profileError.value = '头像文件不能超过 2MB'
+    return
+  }
+
+  isUploading.value = true
+  profileError.value = ''
+
+  try {
+    const result = await uploadFile(file, 'avatars')
+
+    // 更新 profile 的 avatar_url
+    await $fetch('/api/v1/auth/profile', {
+      method: 'PATCH',
+      body: { avatar_url: result.publicUrl || result.path }
+    })
+
+    currentAvatarUrl.value = result.publicUrl || getPublicUrl('avatars', result.path)
+    profileSuccess.value = '头像更新成功！'
+    emit('saved')
+
+    setTimeout(() => {
+      profileSuccess.value = ''
+    }, 2000)
+  } catch (e: any) {
+    profileError.value = '头像上传失败: ' + (e.data?.statusMessage || e.message)
+  } finally {
+    isUploading.value = false
+    // 重置 input 以允许再次选择同一文件
+    if (avatarInput.value) avatarInput.value.value = ''
+  }
+}
 
 const handleSave = async () => {
   profileError.value = ''
@@ -90,6 +149,41 @@ const handleClose = () => {
         </div>
         <div v-if="profileSuccess" class="text-xs text-[#30d158] bg-[#30d158]/10 border border-[#30d158]/20 px-3 py-2 rounded-lg">
           ✔ {{ profileSuccess }}
+        </div>
+
+        <!-- 头像上传 -->
+        <div>
+          <label class="block text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 pl-1">头像</label>
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              @click="handleAvatarClick"
+              class="relative w-12 h-12 rounded-full border-2 border-white/10 hover:border-[#007aff] transition-all overflow-hidden flex items-center justify-center bg-white/[0.04] flex-shrink-0"
+              :disabled="isUploading"
+            >
+              <img
+                v-if="currentAvatarUrl"
+                :src="currentAvatarUrl"
+                alt="avatar"
+                class="w-full h-full object-cover"
+              />
+              <span v-else class="text-white/30 text-lg">👤</span>
+              <span v-if="isUploading" class="absolute w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
+                <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              </span>
+            </button>
+            <div class="text-[11px] text-white/30">
+              <p>点击更换头像</p>
+              <p>支持 JPG/PNG，最大 2MB</p>
+            </div>
+            <input
+              ref="avatarInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleAvatarChange"
+            />
+          </div>
         </div>
 
         <!-- 账号（只读展示） -->

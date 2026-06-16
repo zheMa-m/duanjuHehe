@@ -25,7 +25,7 @@ supabase --version
 1. 登录 [Supabase Dashboard](https://supabase.com/dashboard)
 2. 点击 **New Project**，填写：
    - **Name**：`hehe-app`
-   - **Database Password**：强密码（记录下来，后续要用） 0YBwaTKwFrrnvCFU
+   - **Database Password**：强密码（记录下来，后续要用） 
    - **Region**：选离用户最近的区域（如 `Southeast Asia (Singapore)` 或 `Northeast Asia (Tokyo)`）
    - **Pricing Plan**：Free 即可起步
 3. 等待项目初始化完成（约 2 分钟）
@@ -74,10 +74,11 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 | 顺序 | 文件 | 内容 | 类型 |
 |------|------|------|------|
 | 1 | `supabase/migrations/0001_core.sql` | profiles, tasks, activity_logs + 触发器函数 | 必选 |
-| 2 | `supabase/migrations/0002_campaign_optional.sql` | campaigns, campaign_registrations（营销模块） | ⚠️ 可选 |
+| 2 | `supabase/migrations/0002_campaign_optional.sql` | campaigns（营销模块） | ⚠️ 可选 |
 | 3 | `supabase/migrations/0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
 | 4 | `supabase/migrations/0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
 | 5 | `supabase/migrations/0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
+| 6 | `supabase/migrations/0006_storage_optional.sql` | Storage Bucket + RLS（avatars, campaign-assets, uploads） | ⚠️ 可选 |
 
 3. 每次执行一个文件，确认无报错后再执行下一个
 4. 执行完成后进入 **Table Editor**，确认所有表已创建：
@@ -87,12 +88,12 @@ profiles         ← 用户档案（含 admin 角色, OAuth email_verified 区�
 campaigns        ← 营销活动配置（⚠️ 可选，含 is_active/cta/cover_image/features）
 tasks            ← 业务任务（CRUD 示例 + tenant_id 行级隔离）
 activity_logs    ← 统一活动日志（auth/admin/system）
-campaign_registrations ← 预约注册（⚠️ 可选，与 campaigns 同模块）
 products         ← 商品（⚠️ 可选，tenant_id 行级隔离）
 orders            ← 支付订单（⚠️ 可选，含 orders_user_insert_own INSERT 策略）
 ad_slots         ← 广告位配置（⚠️ 可选）
 ad_events        ← 广告事件（⚠️ 可选）
 feedbacks        ← 用户评价（⚠️ 可选）
+storage.buckets  ← Supabase Storage Bucket（⚠️ 可选，avatars + campaign-assets + uploads）
 ```
 
 ### 4.2 方式二：Supabase CLI 自动推送（推荐后续迭代）
@@ -359,38 +360,76 @@ default_pool_size = 15
 
 ---
 
-## 11. 配置 Supabase Storage（头像上传）
+## 11. 配置 Supabase Storage（文件上传）
 
-项目的 `profiles` 表有 `avatar_url` 字段，管理后台支持用户头像上传。需要创建 Storage Bucket。
+项目内置 Supabase Storage 支持，提供三个 Bucket 覆盖全部业务场景。执行 `0006_storage_optional.sql` 迁移后自动创建。
 
-### 11.1 创建 Bucket
+### 11.1 Bucket 清单
 
-1. 进入 Supabase Dashboard → **Storage → New Bucket**
-2. 名称填 `avatars`
-3. **Public bucket**：勾选（头像需要公开访问）
-4. 点击 **Create bucket**
+| Bucket | 可见性 | 大小限制 | 允许类型 | 写入权限 |
+|--------|--------|----------|----------|----------|
+| `avatars` | 公开 | 2 MB | `image/*` | 认证用户写自己目录 |
+| `campaign-assets` | 公开 | 10 MB | `image/*`, `video/mp4` | 仅管理员 |
+| `uploads` | 私有 | 50 MB | 不限制 | 认证用户写自己目录 |
 
-### 11.2 设置存储策略
+### 11.2 路径规范与 RLS 隔离
 
-进入 `avatars` Bucket → **Policies**，添加：
+所有文件路径遵循 `{user_id}/{timestamp}_{filename}` 格式。RLS 策略通过 `(storage.foldername(name))[1] = auth.uid()::text` 校验路径首段与用户 uid 一致，实现行级隔离：
 
-```sql
--- 允许认证用户上传自己的头像
-CREATE POLICY "users_upload_own_avatar" ON storage.objects
-  FOR INSERT TO authenticated
-  WITH CHECK (
-    bucket_id = 'avatars'
-    AND (storage.foldername(name))[1] = auth.uid()::text
-  );
+- **avatars**：认证用户可上传/更新/删除自己目录下的文件，所有人可公开读取，管理员全权限
+- **campaign-assets**：仅管理员可写入/更新/删除，所有人可公开读取
+- **uploads**：认证用户仅可读写自己目录下的文件，管理员全权限
 
--- 允许所有人读取头像（公开 bucket 自动生效）
--- 如未设为 public bucket，需手动添加：
-CREATE POLICY "public_read_avatars" ON storage.objects
-  FOR SELECT TO public
-  USING (bucket_id = 'avatars');
+### 11.3 混合上传策略
+
+项目采用混合上传模式，兼顾安全与性能：
+
+| 文件大小 | 模式 | 流程 |
+|----------|------|------|
+| < 5 MB | 服务端中转 | 客户端 → `POST /api/v1/storage/upload` → Nitro 用 service_role 写入 Storage |
+| >= 5 MB | 客户端直传 | 客户端 → `POST /api/v1/storage/signed-url` 获取签名 → 直传 Supabase Storage |
+
+### 11.4 API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/storage/upload` | 服务端中转上传（小文件） |
+| POST | `/api/v1/storage/signed-url` | 生成直传签名 URL（大文件） |
+| DELETE | `/api/v1/storage/{bucket}/{user_id}/{filename}` | 删除文件 |
+| GET | `/api/v1/storage/signed-url/{bucket}/{user_id}/{filename}` | 获取私有文件临时访问 URL |
+
+所有端点均需认证（`@api-auth: user`），由 `04.auth-guard.ts` 中间件统一拦截。
+
+### 11.5 客户端 Composable
+
+前端使用 `useStorage()` composable 进行文件操作，自动选择上传模式：
+
+```typescript
+const { upload, remove, getSignedUrl, getPublicUrl } = useStorage()
+
+// 上传文件（自动判断大小，选择中转或直传）
+const result = await upload(file, 'avatars')
+console.log(result.path, result.publicUrl)
+
+// 删除文件
+await remove('avatars', 'user-id/1234_photo.png')
+
+// 获取私有文件临时访问链接
+const url = await getSignedUrl('uploads', 'user-id/5678_doc.pdf')
+
+// 获取公开文件 URL（无需 API 请求）
+const publicUrl = getPublicUrl('avatars', 'user-id/1234_photo.png')
 ```
 
-> 上传时文件路径格式为 `{user_id}/avatar.png`，确保每个用户只能覆盖自己的头像。
+### 11.6 手动创建 Bucket（备选方案）
+
+如果不使用迁移文件，也可以在 Supabase Dashboard 手动创建：
+
+1. 进入 **Storage → New Bucket**
+2. 分别创建 `avatars`（Public）、`campaign-assets`（Public）、`uploads`（Private）
+3. 在各 Bucket 的 **Policies** 页面，参照 `0006_storage_optional.sql` 中的 RLS 策略手动添加
+
+> 推荐使用迁移文件方式，确保本地与远程环境一致。
 
 ---
 
@@ -536,16 +575,12 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │ is_anonymous, email_verified, phone                     │
 │ RLS: 自己可读 + 管理员全权限                             │
 ├─────────────────────────────────────────────────────────┤
-│ campaigns ⚠️ 可选                                       │
+│ campaigns ⚠️ 可选                                          │
 │ subdomain (UNIQUE), title, subtitle, badge              │
 │ is_active, cta_text, cta_url, cover_image               │
 │ description, features (JSONB), sort_order               │
 │ color_from, color_to                                    │
 │ RLS: 公开读(is_active=true) + 管理员全权限               │
-├─────────────────────────────────────────────────────────┤
-│ campaign_registrations ⚠️ 可选                            │
-│ subdomain + email UNIQUE, source, ip, user_agent        │
-│ RLS: 管理员全权限 + 认证用户可查看自己的                 │
 ├─────────────────────────────────────────────────────────┤
 │ tasks                     │ activity_logs               │
 │ CRUD 示例 + tenant_id 隔离 │ 操作审计流水               │
@@ -562,6 +597,12 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │ feedbacks ⚠️ 可选                                       │
 │ rating (1-5), comment, is_approved, admin_reply         │
 │ RLS: 公开读(已审批) + 认证用户写 + 管理员全权限          │
+├─────────────────────────────────────────────────────────┤
+│ Storage Buckets ⚠️ 可选                                 │
+│ avatars (public, 2MB, image/*)                          │
+│ campaign-assets (public, 10MB, image/*+video, 管理员写) │
+│ uploads (private, 50MB, 不限类型, uid 路径隔离)         │
+│ RLS: foldername[1]=uid 隔离 + is_admin() 管理员全权限   │
 └─────────────────────────────────────────────────────────┘
 ```
 

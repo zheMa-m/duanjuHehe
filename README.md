@@ -58,7 +58,7 @@
 1.  **版本化数据库迁移脚本**：
     *   所有 SQL 迁移文件统一存放在 `supabase/migrations/` 目录下，按版本号递增命名：
         *   `0001_core.sql` — 核心基础表（`profiles`、`tasks`、`activity_logs`）+ 触发器函数（必选）
-        *   `0002_campaign_optional.sql` — 营销活动配置 + 预约注册（`campaigns`、`campaign_registrations`）（⚠️ 可选）
+        *   `0002_campaign_optional.sql` — 营销活动配置（`campaigns`）（⚠️ 可选）
         *   `0003_ad_optional.sql` — 广告变现（`ad_slots`、`ad_events`）（⚠️ 可选）
         *   `0004_feedback_optional.sql` — 用户反馈与评价（`feedbacks`）（⚠️ 可选）
         *   `0005_payment_optional.sql` — 支付模块（`products`、`orders`）（⚠️ 可选）

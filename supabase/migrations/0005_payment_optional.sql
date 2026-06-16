@@ -37,9 +37,7 @@ CREATE POLICY "products_tenant_isolation" ON "products"
 
 -- 管理员全权限
 CREATE POLICY "products_admin_all" ON "products"
-  FOR ALL TO authenticated USING (
-    EXISTS (SELECT 1 FROM "profiles" WHERE id = auth.uid() AND "role" = 'admin')
-  );
+  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_products_tenant_id"  ON "products"("tenant_id");
@@ -84,9 +82,7 @@ CREATE POLICY "orders_user_insert_own" ON "orders"
 -- 管理员全权限
 CREATE POLICY "orders_admin_all" ON "orders"
   FOR ALL TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  USING ("is_admin"(auth.uid()));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_orders_user_id"            ON "orders"("user_id");

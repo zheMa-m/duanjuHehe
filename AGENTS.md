@@ -84,6 +84,7 @@ scripts/         # CLI generators and test probes
 ## Database
 
 - All tables **must** have RLS enabled and forced (`ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY`)
+- Admin check in RLS policies **must** use `is_admin(auth.uid())` — never inline `EXISTS` subqueries on profiles (causes infinite recursion)
 - SQL migrations in `supabase/migrations/`, numbered sequentially (0001, 0002, ...)
 - List queries capped at `pageSize <= 100`
 - Stats APIs must use Materialized Views or pre-aggregated tables — no in-memory aggregation on >1000 rows

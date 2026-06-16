@@ -38,9 +38,7 @@ CREATE POLICY "feedbacks_auth_insert" ON "feedbacks"
 -- 管理员全权限（含审批、回复、删除）
 CREATE POLICY "feedbacks_admin_all" ON "feedbacks"
   FOR ALL TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
+  USING ("is_admin"(auth.uid()));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_feedbacks_campaign"   ON "feedbacks"("campaign_subdomain");
