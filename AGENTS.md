@@ -126,12 +126,20 @@ Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashb
 
 ## OpenAPI Documentation
 
-Nitro’s built-in OpenAPI 3.1.0 support is enabled. Every route handler has a `defineRouteMeta` block with full JSON Schema metadata.
+Nitro's built-in OpenAPI 3.1.0 support is enabled for **both dev and production**. Every route handler has a `defineRouteMeta` block with full JSON Schema metadata.
 
-**Dev endpoints (auto-generated):**
+**Endpoints (auto-generated):**
 - `/_openapi.json` — Raw OpenAPI 3.1.0 spec
 - `/_scalar` — Scalar interactive API reference (purple theme)
 - `/_swagger` — Swagger UI
+
+**Authentication (production only):**
+- Dev mode: auto-allow, no auth needed
+- Production: requires `OPENAPI_TOKEN` env var (set in `.env` + Vercel)
+- Access via: `?token=<OPENAPI_TOKEN>`, `Authorization: Bearer <OPENAPI_TOKEN>`, or cookie `openapi_token`
+- Without token: 401 Unauthorized
+
+**Example:** `https://hehe-app-tau.vercel.app/_swagger?token=<OPENAPI_TOKEN>`
 
 **Tag groups:** Auth, Products, Tasks, Payments, Orders, Ads, Campaigns, Feedback, User, Admin Tasks, Admin Orders, Admin Campaigns, Admin Ad Slots, Admin APM, Admin Audit, Admin Revenue, Admin Profile
 
