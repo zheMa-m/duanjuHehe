@@ -22,7 +22,7 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES (
   'avatars', 'avatars', true,
   2097152,   -- 2 MB
-  'image/*'
+  ARRAY['image/png','image/jpeg','image/gif','image/webp']
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 认证用户上传到自己目录（路径第一段 = uid）
@@ -69,7 +69,7 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES (
   'campaign-assets', 'campaign-assets', true,
   10485760,  -- 10 MB
-  'image/*,video/mp4'
+  ARRAY['image/png','image/jpeg','image/gif','image/webp','video/mp4']
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 仅管理员可上传
