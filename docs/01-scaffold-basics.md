@@ -139,6 +139,7 @@ ROOT_DOMAIN=yourdomain.localhost
 - 链式查询：`.eq().order().single()`
 - 聚合统计：`{ count: 'exact', head: true }`
 - CRUD 操作：`insert/update/delete/upsert`
+- Insert 链式返回：`.insert(data).select('*')` 返回插入的行（与 Supabase JS Client 一致）
 - Auth 模拟：`signUp/signInWithPassword/signInWithOAuth/signOut`
 
 设置 `MOCK_DB=true` 即可完全离线开发，无需 Supabase 物理数据库。
@@ -207,13 +208,14 @@ npm run check
 
 | 文件 | 内容 | 类型 |
 |------|------|------|
-| `0001_core.sql` | profiles, tasks, activity_logs + 触发器函数 | 必选 |
+| `0001_core.sql` | profiles, tasks, activity_logs + `is_admin()` 函数 + 触发器函数 | 必选 |
 | `0002_campaign_optional.sql` | campaigns（营销模块） | ⚠️ 可选 |
 | `0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
 | `0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
 | `0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
+| `0006_storage_optional.sql` | Storage Bucket + RLS（avatars, campaign-assets, uploads） | ⚠️ 可选 |
 
-所有表必须开启 RLS（`ENABLE ROW LEVEL SECURITY`），数据行级隔离。
+所有表必须开启 RLS（`ENABLE ROW LEVEL SECURITY`）+ `FORCE ROW LEVEL SECURITY`，数据行级隔离。管理员权限策略统一使用 `is_admin(auth.uid())` SECURITY DEFINER 函数，避免 FORCE RLS 下的无限递归。
 
 > **完整接入指南**：从 Mock DB 切换到真实 Supabase 的详细操作步骤见 [02-supabase-integration.md](./02-supabase-integration.md)
 

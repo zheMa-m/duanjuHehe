@@ -39,7 +39,7 @@ server/
     v1/          # Public/user endpoints — auth via Bearer header or Cookie
   middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard
   utils/         # Server utilities: db.ts, auth.ts, payments.ts, ads.ts, ip.ts, logger.ts, response.ts
-supabase/migrations/  # Versioned SQL migrations (0001_core → 0005_payment_optional)
+supabase/migrations/  # Versioned SQL migrations (0001_core → 0006_storage_optional)
 docs/            # Core architecture documentation (9 files, incl. Supabase, Vercel, GitHub & Cloudflare guides)
 design/            # Platform design system specs (DESIGN-CLIENT.md, DESIGN-ADMIN.md, DESIGN-H5.md)
 scripts/         # CLI generators and test probes
@@ -152,5 +152,6 @@ Nitro’s built-in OpenAPI 3.1.0 support is enabled. Every route handler has a `
 
 Set `MOCK_DB=true` for offline development. The in-memory adapter (`server/utils/db.ts`) supports:
 - Chain queries: `.eq().order().single()`
+- Insert with select: `.insert(data).select('*')` returns inserted row(s)
 - Aggregation: `{ count: 'exact', head: true }`
 - Auth simulation: `signUp / signInWithPassword / signInWithOAuth / signOut`

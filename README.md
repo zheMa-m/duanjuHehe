@@ -13,7 +13,7 @@
     *   **管理员接口 (`/api/admin/**`)**：由前置中间件自动拦截，无条件执行管理员断言 `assertAdmin` 保护。
     *   **业务接口 (`/api/v1/**`)**：执行 `assertUser` 用户态断言，并在数据查询中追加项目数据隔离（基于用户 ID 的行级安全校验）。
 3.  **开发期 MockDB 沙盒模式**：
-    *   通过全局 `process.env.MOCK_DB === 'true'` 开箱即用，在 Node 内存中模拟数据增删改查。无需繁琐的云数据库配置，立即可进入前端逻辑与鉴权测试开发。在生产环境中无缝切换至真实的 Supabase 物理云数据库。
+    *   通过全局 `process.env.MOCK_DB === 'true'` 开箱即用，在 Node 内存中模拟数据增删改查。无需繁琐的云数据库配置，立即可进入前端逻辑与鉴权测试开发。在生产环境中无缝切换至真实的 Supabase 物理云数据库。支持 `.insert().select('*')` 链式调用，与 Supabase JS Client API 保持一致。
 4.  **多域名重写与分流路由 (Subdomain Routing)**：
     *   内建 `server/middleware/01.subdomain-rewrite.ts` 中间件，自动根据请求 Host 解析，把主域名、`admin` 子域名、`api` 子域名和普通的活动营销子域名（如 `ai.yourdomain.localhost`）分别在服务端静默重写路由到对应页面目录。零跨域配置、零额外部署成本即可掌握一站式多端域名路由网关。
 5.  **多语言国际化 (i18n)**：
@@ -49,6 +49,11 @@
 *   **高端拟真与微交互**：内置苹果拟物手机外壳框架，配合高端的磨砂玻璃与背景渐变光圈微动画。在登记表单提交成功后，动态展现出具有随机编号和赛博风格的发光电子票券，提升用户留存。
 *   **多语言支持**：H5 页面全量接入 i18n，表单 placeholder、按钮文案、成功提示、评价区文案等均支持中英文自动切换，适配海外用户访问场景。
 
+### 6. Supabase Storage 文件存储
+*   **三个 Bucket 覆盖全业务场景**：`avatars`（用户头像，公开读，2MB 限制）、`campaign-assets`（营销素材，仅管理员写，10MB 限制）、`uploads`（私有文件，认证用户读写自己目录，50MB 不限类型）。
+*   **RLS 行级隔离**：通过路径首段 `foldername[1] = auth.uid()::text` 校验实现用户目录隔离，管理员使用 `is_admin()` SECURITY DEFINER 函数获得全权限。
+*   **混合上传策略**：小文件（< 5MB）走服务端中转（Nitro + service_role），大文件（≥ 5MB）走客户端直传（Signed URL），兼顾安全与性能。
+
 ---
 
 ## 真实 Supabase 数据库集成
@@ -57,12 +62,14 @@
 
 1.  **版本化数据库迁移脚本**：
     *   所有 SQL 迁移文件统一存放在 `supabase/migrations/` 目录下，按版本号递增命名：
-        *   `0001_core.sql` — 核心基础表（`profiles`、`tasks`、`activity_logs`）+ 触发器函数（必选）
+        *   `0001_core.sql` — 核心基础表（`profiles`、`tasks`、`activity_logs`）+ `is_admin()` 函数 + 触发器函数（必选）
         *   `0002_campaign_optional.sql` — 营销活动配置（`campaigns`）（⚠️ 可选）
         *   `0003_ad_optional.sql` — 广告变现（`ad_slots`、`ad_events`）（⚠️ 可选）
         *   `0004_feedback_optional.sql` — 用户反馈与评价（`feedbacks`）（⚠️ 可选）
         *   `0005_payment_optional.sql` — 支付模块（`products`、`orders`）（⚠️ 可选）
+        *   `0006_storage_optional.sql` — Supabase Storage 文件存储（`avatars`、`campaign-assets`、`uploads` Bucket）（⚠️ 可选）
     *   最小部署只需执行 `0001_core.sql` 即可运行核心业务（用户认证 + 任务管理）。
+    *   **RLS 安全函数**：核心迁移内置 `is_admin(uuid)` SECURITY DEFINER 函数，所有管理员权限策略统一调用此函数，避免 `FORCE ROW LEVEL SECURITY` 下的无限递归问题。
 2.  **Cookie + Bearer 双模式鉴权**：
     *   在真实生产环境下，鉴权中间件 [02.auth.ts](./server/middleware/02.auth.ts) 支持从 Bearer Header 或 Cookie（`sb-access-token`）中提取 JWT 令牌，同时联合 profiles 数据库表对用户权限角色进行最终校验。H5 移动端走 Cookie、App 端走 Bearer，匿名用户通过 `device-id` Cookie 标识。
 3.  **极简环境变量切换**：

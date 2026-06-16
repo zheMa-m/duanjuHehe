@@ -597,7 +597,7 @@ git push origin feature/xxx     # 自动生成预览环境
 - [ ] `MOCK_DB` 已设为 `false`
 - [ ] `ROOT_DOMAIN` 已设为生产域名
 - [ ] `01.subdomain-rewrite.ts` 已改为读取 `process.env.ROOT_DOMAIN`
-- [ ] Supabase 数据库迁移已执行（4 个 SQL 文件）
+- [ ] Supabase 数据库迁移已执行（0001~0006 共 6 个 SQL 文件）
 - [ ] Supabase 中已创建管理员账号
 - [ ] 域名已添加到 Vercel 并配置 DNS
 - [ ] 通配符域名 `*.yourdomain.com` 已添加（使用 Vercel Nameservers）

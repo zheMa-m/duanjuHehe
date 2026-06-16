@@ -73,7 +73,7 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 
 | 顺序 | 文件 | 内容 | 类型 |
 |------|------|------|------|
-| 1 | `supabase/migrations/0001_core.sql` | profiles, tasks, activity_logs + 触发器函数 | 必选 |
+| 1 | `supabase/migrations/0001_core.sql` | profiles, tasks, activity_logs + `is_admin()` 函数 + 触发器函数 | 必选 |
 | 2 | `supabase/migrations/0002_campaign_optional.sql` | campaigns（营销模块） | ⚠️ 可选 |
 | 3 | `supabase/migrations/0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
 | 4 | `supabase/migrations/0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
@@ -437,7 +437,7 @@ const publicUrl = getPublicUrl('avatars', 'user-id/1234_photo.png')
 
 当 `supabase db push` 失败时，通常是因为本地迁移文件和远程数据库状态不一致。
 
-### 9.1 查看同步状态
+### 12.1 查看同步状态
 
 ```bash
 supabase migration list
@@ -453,7 +453,7 @@ supabase migration list
          │    ✓    │ 0003_ad_optional         ← 本地缺失
 ```
 
-### 9.2 修复方法
+### 12.2 修复方法
 
 | 场景 | 命令 |
 |------|------|
@@ -462,7 +462,7 @@ supabase migration list
 | 远程已手动改过，标记为已应用 | `supabase migration repair --status applied <文件名前缀>` |
 | 远程标记为已应用但实际未执行 | `supabase migration repair --status reverted <文件名前缀>` |
 
-### 9.3 黄金法则
+### 12.3 黄金法则
 
 > **远程数据库一旦使用迁移管理后，禁止通过 SQL Editor 或 Table Editor 直接修改 schema。** 所有变更必须通过迁移文件 → `db push` 的标准流程，否则会导致 `db push` 报同步错误。
 
@@ -514,6 +514,9 @@ ALTER TABLE "table_name" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "table_name" FORCE ROW LEVEL SECURITY;
 
 -- 创建 RLS 策略
+-- 管理员全权限策略必须使用 is_admin() 函数，禁止 inline EXISTS 子查询（避免无限递归）
+CREATE POLICY "policy_name_admin" ON "table_name"
+  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
 CREATE POLICY "policy_name" ON "table_name"
   FOR SELECT USING (...);
 
@@ -573,14 +576,14 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │ username, role (user/admin), plan_status                │
 │ avatar_url, display_name, auth_provider, device_id      │
 │ is_anonymous, email_verified, phone                     │
-│ RLS: 自己可读 + 管理员全权限                             │
+│ RLS: 自己可读 + 管理员全权限(is_admin())                │
 ├─────────────────────────────────────────────────────────┤
 │ campaigns ⚠️ 可选                                          │
 │ subdomain (UNIQUE), title, subtitle, badge              │
 │ is_active, cta_text, cta_url, cover_image               │
 │ description, features (JSONB), sort_order               │
 │ color_from, color_to                                    │
-│ RLS: 公开读(is_active=true) + 管理员全权限               │
+│ RLS: 公开读(is_active=true) + 管理员全权限(is_admin()) │
 ├─────────────────────────────────────────────────────────┤
 │ tasks                     │ activity_logs               │
 │ CRUD 示例 + tenant_id 隔离 │ 操作审计流水               │
@@ -603,6 +606,10 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │ campaign-assets (public, 10MB, image/*+video, 管理员写) │
 │ uploads (private, 50MB, 不限类型, uid 路径隔离)         │
 │ RLS: foldername[1]=uid 隔离 + is_admin() 管理员全权限   │
+├─────────────────────────────────────────────────────────┤
+│ is_admin(uuid) SECURITY DEFINER STABLE 函数              │
+│ 以表 owner 身份执行，绕过 RLS，打破策略无限递归链       │
+│ 必须在 profiles 表创建后、RLS 策略创建前定义             │
 └─────────────────────────────────────────────────────────┘
 ```
 
