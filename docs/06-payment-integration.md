@@ -54,7 +54,7 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 
 ---
 
-## 4. 数据库表 (orders)
+## 4. 数据库表 — ⚠️ 可选模块（0005_payment_optional.sql）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -72,6 +72,7 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 ### RLS 策略
 
 - `orders_user_select_own`：用户只能查看自己的订单
+- `orders_user_insert_own`：认证用户可创建自己的订单（user_id = auth.uid）
 - `orders_admin_all`：管理员全权限
 
 ---

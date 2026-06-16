@@ -57,12 +57,12 @@
 
 1.  **版本化数据库迁移脚本**：
     *   所有 SQL 迁移文件统一存放在 `supabase/migrations/` 目录下，按版本号递增命名：
-        *   `0001_core.sql` — 核心基础表（`profiles`、`campaigns`、`tasks`、`activity_logs`）+ RLS 策略
-        *   `0002_user_auth.sql` — 移动端认证扩展（`profiles` 字段扩展、自动 profile 创建触发器）
-        *   `0003_payment.sql` — 支付模块（`products`、`orders`）
-        *   `0004_ad_optional.sql` — 广告变现（可选）（`ad_slots`、`ad_events`）
-        *   `0005_feedback.sql` — 用户反馈与评价（`feedbacks`）
-    *   在 Supabase SQL Editor 中按版本号顺序依次执行即可完成全量建表及 RLS Policy 数据隔离部署。
+        *   `0001_core.sql` — 核心基础表（`profiles`、`tasks`、`activity_logs`）+ 触发器函数（必选）
+        *   `0002_campaign_optional.sql` — 营销活动配置 + 预约注册（`campaigns`、`campaign_registrations`）（⚠️ 可选）
+        *   `0003_ad_optional.sql` — 广告变现（`ad_slots`、`ad_events`）（⚠️ 可选）
+        *   `0004_feedback_optional.sql` — 用户反馈与评价（`feedbacks`）（⚠️ 可选）
+        *   `0005_payment_optional.sql` — 支付模块（`products`、`orders`）（⚠️ 可选）
+    *   最小部署只需执行 `0001_core.sql` 即可运行核心业务（用户认证 + 任务管理）。
 2.  **Cookie + Bearer 双模式鉴权**：
     *   在真实生产环境下，鉴权中间件 [02.auth.ts](./server/middleware/02.auth.ts) 支持从 Bearer Header 或 Cookie（`sb-access-token`）中提取 JWT 令牌，同时联合 profiles 数据库表对用户权限角色进行最终校验。H5 移动端走 Cookie、App 端走 Bearer，匿名用户通过 `device-id` Cookie 标识。
 3.  **极简环境变量切换**：

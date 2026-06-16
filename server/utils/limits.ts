@@ -1,6 +1,6 @@
 import { H3Event } from 'h3'
 import { getDB } from './db'
-import { sendError } from './response'
+import { throwError } from './response'
 
 /**
  * 校验项目资源配额限制
@@ -20,7 +20,7 @@ export async function checkTenantLimit(
     .single()
 
   if (profileError || !profile) {
-    return sendError(400, 'Failed to resolve user project profile')
+    return throwError(400, 'Failed to resolve user project profile')
   }
 
   const planStatus = profile.plan_status || 'free'
@@ -39,7 +39,7 @@ export async function checkTenantLimit(
     const currentCount = countError ? 0 : (count ?? 0)
 
     if (currentCount >= limit) {
-      return sendError(
+      return throwError(
         403,
         `Resource limit reached: Current plan [${planStatus.toUpperCase()}] allows up to ${limit} tasks. Upgrade to increase quota.`
       )

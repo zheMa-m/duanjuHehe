@@ -71,27 +71,28 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 1. 打开 Supabase Dashboard → **SQL Editor**
 2. 按版本号顺序依次执行迁移文件：
 
-| 顺序 | 文件 | 内容 |
-|------|------|------|
-| 1 | `supabase/migrations/0001_core.sql` | profiles, campaigns, tasks, activity_logs |
-| 2 | `supabase/migrations/0002_user_auth.sql` | profiles 扩展字段, 自动 profile 触发器 |
-| 3 | `supabase/migrations/0003_payment.sql` | products, orders |
-| 4 | `supabase/migrations/0004_ad_optional.sql` | ad_slots, ad_events（可选） |
-| 5 | `supabase/migrations/0005_feedback.sql` | feedbacks 评价表 |
+| 顺序 | 文件 | 内容 | 类型 |
+|------|------|------|------|
+| 1 | `supabase/migrations/0001_core.sql` | profiles, tasks, activity_logs + 触发器函数 | 必选 |
+| 2 | `supabase/migrations/0002_campaign_optional.sql` | campaigns, campaign_registrations（营销模块） | ⚠️ 可选 |
+| 3 | `supabase/migrations/0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
+| 4 | `supabase/migrations/0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
+| 5 | `supabase/migrations/0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
 
 3. 每次执行一个文件，确认无报错后再执行下一个
 4. 执行完成后进入 **Table Editor**，确认所有表已创建：
 
 ```
-profiles         ← 用户档案（含 admin 角色）
-campaigns        ← 营销活动配置
-tasks            ← 业务任务
+profiles         ← 用户档案（含 admin 角色, OAuth email_verified 区分）
+campaigns        ← 营销活动配置（⚠️ 可选，含 is_active/cta/cover_image/features）
+tasks            ← 业务任务（CRUD 示例 + tenant_id 行级隔离）
 activity_logs    ← 统一活动日志（auth/admin/system）
-products         ← 商品
-orders           ← 支付订单
-ad_slots         ← 广告位配置
-ad_events        ← 广告事件
-feedbacks        ← 用户评价
+campaign_registrations ← 预约注册（⚠️ 可选，与 campaigns 同模块）
+products         ← 商品（⚠️ 可选，tenant_id 行级隔离）
+orders            ← 支付订单（⚠️ 可选，含 orders_user_insert_own INSERT 策略）
+ad_slots         ← 广告位配置（⚠️ 可选）
+ad_events        ← 广告事件（⚠️ 可选）
+feedbacks        ← 用户评价（⚠️ 可选）
 ```
 
 ### 4.2 方式二：Supabase CLI 自动推送（推荐后续迭代）
@@ -128,13 +129,13 @@ supabase migration list
 H5 营销页面依赖 `campaigns` 表，在 SQL Editor 中执行：
 
 ```sql
-INSERT INTO campaigns (subdomain, title, subtitle, badge, color_from, color_to) VALUES
-('ai', '🤖 HEHE AI 协作者首发', '基于先进智能体的全自动化提效工作流上线。立即预约，锁定首月免费体验资格。', '限时 10,000 名', 'from-purple-600', 'to-indigo-600'),
-('cloud', '☁️ HEHE 云原生企业私有化', '一键输出物理隔离安全沙盒，专为合规与核心系统容灾设计。首发限时 7 折特惠。', '企业专属首发', 'from-blue-600', 'to-cyan-600'),
-('promo', '🚀 HEHE 全栈单仓极速版', '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。', '开发者特惠季', 'from-rose-600', 'to-orange-600');
+INSERT INTO campaigns (subdomain, title, subtitle, badge, color_from, color_to, is_active, cta_text, description, features) VALUES
+('ai', '🤖 HEHE AI 协作者首发', '基于先进智能体的全自动化提效工作流上线。立即预约，锁定首月免费体验资格。', '限时 10,000 名', 'from-purple-600', 'to-indigo-600', true, '立即预约', '基于先进智能体的全自动化提效工作流', '[{"icon":"⚡","text":"一键生成"},{"icon":"🔒","text":"安全沙盒"},{"icon":"🌐","text":"全球分发"}]'::jsonb),
+('cloud', '☁️ HEHE 云原生企业私有化', '一键输出物理隔离安全沙盒，专为合规与核心系统容灾设计。首发限时 7 折特惠。', '企业专属首发', 'from-blue-600', 'to-cyan-600', true, '立即预约', '专为合规与核心系统容灾设计', '[{"icon":"🛡️","text":"物理隔离"},{"icon":"📊","text":"实时监控"},{"icon":"🔄","text":"自动容灾"}]'::jsonb),
+('promo', '🚀 HEHE 全栈单仓极速版', '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。', '开发者特惠季', 'from-rose-600', 'to-orange-600', true, '立即预约', '单人全栈闭环交付', '[{"icon":"🧑‍💻","text":"单人交付"},{"icon":"💰","text":"降本提效"},{"icon":"🚀","text":"极速上线"}]'::jsonb);
 ```
 
-### 5.2 商品数据（支付功能需要）
+### 5.2 商品数据（⚠️ 可选，支付功能需要）
 
 ```sql
 -- 种子数据专用 tenant 占位 ID（后续创建管理员时使用此 ID）
@@ -408,9 +409,9 @@ supabase migration list
 ```
   LOCAL  │ REMOTE  │ TIME (UTC)
   ───────┼─────────┼──────────────────
-    ✓    │    ✓    │ 0001_init
-    ✓    │         │ 0002_user_auth      ← 远程未应用
-         │    ✓    │ 0003_monetization   ← 本地缺失
+    ✓    │    ✓    │ 0001_core
+    ✓    │         │ 0002_campaign_optional  ← 远程未应用
+         │    ✓    │ 0003_ad_optional         ← 本地缺失
 ```
 
 ### 9.2 修复方法
@@ -469,8 +470,9 @@ CREATE TABLE IF NOT EXISTS "table_name" (
   "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 启用 RLS（必须）
+-- 启用 RLS + FORCE（必须）
 ALTER TABLE "table_name" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "table_name" FORCE ROW LEVEL SECURITY;
 
 -- 创建 RLS 策略
 CREATE POLICY "policy_name" ON "table_name"
@@ -524,6 +526,7 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │  auth.users (Supabase 内置)                             │
 └────────────┬────────────────────────────────────────────┘
              │ handle_new_user() 触发器自动创建
+             │ （区分 OAuth email_verified=TRUE）
              ▼
 ┌─────────────────────────────────────────────────────────┐
 │ profiles                                                │
@@ -533,28 +536,30 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │ is_anonymous, email_verified, phone                     │
 │ RLS: 自己可读 + 管理员全权限                             │
 ├─────────────────────────────────────────────────────────┤
-│ campaigns                                               │
+│ campaigns ⚠️ 可选                                       │
 │ subdomain (UNIQUE), title, subtitle, badge              │
+│ is_active, cta_text, cta_url, cover_image               │
+│ description, features (JSONB), sort_order               │
 │ color_from, color_to                                    │
-│ RLS: 公开读 + 管理员全权限                               │
+│ RLS: 公开读(is_active=true) + 管理员全权限               │
 ├─────────────────────────────────────────────────────────┤
-│ tasks                     │ products                    │
-│ tenant_id (用户隔离)       │ tenant_id (用户隔离)        │
-│ RLS: tenant_id = uid      │ RLS: tenant_id = uid       │
+│ campaign_registrations ⚠️ 可选                            │
+│ subdomain + email UNIQUE, source, ip, user_agent        │
+│ RLS: 管理员全权限 + 认证用户可查看自己的                 │
 ├─────────────────────────────────────────────────────────┤
-│ orders                    │ ad_slots                    │
+│ tasks                     │ activity_logs               │
+│ CRUD 示例 + tenant_id 隔离 │ 操作审计流水               │
+│ RLS: tenant_id = uid      │ RLS: 管理员只读            │
+├─────────────────────────────────────────────────────────┤
+│ orders ⚠️ 可选              │ ad_slots ⚠️ 可选            │
 │ user_id, amount, status   │ position, ad_config (JSONB) │
-│ RLS: 自己可读 + 管理员     │ RLS: 公开读 + 管理员全权限  │
+│ RLS: 自己读+写 + 管理员   │ RLS: 公开读 + 管理员全权限  │
 ├─────────────────────────────────────────────────────────┤
-│ ad_events                 │ activity_logs               │
-│ impression/click 追踪      │ 按日收入汇总               │
-│ RLS: 公开写 + 管理员读     │ RLS: 管理员只读            │
+│ products ⚠️ 可选            │ ad_events ⚠️ 可选          │
+│ tenant_id 行级隔离          │ impression/click 追踪      │
+│ RLS: tenant_id = uid       │ RLS: 公开写 + 管理员读     │
 ├─────────────────────────────────────────────────────────┤
-│ activity_logs             │ feedbacks                   │
-│ 操作审计流水               │ 登录日志                   │
-│ RLS: 管理员只读            │ RLS: 自己读 + 管理员读     │
-├─────────────────────────────────────────────────────────┤
-│ feedbacks                                               │
+│ feedbacks ⚠️ 可选                                       │
 │ rating (1-5), comment, is_approved, admin_reply         │
 │ RLS: 公开读(已审批) + 认证用户写 + 管理员全权限          │
 └─────────────────────────────────────────────────────────┘

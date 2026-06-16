@@ -26,9 +26,9 @@ export function sendSuccess<T = any>(
 }
 
 /**
- * 统一错误拦截抛出器 (Nuxt 标准异常)
+ * 统一错误拦截抛出器（命名 throwError 避免与 h3 内置 sendError 冲突）
  */
-export function sendError(
+export function throwError(
   statusCode: number, 
   message: string, 
   details: any = null

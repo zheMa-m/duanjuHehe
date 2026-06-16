@@ -44,7 +44,7 @@ profiles 表自动创建 → orders 表 user_id 衔接
 
 ## 3. 数据库设计
 
-### profiles 表扩展字段 (0002_user_auth.sql)
+### profiles 表字段 (0001_core.sql)
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -73,7 +73,7 @@ profiles 表自动创建 → orders 表 user_id 衔接
 
 ### 自动 Profile 创建触发器
 
-`handle_new_user()` 函数在 `auth.users` INSERT 时自动触发，从 `raw_user_meta_data` 提取 username/display_name/provider 写入 profiles 表。
+`handle_new_user()` 函数在 `auth.users` INSERT 时自动触发，从 `raw_user_meta_data` 提取 username/display_name/provider 写入 profiles 表。OAuth 用户（google/facebook/apple）自动设置 `email_verified=TRUE`，邮箱注册用户设为 `FALSE`。
 
 ---
 

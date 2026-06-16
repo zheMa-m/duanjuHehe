@@ -40,7 +40,7 @@
 ## 4. 目录结构
 
 ```
-hehe-saas/
+hehe-app/
 ├── app/
 │   ├── components/
 │   │   ├── admin/         # 管理后台组件（局部导入）
@@ -205,13 +205,13 @@ npm run check
 
 迁移文件放在 `supabase/migrations/` 目录，按版本号命名：
 
-| 文件 | 内容 |
-|------|------|
-| `0001_core.sql` | profiles, campaigns, tasks, activity_logs |
-| `0002_user_auth.sql` | profiles 扩展, 自动 profile 触发器 |
-| `0003_payment.sql` | products, orders |
-| `0004_ad_optional.sql` | ad_slots, ad_events（可选） |
-| `0005_feedback.sql` | feedbacks 评价表 |
+| 文件 | 内容 | 类型 |
+|------|------|------|
+| `0001_core.sql` | profiles, tasks, activity_logs + 触发器函数 | 必选 |
+| `0002_campaign_optional.sql` | campaigns, campaign_registrations（营销模块） | ⚠️ 可选 |
+| `0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
+| `0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
+| `0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
 
 所有表必须开启 RLS（`ENABLE ROW LEVEL SECURITY`），数据行级隔离。
 

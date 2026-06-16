@@ -39,7 +39,7 @@ server/
     v1/          # Public/user endpoints — auth via Bearer header or Cookie
   middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard
   utils/         # Server utilities: db.ts, auth.ts, payments.ts, ads.ts, ip.ts, logger.ts, response.ts
-supabase/migrations/  # Versioned SQL migrations (0001_init → 0004_feedback)
+supabase/migrations/  # Versioned SQL migrations (0001_core → 0005_payment_optional)
 docs/            # Core architecture documentation (9 files, incl. Supabase, Vercel, GitHub & Cloudflare guides)
 design/            # Platform design system specs (DESIGN-CLIENT.md, DESIGN-ADMIN.md, DESIGN-H5.md)
 scripts/         # CLI generators and test probes
@@ -58,7 +58,7 @@ scripts/         # CLI generators and test probes
 
 - **Composition API** with `<script setup lang="ts">` — no Options API
 - **Zod** for all API input validation — never trust client body
-- **sendSuccess()** for all success responses, **createError()** for all errors
+- **sendSuccess()** for all success responses, **throwError()** for all errors (renamed from sendError to avoid h3 conflict)
 - Error messages in English on server; translate at frontend display layer via `t()`
 - User-facing text in client/H5 must use i18n `t()` — never hardcode Chinese strings
 - Use `<NuxtImg>` instead of native `<img>` for all images
@@ -83,7 +83,7 @@ scripts/         # CLI generators and test probes
 
 ## Database
 
-- All tables **must** have RLS enabled (`ENABLE ROW LEVEL SECURITY`)
+- All tables **must** have RLS enabled and forced (`ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY`)
 - SQL migrations in `supabase/migrations/`, numbered sequentially (0001, 0002, ...)
 - List queries capped at `pageSize <= 100`
 - Stats APIs must use Materialized Views or pre-aggregated tables — no in-memory aggregation on >1000 rows

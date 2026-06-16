@@ -36,12 +36,12 @@ git commit -m "Initial commit"
 
 # 在 GitHub 上创建仓库并推送
 # 方法 1: 使用 gh CLI
-gh repo create hehe-saas --private
-git remote add origin https://github.com/你的用户名/hehe-saas.git
+gh repo create hehe-app --private
+git remote add origin https://github.com/你的用户名/hehe-app.git
 git push -u origin main
 
 # 方法 2: 手动在 github.com/new 创建仓库，然后：
-git remote add origin https://github.com/你的用户名/hehe-saas.git
+git remote add origin https://github.com/你的用户名/hehe-app.git
 git push -u origin main
 ```
 
@@ -68,7 +68,7 @@ cat .gitignore | grep ".env"
 
 1. 登录 [vercel.com/dashboard](https://vercel.com/dashboard)
 2. 点击 **Add New… → Project**
-3. 在 GitHub 仓库列表中找到 `hehe-saas`，点击 **Import**
+3. 在 GitHub 仓库列表中找到 `hehe-app`，点击 **Import**
 4. Vercel 会自动检测为 Nuxt 项目，显示配置页面
 
 ### 3.2 配置构建设置
@@ -402,7 +402,7 @@ git commit -m "Add new page"
 git push origin feature/new-page
 
 # 3. Vercel 自动生成预览环境
-# URL: https://hehe-saas-git-feature-new-page-你的用户名.vercel.app
+# URL: https://hehe-app-git-feature-new-page-你的用户名.vercel.app
 ```
 
 ### 11.2 创建 Pull Request

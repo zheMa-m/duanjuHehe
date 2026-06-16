@@ -169,7 +169,7 @@ git commit -m "feat: add login form UI"
 # 4. 推送到远程
 git push origin feature/add-login-page
 # → Vercel 自动生成预览环境
-# → 预览 URL: https://hehe-saas-git-feature-add-login-page-xxx.vercel.app
+# → 预览 URL: https://hehe-app-git-feature-add-login-page-xxx.vercel.app
 
 # 5. 验证预览环境无误后，创建 Pull Request
 
@@ -370,7 +370,7 @@ PR #15: feature/new-login
     ↓
 Vercel 自动构建并部署
     ↓
-预览 URL: https://hehe-saas-git-feature-new-login-yourname.vercel.app
+预览 URL: https://hehe-app-git-feature-new-login-yourname.vercel.app
     ↓
 Vercel Bot 在 PR 中评论预览链接和构建状态
     ↓

@@ -91,8 +91,7 @@
 |------|------|
 | `feedbacks_public_select` | 所有人可读取已审批评价 |
 | `feedbacks_auth_insert` | 认证用户可写入（user_id = auth.uid） |
-| `feedbacks_admin_update` | 管理员可回复/审批 |
-| `feedbacks_admin_all` | 管理员全权限 |
+| `feedbacks_admin_all` | 管理员全权限（含回复/审批/删除） |
 
 ### 服务端 API
 
