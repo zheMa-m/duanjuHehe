@@ -15,6 +15,24 @@ export default defineEventHandler((event) => {
 
   const ROOT_DOMAIN = process.env.ROOT_DOMAIN || 'yourdomain.localhost'
 
+  // ── Vercel / 无子域名环境：直接路径路由，不做 Host 重写 ──
+  // 当 Host 不匹配 ROOT_DOMAIN 且不是子域名格式时，
+  // 说明运行在 Vercel 等单域名平台，页面路由由 Nuxt pages 直接匹配
+  const isKnownHost =
+    host === ROOT_DOMAIN ||
+    host === `www.${ROOT_DOMAIN}` ||
+    host.endsWith(`.${ROOT_DOMAIN}`) ||
+    host.startsWith('admin.') ||
+    host.startsWith('api.')
+
+  if (!isKnownHost) {
+    // Vercel 等单域名环境：路径 /admin → (admin) 路由组, /h5/* → (h5) 路由组
+    // Nuxt route groups (xxx) 不出现在 URL 中，无需手动重写
+    return
+  }
+
+  // ── 本地开发 / 自定义域名环境：基于 Host 子域名重写 ──
+
   // 1. 官网首页路由重写
   if (host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) {
     if (!path.startsWith('/client')) {
