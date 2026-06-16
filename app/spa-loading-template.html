@@ -1,0 +1,32 @@
+<!-- Nuxt SPA Loading Template -->
+<!-- 此文件确保 ssr:false 路由在生产构建中正确生成 SPA HTML 壳 -->
+<div id="__nuxt">
+  <style>
+    .nuxt-spa-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0a0e1a;
+      z-index: 9999;
+    }
+    .nuxt-spa-loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: nuxt-spa-spin 0.8s linear infinite;
+    }
+    @keyframes nuxt-spa-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <div class="nuxt-spa-loading">
+    <div class="nuxt-spa-loading-spinner"></div>
+  </div>
+</div>

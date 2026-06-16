@@ -1,3 +1,12 @@
+<script setup>
+import { inject } from '@vercel/analytics'
+
+// 仅在生产环境注入 Vercel Analytics
+if (import.meta.client && import.meta.env.PROD) {
+  inject()
+}
+</script>
+
 <template>
   <div class="app-root">
     <NuxtPage />
