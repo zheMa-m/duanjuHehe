@@ -48,7 +48,7 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ['@unocss/nuxt', '@nuxt/image', '@nuxtjs/i18n'],
+  modules: ['@unocss/nuxt', '@nuxt/image', '@nuxtjs/i18n', '@vercel/analytics'],
 
   i18n: {
     restructureDir: '.',
