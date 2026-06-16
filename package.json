@@ -26,7 +26,6 @@
   },
   "devDependencies": {
     "@nuxt/image": "^2.0.0",
-    "@oxc-parser/binding-darwin-arm64": "^0.136.0",
     "@unocss/nuxt": "^66.7.2",
     "concurrently": "^8.2.2",
     "typescript": "^5.5.2",
