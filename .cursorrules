@@ -1,0 +1,19 @@
+# ======================================================================
+# Cursor 专属规则兜底 — 核心指令已迁移至 AGENTS.md（跨工具通用标准）
+# AGENTS.md 被 Claude Code / Cursor / Copilot / Gemini / Qoder 等自动读取
+# 本文件仅保留 Cursor 特有功能所需的补充规则
+# ======================================================================
+
+## 通用指令
+→ 请优先阅读项目根目录的 AGENTS.md，那里包含完整的项目规范。
+
+## Cursor 补充约束
+- 所有 API 输入必须通过 Zod schema 校验，禁止直接信任客户端 body
+- 所有 IP 读取必须使用 getClientRealIP(event)，严禁直接使用 getRequestIP()
+- 前台/后台/API 三层必须物理隔离，严禁样式污染与安全越权
+- 管理端组件必须放在 app/components/admin/ 并使用局部导入（非 auto-import）
+- H5 组件统一放在 app/components/h5/ 目录
+- 社交分享组件放在 app/components/shared/ 目录
+- 广告位配置中的第三方 script 必须通过 CSP 白名单控制
+- 广告事件上报接口为公开接口，无需鉴权，但必须记录 IP 和 User-Agent
+- 新建 API 端点必须添加 defineRouteMeta({ openAPI: { ... } } as any) 元数据

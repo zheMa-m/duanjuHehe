@@ -1,0 +1,283 @@
+/**
+ * useAuth — 完整客户端认证状态管理
+ *
+ * 支持：Email/Password、Google/Facebook/Apple OAuth、匿名用户
+ * 双模式：Mock DB 环境走服务端 API，真实环境走 Supabase JS Client
+ */
+
+interface AuthUser {
+  id: string
+  email?: string
+  username?: string
+  displayName?: string
+  avatarUrl?: string
+  role: string
+  authProvider: string
+  isAnonymous: boolean
+}
+
+interface AuthSession {
+  accessToken: string
+  refreshToken: string
+  expiresAt: number
+}
+
+type OAuthProvider = 'google' | 'facebook' | 'apple'
+
+// Cookie 名称常量
+export const AUTH_COOKIE_NAME = 'sb-access-token'
+export const REFRESH_COOKIE_NAME = 'sb-refresh-token'
+export const DEVICE_COOKIE_NAME = 'device-id'
+
+// ── 工具函数 ──────────────────────────────────────────────────
+function setCookie(name: string, value: string, days = 7) {
+  if (typeof document === 'undefined') return
+  const expires = new Date(Date.now() + days * 864e5).toUTCString()
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1] || '') : null
+}
+
+function removeCookie(name: string) {
+  if (typeof document === 'undefined') return
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+}
+
+function generateDeviceId(): string {
+  const stored = getCookie(DEVICE_COOKIE_NAME)
+  if (stored) return stored
+  const id = `dev-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`
+  setCookie(DEVICE_COOKIE_NAME, id, 365)
+  return id
+}
+
+// ── 主 Composable ─────────────────────────────────────────────
+export function useAuth() {
+  const user = useState<AuthUser | null>('auth_user', () => null)
+  const session = useState<AuthSession | null>('auth_session', () => null)
+  const isLoggedIn = computed(() => !!user.value && !user.value.isAnonymous)
+  const isAnonymous = computed(() => !!user.value && user.value.isAnonymous)
+  const isAdmin = computed(() => user.value?.role === 'admin')
+  const deviceId = useState<string>('device_id', () => '')
+
+  // ── 同步 token 到 cookie ─────────────────────────────────
+  function syncTokenToCookie(accessToken: string, refreshToken?: string) {
+    setCookie(AUTH_COOKIE_NAME, accessToken, 1) // 1 day
+    if (refreshToken) setCookie(REFRESH_COOKIE_NAME, refreshToken, 30)
+  }
+
+  function clearCookies() {
+    removeCookie(AUTH_COOKIE_NAME)
+    removeCookie(REFRESH_COOKIE_NAME)
+  }
+
+  // ── Mock 模式：通过服务端 API ────────────────────────────
+  async function mockFetchUser() {
+    try {
+      const data = await $fetch<{ data: any }>('/api/v1/auth/me')
+      if (data?.data) {
+        user.value = mapProfileToUser(data.data)
+      }
+    } catch {
+      user.value = null
+    }
+  }
+
+  function mapProfileToUser(profile: any): AuthUser {
+    return {
+      id: profile.id,
+      email: profile.email || profile.username,
+      username: profile.username,
+      displayName: profile.display_name || profile.username,
+      avatarUrl: profile.avatar_url,
+      role: profile.role || 'user',
+      authProvider: profile.auth_provider || 'email',
+      isAnonymous: profile.is_anonymous || false,
+    }
+  }
+
+  // ── 邮箱注册 ────────────────────────────────────────────
+  async function signUpWithEmail(email: string, password: string, username?: string) {
+    // 通过服务端 API 注册（服务端调用 Supabase signUp + 创建 profile）
+    const res = await $fetch<{ data: any }>('/api/v1/auth/register', {
+      method: 'POST',
+      body: { email, password, username }
+    })
+
+    if (res?.data?.session) {
+      session.value = {
+        accessToken: res.data.session.access_token,
+        refreshToken: res.data.session.refresh_token,
+        expiresAt: res.data.session.expires_at,
+      }
+      syncTokenToCookie(res.data.session.access_token, res.data.session.refresh_token)
+    }
+
+    await refreshUser()
+    return res
+  }
+
+  // ── 邮箱登录 ────────────────────────────────────────────
+  async function signInWithEmail(email: string, password: string) {
+    const res = await $fetch<{ data: any }>('/api/v1/auth/login', {
+      method: 'POST',
+      body: { email, password }
+    })
+
+    if (res?.data?.session) {
+      session.value = {
+        accessToken: res.data.session.access_token,
+        refreshToken: res.data.session.refresh_token,
+        expiresAt: res.data.session.expires_at,
+      }
+      syncTokenToCookie(res.data.session.access_token, res.data.session.refresh_token)
+    }
+
+    await refreshUser()
+    return res
+  }
+
+  // ── 社交 OAuth 登录 ─────────────────────────────────────
+  async function signInWithOAuth(provider: OAuthProvider) {
+    const redirectTo = `${window.location.origin}/api/v1/auth/callback`
+    const res = await $fetch<{ data: any }>('/api/v1/auth/login', {
+      method: 'POST',
+      body: { provider, redirect_to: redirectTo }
+    })
+
+    if (res?.data?.url) {
+      // 跳转到 OAuth 授权页
+      window.location.href = res.data.url
+    }
+  }
+
+  // ── 匿名用户登录 ────────────────────────────────────────
+  async function signInAnonymously() {
+    if (!deviceId.value) deviceId.value = generateDeviceId()
+
+    const res = await $fetch<{ data: any }>('/api/v1/auth/login', {
+      method: 'POST',
+      body: { anonymous: true, device_id: deviceId.value }
+    })
+
+    if (res?.data?.session) {
+      session.value = {
+        accessToken: res.data.session.access_token,
+        refreshToken: res.data.session.refresh_token,
+        expiresAt: res.data.session.expires_at,
+      }
+      syncTokenToCookie(res.data.session.access_token, res.data.session.refresh_token)
+    }
+
+    await refreshUser()
+    return res
+  }
+
+  // ── 匿名用户绑定邮箱 ────────────────────────────────────
+  async function linkAnonymousToEmail(email: string, password: string) {
+    const res = await $fetch<{ data: any }>('/api/v1/auth/link', {
+      method: 'POST',
+      body: { email, password }
+    })
+
+    await refreshUser()
+    return res
+  }
+
+  // ── 匿名用户绑定社交账号 ────────────────────────────────
+  async function linkAnonymousToOAuth(provider: OAuthProvider) {
+    const redirectTo = `${window.location.origin}/api/v1/auth/callback?link=true`
+    const res = await $fetch<{ data: any }>('/api/v1/auth/login', {
+      method: 'POST',
+      body: { provider, redirect_to: redirectTo, link: true }
+    })
+
+    if (res?.data?.url) {
+      window.location.href = res.data.url
+    }
+  }
+
+  // ── 登出 ────────────────────────────────────────────────
+  async function signOut() {
+    try {
+      await $fetch('/api/v1/auth/logout', { method: 'POST' })
+    } catch { /* ignore */ }
+    clearCookies()
+    user.value = null
+    session.value = null
+  }
+
+  // ── 刷新用户信息 ────────────────────────────────────────
+  async function refreshUser() {
+    try {
+      const res = await $fetch<{ data: any }>('/api/v1/auth/me')
+      if (res?.data) {
+        user.value = mapProfileToUser(res.data)
+      } else {
+        user.value = null
+      }
+    } catch {
+      user.value = null
+    }
+  }
+
+  // ── 更新 profile ────────────────────────────────────────
+  async function updateProfile(data: { display_name?: string; avatar_url?: string; phone?: string }) {
+    const res = await $fetch<{ data: any }>('/api/v1/auth/profile', {
+      method: 'PATCH',
+      body: data
+    })
+    await refreshUser()
+    return res
+  }
+
+  // ── 初始化：从 cookie 恢复会话 ──────────────────────────
+  async function initAuth() {
+    deviceId.value = generateDeviceId()
+    const token = getCookie(AUTH_COOKIE_NAME)
+    if (token) {
+      await refreshUser()
+    }
+  }
+
+  return {
+    user: readonly(user),
+    session: readonly(session),
+    isLoggedIn,
+    isAnonymous,
+    isAdmin,
+    deviceId: readonly(deviceId),
+
+    signUpWithEmail,
+    signInWithEmail,
+    signInWithOAuth,
+    signInAnonymously,
+    linkAnonymousToEmail,
+    linkAnonymousToOAuth,
+    signOut,
+    refreshUser,
+    updateProfile,
+    initAuth,
+  }
+}
+
+// 兼容旧接口
+export function useUser() {
+  const auth = useAuth()
+  return {
+    user: computed(() => auth.user.value ? {
+      id: auth.user.value.id,
+      username: auth.user.value.username || auth.user.value.email || 'anonymous',
+      role: auth.user.value.role,
+      tenantId: auth.user.value.id,
+    } : null),
+    isLoggedIn: auth.isLoggedIn,
+    isAdmin: auth.isAdmin,
+    fetchUser: auth.refreshUser,
+    clearUser: auth.signOut,
+  }
+}

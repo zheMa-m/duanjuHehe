@@ -1,0 +1,36 @@
+{
+  "name": "hehe-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "check": "vue-tsc --noEmit",
+    "supabase:start": "supabase start",
+    "apm:monitor": "node scripts/test-supabase-connection.mjs",
+    "dev:all": "concurrently \"npm:supabase:start\" \"npm:dev\"",
+    "gen:types": "supabase gen types typescript --local > app/types/database.types.ts",
+    "test:api-safety": "node scripts/test-api-safety.mjs",
+    "test:supabase": "node scripts/test-supabase-connection.mjs"
+  },
+  "dependencies": {
+    "@nuxtjs/i18n": "^10.4.0",
+    "@supabase/supabase-js": "^2.43.4",
+    "nuxt": "^3.12.2",
+    "vue": "^3.4.31",
+    "vue-router": "^4.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@nuxt/image": "^2.0.0",
+    "@oxc-parser/binding-darwin-arm64": "^0.136.0",
+    "@unocss/nuxt": "^66.7.2",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.5.2",
+    "unocss": "^66.7.2",
+    "vue-tsc": "^2.0.22"
+  }
+}
