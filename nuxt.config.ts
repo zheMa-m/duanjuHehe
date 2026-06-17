@@ -50,6 +50,7 @@ export default defineNuxtConfig({
     '/admin/**': { ssr: false },
     // 营销 H5 页面走 ISR 短间隔，后台修改配置后前端秒级热更新
     '/h5/**': { isr: 600 },
+    '/h5-v2/**': { isr: 600 },
     // ── 客户端页面：ISR 3600s（(client) route group 不出现在 URL 中）──
     // 新增客户端页面时需同步注册到此列表
     '/': { isr: 3600 },

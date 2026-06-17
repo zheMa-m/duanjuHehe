@@ -3,19 +3,18 @@
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 import { assertAdmin } from '~~/server/utils/auth'
-import { getAdRevenueSummary } from '~~/server/utils/ads'
 
 defineRouteMeta({
   openAPI: {
     tags: ['Admin Revenue'],
     summary: '管理员：收入分析',
-    description: '聚合支付 + 广告的收入数据，包含每日明细、CTR 指标和收入快照。',
+    description: '支付收入数据分析，包含每日明细与收入快照。',
     security: [{ BearerAuth: [] }],
     parameters: [
       { in: 'query', name: 'days', schema: { type: 'integer', default: 30 }, description: '回溯天数（最大 365）' },
     ],
     responses: {
-      200: { description: '收入分析：totalPaymentRevenue、totalAdRevenue、dailyBreakdown、adMetrics' },
+      200: { description: '收入分析：totalPaymentRevenue、totalRevenue、dailyBreakdown' },
     },
   } as any,
 })
@@ -36,14 +35,11 @@ export default defineEventHandler(async (event) => {
   const paidOrders = (orders || [])
   const paymentRevenue = paidOrders.reduce((sum: number, o: any) => sum + (Number(o.amount) || 0), 0)
 
-  // 获取广告收入汇总
-  const adSummary = await getAdRevenueSummary(event, days)
-
   // 按天分组订单数据
-  const dailyMap = new Map<string, { payments: number; ads: number }>()
+  const dailyMap = new Map<string, { payments: number }>()
   for (const order of paidOrders) {
     const date = order.created_at?.split('T')[0] || 'unknown'
-    const existing = dailyMap.get(date) || { payments: 0, ads: 0 }
+    const existing = dailyMap.get(date) || { payments: 0 }
     existing.payments += Number(order.amount) || 0
     dailyMap.set(date, existing)
   }
@@ -55,13 +51,7 @@ export default defineEventHandler(async (event) => {
 
   return sendSuccess(event, {
     totalPaymentRevenue: Math.round(paymentRevenue * 100) / 100,
-    totalAdRevenue: adSummary.estimatedRevenue,
-    totalRevenue: Math.round((paymentRevenue + adSummary.estimatedRevenue) * 100) / 100,
-    adMetrics: {
-      impressions: adSummary.totalImpressions,
-      clicks: adSummary.totalClicks,
-      ctr: adSummary.ctr,
-    },
+    totalRevenue: Math.round(paymentRevenue * 100) / 100,
     dailyBreakdown,
     orderCount: paidOrders.length,
   }, 'Revenue data retrieved')

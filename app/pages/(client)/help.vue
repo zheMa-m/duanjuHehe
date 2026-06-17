@@ -110,11 +110,34 @@ const navigateToSearchResult = (id: string) => {
 }
 
 // ── Code copy ──
-const copyCode = async (el: HTMLElement) => {
-  const code = el.textContent || ''
-  await navigator.clipboard.writeText(code)
-  el.classList.add('copied')
-  setTimeout(() => el.classList.remove('copied'), 2000)
+const copyCode = async (event: MouseEvent) => {
+  const btn = event.currentTarget as HTMLElement
+  // 向上找最近的 .code-block 容器，再取其中的 pre 元素
+  const container = btn.closest('.code-block') as HTMLElement | null
+  const pre = container?.querySelector('pre') as HTMLElement | null
+  const text = pre?.textContent || ''
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    const original = btn.textContent
+    btn.textContent = '✓ 已复制'
+    btn.classList.add('copied')
+    setTimeout(() => {
+      btn.textContent = original
+      btn.classList.remove('copied')
+    }, 2000)
+  } catch {
+    // 降级方案：execCommand
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.cssText = 'position:fixed;opacity:0'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    btn.textContent = '✓ 已复制'
+    setTimeout(() => { btn.textContent = '复制代码' }, 2000)
+  }
 }
 
 // ── FAQ expand/collapse ──
@@ -147,8 +170,8 @@ const toggleFaq = (key: string) => {
 // ── Navigation ──
 const navSections = computed(() => [
   { group: 'overview', items: ['s0', 's1', 's2', 's3', 's4'] },
-  { group: 'infrastructure', items: ['s5', 's6', 's7', 's8', 's9'] },
-  { group: 'business', items: ['s10', 's11', 's12'] },
+  { group: 'infrastructure', items: ['s5', 's7', 's8', 's9'] },
+  { group: 'business', items: ['s10', 's12'] },
   { group: 'optional', items: ['s13'] },
   { group: 'faq', items: ['s14', 's15', 's16', 's17'] },
 ])
@@ -159,13 +182,11 @@ const sectionLabelMap: Record<string, string> = {
   's2': '目录结构与路由',
   's3': '环境变量',
   's4': '渲染策略对比',
-  's5': 'Supabase 集成',
-  's6': '数据库迁移',
-  's7': '认证体系',
+  's5': 'Supabase 集成与数据库迁移',
+  's7': 'Supabase OAuth 体系',
   's8': 'Vercel 部署',
   's9': 'GitHub 集成',
-  's10': '支付系统',
-  's11': '广告变现',
+  's10': 'Stripe 支付平台集成',
   's12': '社交分享与反馈',
   's13': 'Cloudflare 接入',
   's14': '本地开发',
@@ -246,7 +267,6 @@ const envRows = [
 const migrationRows = [
   ['0001_core.sql', '核心表（profiles, tasks, activity_logs, storage buckets） + is_admin() 函数', '必选'],
   ['0002_campaign_optional.sql', '营销活动表 campaigns', '可选'],
-  ['0003_ad_optional.sql', '广告位表 ad_slots + 广告事件表 ad_events', '可选'],
   ['0004_feedback_optional.sql', '用户评价表 feedbacks', '可选'],
   ['0005_payment_optional.sql', '商品表 products + 订单表 orders', '可选'],
 ]
@@ -268,17 +288,7 @@ INSERT INTO campaigns (subdomain, title, subtitle, badge, color_from, color_to, 
 INSERT INTO products (name, price, tenant_id) VALUES
 ('HEHE Pro 工具套件', 29.99, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'),
 ('HEHE Enterprise 全套方案', 299.00, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
-
--- 插入广告位种子数据（可选）
-INSERT INTO ad_slots (name, position, is_active, ad_provider, ad_config) VALUES
-('Top Header Banner', 'header_banner', true, 'custom', '{"html": "<div class=\\"ad-banner\\">Sponsored Content</div>", "width": 728, "height": 90}'::jsonb),
-('Footer Banner', 'footer_banner', true, 'adsense', '{"data-ad-client": "ca-pub-xxxx", "data-ad-slot": "1234567890"}'::jsonb),
-('Native Inline Ad', 'native_inline', true, 'custom', '{"html": "<div class=\\"native-ad\\">Promoted</div>"}'::jsonb);
-
--- 验证种子数据
-SELECT subdomain, title FROM campaigns;
-SELECT id, name, price FROM products;
-SELECT position, is_active FROM ad_slots;`
+`
 
 const migrationRuleItems = [
   '所有表必须启用 RLS + FORCE RLS',
@@ -397,25 +407,7 @@ const testCardRows = [
   ['4000000000003220', 'Visa', '需要 3D Secure'],
 ]
 
-const adSlotRows = [
-  ['homepage_banner', '首页横幅', '728×90 或 320×50'],
-  ['h5_top', 'H5 页顶部', '320×50'],
-  ['h5_bottom', 'H5 页底部', '320×50'],
-  ['sidebar', '侧边栏', '300×250'],
-]
 
-const adProviderItems = [
-  '`ad_slots` 表管理广告位配置（位置、尺寸、权重）',
-  '`ad_events` 表记录曝光和点击事件',
-  '前端通过 `useAdSlot` composable 获取广告位数据',
-  '支持多广告源轮播（权重分配）',
-]
-
-const adRlsItems = [
-  'ad_slots 表：所有人可读，管理员可写',
-  'ad_events 表：所有人可写入（记录曝光/点击）',
-  '管理员可查看所有广告事件统计',
-]
 
 const shareRows = [
   ['微信', 'weixin:// 协议', '微信内置浏览器自动识别'],
@@ -731,7 +723,7 @@ const faqData = [
             <div class="subsection">
               <h3>{{ '文档结构' }}</h3>
               <div class="doc-grid">
-                <div v-for="(doc, idx) in ([{num:'01', title:'定位与技术栈', desc:'平台边界、技术选型、渲染策略、快速启动、前置条件'},{num:'02', title:'目录结构与路由', desc:'目录结构、多域名路由、中间件执行链'},{num:'03', title:'环境变量', desc:'变量清单、安全红线、Mock DB 离线开发'},{num:'04', title:'渲染策略对比', desc:'SSR/ISR/SWR 全维度对比、选型决策树、性能数字'},{num:'05', title:'Supabase 集成', desc:'数据库创建、连接池、Storage、迁移执行、管理员创建'},{num:'06', title:'数据库迁移', desc:'迁移文件清单、种子数据、迁移规范、编写规范'},{num:'07', title:'认证体系', desc:'认证流程、Token 管理、中间件链、OAuth 配置'},{num:'08', title:'Vercel 部署', desc:'环境变量、域名配置、渲染策略、检查清单、预览部署'},{num:'09', title:'GitHub 集成', desc:'分支策略、CI/CD、分支保护、Actions 配置、PR 模板'},{num:'10', title:'支付系统', desc:'Stripe 集成、订单流程、Mock/生产双模式、Webhook'},{num:'11', title:'广告变现', desc:'广告位管理、曝光/点击统计、CSP 配置、收入估算'},{num:'12', title:'社交分享与反馈', desc:'6 大平台分享、用户评价系统、审批工作流'},{num:'13', title:'Cloudflare 接入', desc:'DNS 配置、SSL/TLS、安全功能、缓存规则'},{num:'14', title:'本地开发', desc:'快速开始、本地 Supabase、脚本说明、代码生成器'},{num:'15', title:'API 规范', desc:'统一响应格式、Zod 校验、鉴权声明、OpenAPI 文档'},{num:'16', title:'国际化配置', desc:'i18n 策略、语言检测、翻译文件结构、使用规范'},{num:'17', title:'常见问题', desc:'部署、数据库、认证、支付相关 FAQ'}] as any[])" :key="idx" class="doc-card">
+                <div v-for="(doc, idx) in ([{num:'01', title:'定位与技术栈', desc:'平台边界、技术选型、渲染策略、快速启动、前置条件'},{num:'02', title:'目录结构与路由', desc:'目录结构、多域名路由、中间件执行链'},{num:'03', title:'环境变量', desc:'变量清单、安全红线、Mock DB 离线开发'},{num:'04', title:'渲染策略对比', desc:'SSR/ISR/SWR 全维度对比、选型决策树、性能数字'},{num:'05', title:'Supabase 集成与数据库迁移', desc:'数据库创建、迁移执行、连接池、种子数据、Storage、管理员创建'},{num:'06', title:'Supabase OAuth 体系', desc:'邮箱+社交 OAuth 配置、Token 生命周期、中间件链、useAuth API'},{num:'08', title:'Vercel 部署', desc:'环境变量、域名配置、渲染策略、检查清单、预览部署'},{num:'09', title:'GitHub 集成', desc:'分支策略、CI/CD、分支保护、Actions 配置、PR 模板'},{num:'10', title:'支付系统', desc:'Stripe 集成、订单流程、Mock/生产双模式、Webhook'},{num:'12', title:'社交分享与反馈', desc:'6 大平台分享、用户评价系统、审批工作流'},{num:'13', title:'Cloudflare 接入', desc:'DNS 配置、SSL/TLS、安全功能、缓存规则'},{num:'14', title:'本地开发', desc:'快速开始、本地 Supabase、脚本说明、代码生成器'},{num:'15', title:'API 规范', desc:'统一响应格式、Zod 校验、鉴权声明、OpenAPI 文档'},{num:'16', title:'国际化配置', desc:'i18n 策略、语言检测、翻译文件结构、使用规范'},{num:'17', title:'常见问题', desc:'部署、数据库、认证、支付相关 FAQ'}] as any[])" :key="idx" class="doc-card">
                   <div class="doc-card-num">{{ doc.num }}</div>
                   <div class="doc-card-body">
                     <h4>{{ doc.title }}</h4>
@@ -798,7 +790,7 @@ const faqData = [
             <div class="subsection">
               <h3>{{ '快速启动' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ quickStartCode }}</code></pre>
               </div>
               <p>{{ 'Mock DB 模式（MOCK_DB=true）无需 Supabase 账号，所有数据存储在内存中，支持完整的 CRUD、Auth 模拟和链式查询，适合前端 UI 开发和快速原型验证。' }}</p>
@@ -842,7 +834,7 @@ const faqData = [
             <div class="subsection">
               <h3>{{ '目录结构' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>hehe-app/
 ├── app/
 │   ├── components/
@@ -1012,7 +1004,7 @@ const faqData = [
             <div class="subsection">
               <h3>{{ 'routeRules 配置速查' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>// nuxt.config.ts
 export default defineNuxtConfig({
   routeRules: {
@@ -1061,7 +1053,7 @@ export default defineNuxtConfig({
         <section id="s5" class="section">
           <div class="section-header">
             <div class="section-num">05</div>
-            <h2>{{ 'Supabase 集成' }}</h2>
+            <h2>{{ 'Supabase 集成与数据库迁移' }}</h2>
           </div>
           <div class="section-body">
             <div class="subsection">
@@ -1092,7 +1084,6 @@ export default defineNuxtConfig({
                   <div class="schema-box schema-opt"><div class="schema-title">products</div><div class="schema-desc">Products ⚠️</div></div>
                 </div>
                 <div class="schema-row">
-                  <div class="schema-box schema-opt"><div class="schema-title">ad_slots</div><div class="schema-desc">Ad slots ⚠️</div></div>
                   <div class="schema-box schema-opt"><div class="schema-title">ad_events</div><div class="schema-desc">Ad events ⚠️</div></div>
                   <div class="schema-box schema-opt"><div class="schema-title">feedbacks</div><div class="schema-desc">User reviews ⚠️</div></div>
                 </div>
@@ -1125,7 +1116,7 @@ export default defineNuxtConfig({
               <p>{{ '在 Supabase Dashboard → SQL Editor 中，按顺序复制粘贴迁移文件内容并执行。每次执行一个文件，确认无报错后再执行下一个。执行后进入 Table Editor 确认所有表已创建。' }}</p>
               <p><strong>{{ '方式二：Supabase CLI 自动推送（推荐）' }}</strong></p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>supabase login
 supabase link --project-ref &lt;your-project-ref&gt;
 supabase db push</code></pre>
@@ -1141,7 +1132,7 @@ supabase db push</code></pre>
               </ol>
               <p><strong>{{ '方式二：通过 SQL 快速设置' }}</strong></p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ adminSql }}</code></pre>
               </div>
             </div>
@@ -1215,7 +1206,7 @@ supabase db push</code></pre>
               <h3>{{ 'useStorage() Composable' }}</h3>
               <p>{{ '前端使用 useStorage() composable 进行文件操作，自动选择上传模式：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>const { upload, remove, getSignedUrl, getPublicUrl } = useStorage()
 
 // 上传文件（自动判断大小，选择中转或直传）
@@ -1245,7 +1236,7 @@ const publicUrl = getPublicUrl('avatars', 'user-id/1234_photo.png')</code></pre>
             <div class="subsection">
               <h3>{{ '本地 Supabase 开发环境' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code># 安装 Supabase CLI
 npm install -g supabase
 
@@ -1301,7 +1292,7 @@ supabase start
             <div class="subsection">
               <h3>{{ 'TypeScript 类型生成' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code># 生成 Supabase 数据库类型定义
 npm run gen:types
 
@@ -1320,7 +1311,7 @@ npm run gen:types
             <div class="subsection">
               <h3>{{ '快速参考命令' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code># 数据库连接测试
 npm run test:supabase
 
@@ -1350,73 +1341,11 @@ npm run gen:rls &lt;table&gt; [--admin]</code></pre>
         </section>
 
         <!-- ═══════ S5: Migrations ═══════ -->
-        <section id="s6" class="section">
-          <div class="section-header">
-            <div class="section-num">06</div>
-            <h2>{{ '数据库迁移' }}</h2>
-          </div>
-          <div class="section-body">
-            <div class="subsection">
-              <h3>{{ '迁移文件清单' }}</h3>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th v-for="col in (['文件', '内容', '类型'] as string[])" :key="col">{{ col }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(row, i) in migrationRows" :key="i">
-                      <td v-for="(cell, j) in row" :key="j">
-                        <code v-if="j === 0">{{ cell }}</code>
-                        <span v-else-if="j === 2" class="badge" :class="cell === '必选' || cell === 'Required' ? 'badge-green' : 'badge-orange'">{{ cell }}</span>
-                        <span v-else>{{ cell }}</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '执行迁移' }}</h3>
-              <p><strong>{{ '方式一（推荐首次）：在 Supabase Dashboard → SQL Editor 中按顺序执行迁移文件。' }}</strong></p>
-              <p><strong>{{ '方式二（推荐）：使用 Supabase CLI：' }}</strong></p>
-              <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
-                <pre><code>supabase login
-supabase link --project-ref &lt;your-project-ref&gt;
-supabase db push</code></pre>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '种子数据' }}</h3>
-              <p>{{ '迁移只创建表结构，不包含业务数据。H5 页面依赖 campaigns 表，切换真实数据库后必须手动插入种子数据。在 Supabase Dashboard → SQL Editor 中执行以下 SQL：' }}</p>
-              <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
-                <pre><code>{{ seedSql }}</code></pre>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '创建管理员' }}</h3>
-              <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
-                <pre><code>{{ adminSql }}</code></pre>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '迁移编写规范' }}</h3>
-              <ul>
-                <li v-for="(item, i) in migrationRuleItems" :key="i" v-html="item.replace(/`([^`]+)`/g, '<code>$1</code>')" />
-              </ul>
-            </div>
-          </div>
-        </section>
-
         <!-- ═══════ S6: Auth ═══════ -->
         <section id="s7" class="section">
           <div class="section-header">
-            <div class="section-num">07</div>
-            <h2>{{ '认证体系' }}</h2>
+            <div class="section-num">06</div>
+            <h2>{{ 'Supabase OAuth 体系' }}</h2>
           </div>
           <div class="section-body">
             <div class="subsection">
@@ -1507,7 +1436,7 @@ supabase db push</code></pre>
               <h3>{{ 'handle_new_user 触发器' }}</h3>
               <p>{{ '新用户注册时，Supabase 自动在 profiles 表中创建对应记录。触发器逻辑：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -1544,7 +1473,7 @@ CREATE TRIGGER on_auth_user_created
                 <li><strong>03.admin：</strong>{{ '验证管理员角色，非 admin 返回 403' }}</li>
                 <li><strong>04.auth-guard：</strong>{{ '要求登录用户，匿名用户访问 payments/orders 返回 403' }}</li>
                 <li><strong>05.access-guard：</strong>{{ '站点访问密码保护（SITE_ACCESS_PASSWORD），生产环境全站校验' }}</li>
-                <li>{{ '公开接口（ads、campaigns）跳过 04.auth-guard，无需登录' }}</li>
+                <li>{{ '公开接口（campaigns 等）跳过 04.auth-guard，无需登录' }}</li>
                 <li>{{ '认证相关 API 和 Stripe Webhook 绕过 05.access-guard' }}</li>
               </ul>
             </div>
@@ -1678,7 +1607,7 @@ CREATE TRIGGER on_auth_user_created
               <h3>{{ 'Vercel CLI 部署（可选）' }}</h3>
               <p>{{ '除了 Dashboard 导入，也可以通过 Vercel CLI 部署：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code># 安装 Vercel CLI
 npm i -g vercel
 
@@ -1780,7 +1709,7 @@ vercel --prod</code></pre>
               <h3>{{ 'GitHub Actions CI' }}</h3>
               <p>{{ '在 .github/workflows/ci.yml 中配置自动类型检查和构建验证：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ ciYaml }}</code></pre>
               </div>
             </div>
@@ -1818,7 +1747,7 @@ vercel --prod</code></pre>
               <h3>{{ 'PR 模板' }}</h3>
               <p>{{ '在 .github/pull_request_template.md 中创建 PR 模板：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>## 变更说明
 <!-- 简要描述本次变更内容 -->
 
@@ -1952,7 +1881,7 @@ vercel --prod</code></pre>
               <h3>{{ 'Checkout Session 参数' }}</h3>
               <p>{{ '创建 Stripe Checkout Session 的关键参数：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>const session = await stripe.checkout.sessions.create({
   payment_method_types: ['card'],
   line_items: [{
@@ -2027,7 +1956,7 @@ vercel --prod</code></pre>
               <h3>{{ 'Webhook 签名验证' }}</h3>
               <p>{{ '服务端使用 Stripe SDK 的 constructEvent() 方法验证 Webhook 签名，防止伪造回调。关键代码：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>const sig = getHeader(event, 'stripe-signature')
 const stripeEvent = stripe.webhooks.constructEvent(
   body, sig, process.env.STRIPE_WEBHOOK_SECRET
@@ -2052,120 +1981,6 @@ const stripeEvent = stripe.webhooks.constructEvent(
                 </div>
                 <div class="faq-a" v-show="faqExpanded['pay-trouble-1']">
                   A: {{ '检查 Stripe Dashboard → Webhooks 中端点 URL 是否正确、事件是否已选择（payment_intent.succeeded）。使用 Stripe CLI 的 stripe trigger 命令手动发送测试事件。确认 Webhook Secret 环境变量配置正确。' }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══════ S10: Ad Monetization ═══════ -->
-        <section id="s11" class="section">
-          <div class="section-header">
-            <div class="section-num">11</div>
-            <h2>{{ '广告变现' }}</h2>
-          </div>
-          <div class="section-body">
-            <div class="alert alert-info">
-              <div class="alert-icon">ℹ️</div>
-              <div class="alert-body">
-                <strong>{{ '可选模块' }}</strong>
-                <p>{{ '本模块为可选功能，项目核心业务不依赖广告模块，可按需开启或完全移除。' }}</p>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '广告位形态' }}</h3>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th v-for="col in (['广告位 ID', '位置', '尺寸'] as string[])" :key="col">{{ col }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(row, i) in adSlotRows" :key="i">
-                      <td v-for="(cell, j) in row" :key="j">
-                        <code v-if="j === 0">{{ cell }}</code>
-                        <span v-else>{{ cell }}</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '广告供应商' }}</h3>
-              <ul>
-                <li v-for="(item, i) in adProviderItems" :key="i" v-html="item.replace(/`([^`]+)`/g, '<code>$1</code>')" />
-              </ul>
-            </div>
-            <div class="subsection">
-              <h3>{{ 'RLS 策略' }}</h3>
-              <ul>
-                <li v-for="(item, i) in adRlsItems" :key="i" v-html="item.replace(/`([^`]+)`/g, '<code>$1</code>')" />
-              </ul>
-            </div>
-            <div class="subsection">
-              <h3>{{ '广告位与 Campaign 绑定' }}</h3>
-              <p>{{ '广告位支持全局和特定活动两种模式：' }}</p>
-              <ul>
-                <li><strong>{{ '全局广告位：' }}</strong>{{ 'campaign_id 为空，在所有页面展示' }}</li>
-                <li><strong>{{ '活动专属广告位：' }}</strong>{{ '绑定特定 campaign_id，仅在对应 H5 页面展示' }}</li>
-                <li>{{ '通过权重（weight）字段控制多广告源的轮播比例' }}</li>
-              </ul>
-            </div>
-            <div class="subsection">
-              <h3>{{ '索引优化' }}</h3>
-              <p>{{ '为确保广告事件查询性能，建议在 ad_events 表上建立以下索引：' }}</p>
-              <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
-                <pre><code>CREATE INDEX idx_ad_events_slot_id ON ad_events(slot_id);
-CREATE INDEX idx_ad_events_created_at ON ad_events(created_at);
-CREATE INDEX idx_ad_events_event_type ON ad_events(event_type);</code></pre>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ 'CSP 安全配置' }}</h3>
-              <p>{{ '如需集成第三方广告脚本（Google AdSense 等），需要在 nuxt.config.ts 中配置 Content Security Policy 白名单：' }}</p>
-              <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
-                <pre><code>// CSP 示例配置
-script-src: [
-  "'self'",
-  "https://pagead2.googlesyndication.com",  // Google AdSense
-  "https://connect.facebook.net",           // Meta Audience Network
-]</code></pre>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '收入估算模型' }}</h3>
-              <p>{{ '基于 CPM 的收入估算参考：' }}</p>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th v-for="col in (['日 PV', 'eCPM', '日收入（估算）', '月收入（估算）'] as string[])" :key="col">{{ col }}</th></tr></thead>
-                  <tbody>
-                    <tr v-for="(row, i) in ([['1,000', '$2.00', '$2.00', '$60'],['10,000', '$2.00', '$20.00', '$600'],['100,000', '$2.00', '$200.00', '$6,000']] as string[][])" :key="i">
-                      <td v-for="(cell, j) in row" :key="j"><span>{{ cell }}</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '广告平台申请指南' }}</h3>
-              <ul>
-                <li><strong>Google AdSense：</strong>{{ '前往 adsense.google.com 注册，提交网站审核。要求网站有足够的原创内容和稳定的访问量。审核通过后获取广告代码，填入 ad_slots 表。' }}</li>
-                <li><strong>Meta Audience Network：</strong>{{ '前往 Meta for Developers 创建应用，在 Audience Network 中创建广告位。需要 Facebook 应用审核通过。' }}</li>
-              </ul>
-            </div>
-            <div class="subsection">
-              <h3>{{ '常见广告问题' }}</h3>
-              <div class="faq-item" :class="{ expanded: faqExpanded['ad-trouble-0'] }">
-                <div class="faq-q" @click="toggleFaq('ad-trouble-0')">
-                  <span class="faq-chevron">▸</span>
-                  Q: {{ '广告不显示？' }}
-                </div>
-                <div class="faq-a" v-show="faqExpanded['ad-trouble-0']">
-                  A: {{ '检查 ad_slots 表中是否有 active 状态的广告位。确认 useAdSlot composable 返回的数据不为空。如果使用 AdSense，检查网站是否已通过审核。查看浏览器控制台是否有 CSP 相关报错。' }}
                 </div>
               </div>
             </div>
@@ -2252,7 +2067,6 @@ script-src: [
               <p>{{ '反馈系统与以下模块协同工作：' }}</p>
               <ul>
                 <li><strong>{{ '认证模块：' }}</strong>{{ '登录用户可提交评价，匿名用户仅可查看' }}</li>
-                <li><strong>{{ '广告模块：' }}</strong>{{ '评价列表中可以嵌入广告位' }}</li>
                 <li><strong>{{ '支付模块：' }}</strong>{{ '购买后可自动邀请用户评价' }}</li>
                 <li><strong>{{ 'Admin 后台：' }}</strong>{{ '管理员审核、回复、删除评价' }}</li>
               </ul>
@@ -2329,7 +2143,7 @@ script-src: [
             <div class="subsection">
               <h3>{{ 'DNS 验证命令' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code># 检查 NS 记录是否指向 Cloudflare
 dig yourdomain.com NS
 
@@ -2439,14 +2253,14 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
             <div class="subsection">
               <h3>{{ '快速启动' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ quickStartCode }}</code></pre>
               </div>
             </div>
             <div class="subsection">
               <h3>{{ '本地 Supabase 实例' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ localSupabaseCode }}</code></pre>
               </div>
             </div>
@@ -2493,7 +2307,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
               <h3>{{ '统一响应格式' }}</h3>
               <p>{{ '项目所有 API 使用统一的响应格式，通过 sendSuccess() 和 createError() 工具函数返回。错误信息在服务端使用英文，前端展示层通过 t() 翻译。' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ apiResponseExample }}</code></pre>
               </div>
             </div>
@@ -2501,7 +2315,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
               <h3>{{ 'API 鉴权声明' }}</h3>
               <p>{{ '每个 API 文件顶部通过注释声明鉴权级别，供 test:api-safety 扫描器自动验证：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ apiAuthDeclareExample }}</code></pre>
               </div>
               <div class="table-wrap">
@@ -2519,7 +2333,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
               <h3>{{ 'Zod 输入校验' }}</h3>
               <p>{{ '所有 API 使用 Zod 进行输入校验，格式示例：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>import { z } from 'zod'
 
 const bodySchema = z.object({
@@ -2560,7 +2374,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
               <h3>{{ 'i18n 策略' }}</h3>
               <p>{{ '项目使用 @nuxtjs/i18n 模块，采用 prefix_except_default 策略：默认语言（中文）URL 不加前缀，英文加 /en 前缀。Admin 后台和帮助文档页面使用硬编码中文，不走 i18n。' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ i18nConfigExample }}</code></pre>
               </div>
             </div>
@@ -2574,7 +2388,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
             <div class="subsection">
               <h3>{{ '使用方式' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ i18nUsageExample }}</code></pre>
               </div>
             </div>

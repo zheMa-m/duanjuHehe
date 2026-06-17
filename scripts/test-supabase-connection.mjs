@@ -51,11 +51,10 @@ const requiredTables = [
   'tasks',          // 0001_core
   'activity_logs',  // 0001_core
   'campaigns',      // 0002_campaign_optional
-  'ad_slots',       // 0003_ad_optional
-  'ad_events',      // 0003_ad_optional
   'feedbacks',      // 0004_feedback_optional
   'products',       // 0005_payment_optional
   'orders',         // 0005_payment_optional
+  'campaign_registrations', // 0006_campaign_registrations
 ]
 
 for (const table of requiredTables) {

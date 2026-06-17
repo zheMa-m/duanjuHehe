@@ -62,46 +62,49 @@ async function handleLogout() {
 <style scoped>
 .user-bar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0.75rem 1rem; background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(8px); border-bottom: 1px solid #f0f0f0;
-  font-size: 0.875rem;
+  padding: 0.65rem 1rem; background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.8rem;
+  color: #f8fafc;
 }
 
-.user-info { display: flex; align-items: center; gap: 0.625rem; }
+.user-info { display: flex; align-items: center; gap: 0.5rem; }
 .avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  overflow: hidden; background: #e5e7eb; display: flex;
+  width: 26px; height: 26px; border-radius: 50%;
+  overflow: hidden; background: rgba(255, 255, 255, 0.08); display: flex;
   align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-placeholder {
-  font-weight: 700; font-size: 0.875rem; color: #6366f1;
+  font-weight: 700; font-size: 0.75rem; color: #818cf8;
 }
-.display-name { font-weight: 600; color: #1a1a2e; }
+.display-name { font-weight: 600; color: #f1f5f9; font-size: 0.75rem; }
 
 .logout-btn {
-  background: none; border: 1px solid #e5e7eb; border-radius: 8px;
-  padding: 0.4rem 0.875rem; font-size: 0.8rem; color: #6b7280;
+  background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;
+  padding: 0.3rem 0.65rem; font-size: 0.7rem; color: #94a3b8;
   cursor: pointer; transition: all 0.2s;
 }
-.logout-btn:hover { background: #f9fafb; border-color: #d1d5db; }
+.logout-btn:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.2); color: #f1f5f9; }
 
-.guest-info { display: flex; align-items: center; gap: 0.5rem; }
-.guest-icon { font-size: 1.125rem; }
-.guest-label { color: #9ca3af; font-weight: 500; }
+.guest-info { display: flex; align-items: center; gap: 0.35rem; }
+.guest-icon { font-size: 1rem; opacity: 0.7; }
+.guest-label { color: #94a3b8; font-weight: 500; font-size: 0.75rem; }
 
 .login-btn {
-  background: #6366f1; color: #fff; border: none; border-radius: 8px;
-  padding: 0.5rem 1.125rem; font-size: 0.85rem; font-weight: 600;
-  cursor: pointer; transition: opacity 0.2s;
+  background: #4f46e5; color: #fff; border: none; border-radius: 6px;
+  padding: 0.35rem 0.85rem; font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
 }
-.login-btn:hover { opacity: 0.9; }
+.login-btn:hover { background: #4338ca; }
 
 .register-btn {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
-  border: none; border-radius: 8px; padding: 0.5rem 1rem;
-  font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  transition: opacity 0.2s;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;
+  border: none; border-radius: 6px; padding: 0.35rem 0.85rem;
+  font-size: 0.75rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 }
-.register-btn:hover { opacity: 0.9; }
+.register-btn:hover { opacity: 0.9; transform: translateY(-0.5px); }
 </style>

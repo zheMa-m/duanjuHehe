@@ -215,7 +215,6 @@ npm run check
 |------|------|------|
 | `0001_core.sql` | profiles, tasks, activity_logs + Storage Buckets (avatars/campaign-assets/uploads) + RLS 策略 + 触发器函数 | **必选** |
 | `0002_campaign_optional.sql` | campaigns（营销模块） | ⚠️ 可选 |
-| `0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
 | `0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
 | `0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
 

@@ -5,7 +5,7 @@
  * 仅返回 is_approved=true 的评价
  */
 import { z } from 'zod'
-import { H3Event } from 'h3'
+import { H3Event, setHeader } from 'h3'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 
@@ -33,6 +33,9 @@ const querySchema = z.object({
 
 // @api-auth: public
 export default defineEventHandler(async (event: H3Event) => {
+  // 增加边缘缓存响应头：15秒浏览器与CDN缓存，30秒SWR异步刷新时间，降低DB并发载荷
+  setHeader(event, 'Cache-Control', 'public, max-age=15, stale-while-revalidate=30')
+
   const query = await getValidatedQuery(event, querySchema.parse)
   const db = getDB(event)
 

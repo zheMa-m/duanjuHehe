@@ -63,10 +63,10 @@ git clone <your-repo-url> && cd hehe-app
 # 2. 安装依赖
 npm install
 
-# 3. 启动开发服务（Mock DB 模式，无需数据库）
+# 3. 启动开发服务（Mock DB 模式，无需数据库，开箱即用）
 npm run dev
 
-# 4. 启动开发服务 + Supabase 本地实例
+# 4. 启动开发服务 + 本地 Supabase 实例（需本地安装 Docker 并启动，且已安装 Supabase CLI）
 npm run dev:all
 ```
 
@@ -75,7 +75,7 @@ npm run dev:all
 |---|---|
 | `http://localhost:3000` | 主站官网 |
 | `http://localhost:3000/admin` | 管理后台（测试账号：`admin` / `admin888`） |
-| `http://localhost:3000/h5/demo` | 示例营销 H5 页 |
+| `http://localhost:3000/h5/promo` | 示例营销 H5 页 |
 | `http://localhost:3000/_scalar` | Scalar API 文档 |
 | `http://localhost:3000/_swagger` | Swagger UI |
 
@@ -97,8 +97,28 @@ npm run dev:all
                    │  /api/admin/* → no-store          │
                    └─────────────────────────────────┘
                             │
-                    Vercel Serverless
+                     Vercel Serverless
 ```
+
+### 🌐 子域名自适应重写机制
+
+项目通过 [01.subdomain-rewrite.ts](server/middleware/01.subdomain-rewrite.ts) 中间件实现了自适应的多域名与单域名路由系统，支持一套代码在两种环境下无缝运行：
+
+#### 1. 多域名/通配符域名模式 (生产环境推荐)
+若在本地绑定了 hosts，或在生产平台（如 Vercel）绑定了自定义通配符域名（如 `*.yourdomain.com`），中间件会提取 HTTP 请求的 Host 头，与配置的 `ROOT_DOMAIN` 进行匹配并做静默重写：
+*   **官网首页** (`yourdomain.com` 或 `www.yourdomain.com`) ──▶ 映射重写至 `/client/*` 目录。
+*   **管理后台** (`admin.yourdomain.com`) ──▶ 映射重写至 `/admin/*` 目录（强制设为 `ssr: false` 的 SPA 运行态）。
+*   **API 服务网关** (`api.yourdomain.com`) ──▶ 映射重写至 `/api/v1/*`。注意：若尝试访问非 `/api/v1/` 路径，中间件会直接抛出 404 错误，形成天然的 API 域名隔离防护。
+*   **营销 H5 子域名** (`{subdomain}.yourdomain.com`) ──▶ 映射重写至 `/h5/{subdomain}/*`。例如，访问 `promo.yourdomain.com` 即可直接拉取营销后台动态落库的 `promo` 页面配置。
+
+#### 2. 单域名自适应模式 (分支预览 / 零配置起步)
+当在 Vercel 分支预览环境（如 `hehe-app-git-main.vercel.app`）或本地未配置 hosts 时，Host 并不匹配已注册的 Known Host。
+此时，**重写机制会自动跳过**，系统转为单域名路由，直接通过子路径进行访问：
+*   访问 `https://<deploy-host>/` ──▶ 天然匹配 `(client)` 路由组的首页。
+*   访问 `https://<deploy-host>/admin` ──▶ 匹配 `(admin)/admin/index.vue`。
+*   访问 `https://<deploy-host>/h5/promo` ──▶ 匹配 `(h5)/h5/[subdomain]/index.vue`，其中路由参数 `subdomain` 被自适应提取为 `promo`。
+
+这一设计完美避开了通配符域名在分支预览中无法动态映射的业界难题，使每次 Git Push 产生的预览地址都能直接访问所有子路由功能。
 
 ### 中间件责任链
 
@@ -148,7 +168,7 @@ npm run dev:all
 
 | 路由 | 策略 | 缓存 | 理由 |
 |---|---|---|---|
-| `/` `/architecture` `/tasks` | **SSR + ISR** | 3600s | SEO 友好，首屏秒开 |
+| `/` `/architecture` `/help` `/tasks` | **SSR + ISR** | 3600s | SEO 友好，首屏秒开 |
 | `/h5/**` | **SSR + SWR** | 600s | 营销页需快速更新 |
 | `/admin/**` | **SPA** | `ssr: false` | 纯客户端，隔离 SSR 泄露 |
 | `/api/**` | **no-store** | 无 | 实时数据，零缓存 |
@@ -236,7 +256,6 @@ hehe-app/
 |---|---|---|
 | `0001_core.sql` | 核心表（profiles、tasks、activity_logs）+ Storage Bucket + RLS 策略 | **必选** |
 | `0002_campaign_optional.sql` | 营销活动 campaigns | 可选 |
-| `0003_ad_optional.sql` | 广告位 ad_slots、ad_events | 可选 |
 | `0004_feedback_optional.sql` | 用户反馈 feedbacks | 可选 |
 | `0005_payment_optional.sql` | 支付 products、orders | 可选 |
 
@@ -259,6 +278,29 @@ NUXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 ```
 
 Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order().single()` / `.insert().select()`），开发期零配置即可进入前端逻辑开发。
+
+### 💾 离线 Mock DB 开发手册
+
+项目在 [server/utils/db.ts](server/utils/db.ts) 中实现了一个功能完备的内存 Mock PostgreSQL 适配器，支持在无物理数据库时进行绝大部分业务开发与调试：
+
+#### 1. 覆盖 9 张核心业务表
+适配器内置了对以下物理表的内存数组映射，支持查询（`select`）、插入（`insert`）、更新（`update`）与删除（`delete`）的完整增删改查逻辑：
+*   `profiles`：用户个人档案表（支持匿名与注册用户角色管理）。
+*   `tasks`：任务列表，支持基于租户标识 `tenant_id` 的行级过滤。
+*   `activity_logs`：管理员操作及身份验证的安全审计日志表。
+*   `campaigns`：营销活动配置（支持在管理后台热修改，前台 H5 秒级渲染生效）。
+*   `products` 与 `orders`：Stripe 支付所依赖的商品列表及订单流转记录。
+*   `feedbacks`：用户的动态反馈与评价收集表。
+
+#### 2. 全量 Auth 模块模拟
+支持对 `supabase.auth` 所有核心 API 的模拟：
+*   **注册与登录**：模拟 `signUp`、`signInWithPassword`、`signInAnonymously`（匿名登录）及 `signInWithOAuth`（第三方 OAuth 跳转模拟）。
+*   **触发器模拟**：在调用 `signUp` 或 `signInAnonymously` 时，内存适配器会自动往 `mockProfilesTable` 中插入一条对应的 Profile 数据，完美复现了 Supabase 物理数据库中 `handle_new_user` 触发器的行为，确保前台个人中心与鉴权状态联查的完整度。
+
+#### 3. Storage 存储模块模拟
+提供了对 `supabase.storage` 中 `avatars`、`campaign-assets` 和 `uploads` 存储桶（Buckets）的上传及签名链接模拟：
+*   支持 `upload`、`remove`、`getPublicUrl` 接口。
+*   支持 `createSignedUrl` 与 `createSignedUploadUrl`，在前端客户端请求直传或私有签名访问时，直接返回模拟 CDN URL。
 
 ---
 
@@ -386,11 +428,25 @@ npm run gen:rls <table> --admin   # 额外生成 is_admin() 管理员策略
 ### API 安全扫描
 
 ```bash
-npm run test:api-safety          # 默认 localhost:3000
-npm run test:api-safety 3001     # 指定端口
+npm run test:api-safety          # 默认扫描 localhost:3000
+npm run test:api-safety 3001     # 指定端口扫描
 ```
 
-自动提取 `@api-auth` 声明，对未认证请求进行 401/403 探针测试。**任何接口返回 200 即为 FAIL，应阻断合入。**
+项目通过 [scripts/test-api-safety.mjs](scripts/test-api-safety.mjs) 脚本对所有 API 控制器文件（`server/api/**/*.ts`）进行自动化越权漏洞测试。
+
+#### 1. 安全级别解析规则
+扫描器会分析控制器代码：
+*   **显式解析**：寻找 `// @api-auth: admin | user | public` 声明。
+*   **智能推导**：若无声明，属于 `/api/admin/` 路径的推导为 `admin` 级别；若控制器包含 `assertUser` / `assertAdmin` 调用，推导为 `user` 级别；其余默认为 `public`。
+
+#### 2. 未授权探针测试与判定逻辑
+对于所有非 `public`（即受保护的）端点，扫描器将向本地服务发送**未携带任何凭证（Token/Cookie）**的探针请求，并根据响应状态码执行强校验判定：
+*   **`401` 或 `403` ──▶ PASS**：权限防御拦截成功，判定为安全。
+*   **`400` ──▶ PASS (无越权但建议调整)**：说明接口被 Zod 校验先于鉴权拦截，虽然没有泄漏数据，但建议将 `assertUser()` 置于 `readValidatedBody()` 之前。
+*   **`200` 或 `201` ──▶ FAIL (越权漏洞)**：未授权用户成功读取或写入了数据！扫描器将打印高亮警告并直接抛出异常。
+*   **其他状态码 ──▶ WARN**：显示异常响应，需人工排查。
+
+**该扫描器与 CI/CD 流程或 Git Pre-commit 挂钩。若扫描结果包含任何 FAIL，脚本会抛出非零退出码（exit code 1），自动阻断部署或合入。**
 
 ### Supabase 健康检查
 

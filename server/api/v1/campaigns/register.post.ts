@@ -46,29 +46,65 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, registerSchema.parse)
   const db = getDB(event)
 
-  // 将预约信息写入审计日志（作为注册记录）
+  // 1. 获取 campaign 详情以获取 ID，验证 subdomain 确实存在
+  const { data: campaign } = await db
+    .from('campaigns')
+    .select('id')
+    .eq('subdomain', body.subdomain)
+    .single()
+
+  if (!campaign) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Campaign with subdomain '${body.subdomain}' does not exist.`
+    })
+  }
+
   const ip = getClientRealIP(event)
+  const ctxUser = event.context.user
+
+  // 2. 真实将数据写入 campaign_registrations 表
+  const { data: reg, error: insertError } = await db
+    .from('campaign_registrations')
+    .insert({
+      campaign_id: campaign.id,
+      subdomain: body.subdomain,
+      phone: body.phone,
+      email: body.email,
+      user_id: ctxUser ? ctxUser.id : null,
+      created_at: new Date().toISOString()
+    })
+    .select('*')
+
+  if (insertError) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: insertError.message || 'Failed to record campaign registration'
+    })
+  }
+
+  // 3. 记录日志 (系统审计 + 活动流)
   await logAuditEvent(
     event,
-    { id: 'h5-register', username: body.email, role: 'guest' },
+    ctxUser || { id: 'h5-register', username: body.email, role: 'guest' },
     `CAMPAIGN_REGISTER:${body.subdomain}`,
     'SUCCESS',
     ip
   )
 
-  // 同时记录到活动日志
   await db.from('activity_logs').insert({
     category: 'admin',
     action: `H5_REGISTER:${body.subdomain}`,
-    user_id: null,
+    user_id: ctxUser ? ctxUser.id : null,
     ip,
     metadata: { operator: body.email, status: 'SUCCESS' }
   })
 
   return sendSuccess(event, {
+    id: reg && reg[0] ? reg[0].id : null,
     phone: body.phone,
     email: body.email,
     subdomain: body.subdomain,
-    registeredAt: new Date().toISOString()
+    registeredAt: reg && reg[0] ? reg[0].created_at : new Date().toISOString()
   }, 'Registration successful')
 })

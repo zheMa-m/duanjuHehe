@@ -34,93 +34,116 @@ const filteredOrders = computed(() => {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    paid: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    failed: 'bg-red-500/10 text-red-400 border-red-500/20',
-    refunded: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    paid: 'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/20',
+    pending: 'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/20',
+    failed: 'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/20',
+    refunded: 'bg-[#bf5af2]/10 text-[#bf5af2] border-[#bf5af2]/20',
   }
   return map[status] || 'bg-white/5 text-white/40 border-white/10'
 }
 
+const statusPulseDot = (status: string) => {
+  const map: Record<string, string> = {
+    paid: 'bg-[#30d158]',
+    pending: 'bg-[#ff9f0a]',
+    failed: 'bg-[#ff453a]',
+    refunded: 'bg-[#bf5af2]',
+  }
+  return map[status] || 'bg-white/40'
+}
+
 const handleRefund = (orderId: string) => {
-  if (!confirm('Confirm refund this order? This will be logged to audit.')) return
+  if (!confirm('确定要为该订单办理退款回收吗？此操作将实时触发审计流并在 Supabase 标记为 refunded。')) return
   emit('updateStatus', orderId, 'refunded')
 }
 </script>
 
 <template>
-  <div class="space-y-8 animate-fade-in">
+  <div class="space-y-8 animate-fade-in text-white">
+    <!-- 标题 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-semibold text-white tracking-tight">Orders Management</h1>
-        <p class="text-white/40 text-xs mt-1">Manage all payment orders, track refunds and audit trail</p>
+        <h1 class="text-2xl font-semibold text-white tracking-tight">订单流水管理</h1>
+        <p class="text-white/40 text-xs mt-1">管理并监控全站支付订单、追踪退款及安全合规流水</p>
       </div>
       <button
         @click="$emit('refresh')"
         :disabled="isLoading"
-        class="text-xs bg-white/10 hover:bg-white/15 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98]"
+        class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
       >
-        Refresh
+        <span :class="{'animate-spin': isLoading}">🔄</span>
+        刷新订单
       </button>
     </div>
 
-    <!-- Status Filter -->
-    <div class="flex gap-2">
+    <!-- 订单状态分类栏 (高级一体化胶囊 Switcher) -->
+    <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
       <button
         v-for="s in ['all', 'paid', 'pending', 'failed', 'refunded']"
         :key="s"
         @click="statusFilter = s"
-        class="text-[10px] px-3 py-1.5 rounded-full border transition-all"
-        :class="statusFilter === s ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-white/40 border-white/5 hover:border-white/10'"
+        class="text-[10px] font-semibold px-4.5 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
+        :class="statusFilter === s 
+          ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]' 
+          : 'bg-transparent text-white/40 hover:text-white/70'"
       >
-        {{ s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1) }}
+        {{ s === 'all' ? '全部订单' : s.charAt(0).toUpperCase() + s.slice(1) }}
       </button>
     </div>
 
-    <!-- Orders Table -->
-    <div class="bg-[#1c1c1e] border border-white/5 rounded-2xl overflow-hidden">
+    <!-- 订单表格 (毛玻璃卡片) -->
+    <div class="bg-[#0c0c0e]/60 border border-white/[0.06] rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
-            <tr class="border-b border-white/5 text-white/40 uppercase tracking-wider text-[9px]">
-              <th class="px-6 py-3.5 font-medium">Order No</th>
-              <th class="px-6 py-3.5 font-medium">Product</th>
-              <th class="px-6 py-3.5 font-medium">Amount</th>
-              <th class="px-6 py-3.5 font-medium">Status</th>
-              <th class="px-6 py-3.5 font-medium">Provider</th>
-              <th class="px-6 py-3.5 font-medium">Created</th>
-              <th class="px-6 py-3.5 font-medium">Actions</th>
+            <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[9px] bg-white/[0.005]">
+              <th class="px-6 py-4 font-semibold font-mono">订单号 (Order No)</th>
+              <th class="px-6 py-4 font-semibold font-mono">购买商品</th>
+              <th class="px-6 py-4 font-semibold font-mono">金额 (Amount)</th>
+              <th class="px-6 py-4 font-semibold font-mono">支付状态</th>
+              <th class="px-6 py-4 font-semibold font-mono">支付渠道</th>
+              <th class="px-6 py-4 font-semibold font-mono">下单时间</th>
+              <th class="px-6 py-4 font-semibold font-mono">后台控制</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-white/[0.04]">
             <tr
               v-for="order in filteredOrders"
               :key="order.id"
-              class="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+              class="hover:bg-white/[0.02] transition-colors duration-200"
             >
-              <td class="px-6 py-3 font-mono text-[10px] text-white/70">{{ order.order_no }}</td>
-              <td class="px-6 py-3 text-white/80">{{ order.product_name }}</td>
-              <td class="px-6 py-3 font-mono text-white/80">{{ order.currency }} {{ Number(order.amount).toFixed(2) }}</td>
-              <td class="px-6 py-3">
-                <span class="text-[9px] px-2 py-0.5 rounded-full border" :class="statusBadge(order.status)">
+              <td class="px-6 py-4 font-mono text-[11px] text-white/70 tracking-wide">{{ order.order_no }}</td>
+              <td class="px-6 py-4 text-white/90 font-medium">{{ order.product_name }}</td>
+              <td class="px-6 py-4 font-mono text-white/90 text-xs font-semibold">
+                {{ order.currency }} {{ Number(order.amount).toFixed(2) }}
+              </td>
+              <td class="px-6 py-4">
+                <span class="text-[9px] px-2.5 py-0.5 rounded-full border inline-flex items-center" :class="statusBadge(order.status)">
+                  <span 
+                    class="w-1.2 h-1.2 rounded-full mr-1.5"
+                    :class="[
+                      statusPulseDot(order.status),
+                      order.status === 'paid' || order.status === 'pending' ? 'animate-pulse' : ''
+                    ]"
+                  ></span>
                   {{ order.status }}
                 </span>
               </td>
-              <td class="px-6 py-3 text-white/50">{{ order.payment_provider }}</td>
-              <td class="px-6 py-3 text-white/40 text-[10px]">{{ new Date(order.created_at).toLocaleDateString() }}</td>
-              <td class="px-6 py-3">
+              <td class="px-6 py-4 text-white/50 font-light">{{ order.payment_provider }}</td>
+              <td class="px-6 py-4 text-white/40 font-mono text-[11px]">{{ new Date(order.created_at).toLocaleString() }}</td>
+              <td class="px-6 py-4">
                 <button
                   v-if="order.status === 'paid'"
                   @click="handleRefund(order.id)"
-                  class="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                  class="text-[10px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-3.5 py-1.5 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
                 >
-                  Refund
+                  办理退款
                 </button>
-                <span v-else class="text-white/20 text-[10px]">-</span>
+                <span v-else class="text-white/20 text-xs">-</span>
               </td>
             </tr>
             <tr v-if="!filteredOrders.length">
-              <td colspan="7" class="px-6 py-12 text-center text-white/20">No orders found</td>
+              <td colspan="7" class="py-12 text-center text-xs text-white/25 font-light">暂无符合条件的订单记录</td>
             </tr>
           </tbody>
         </table>

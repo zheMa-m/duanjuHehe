@@ -1,5 +1,5 @@
 -- ====================================================================
--- ⚠️  0002 营销活动模块 — 活动配置（可选功能）
+-- ⚠️  0002 营销活动模块 — 活动配置与留资（可选功能）
 --
 -- 本模块为可选功能，项目核心业务（用户认证 + 任务管理）
 -- 不依赖此模块。仅在启用 H5 营销页时才需要部署。
@@ -9,9 +9,7 @@
 --
 -- 表清单：
 --   1. campaigns — 营销活动配置（H5 营销页核心数据）
---
--- 下游依赖：
---   0003_ad_optional.sql — ad_slots.campaign_id FK 引用本表
+--   2. campaign_registrations — 营销留资/预约注册表（C端留资）
 -- ====================================================================
 
 
@@ -57,3 +55,34 @@ CREATE INDEX IF NOT EXISTS "idx_campaigns_active_sort" ON "campaigns"("is_active
 CREATE TRIGGER "campaigns_set_updated_at"
   BEFORE UPDATE ON "campaigns"
   FOR EACH ROW EXECUTE FUNCTION "set_updated_at"();
+
+
+-- ╔════════════════════════════════════════════════════════════════╗
+-- ║  2. campaign_registrations — 营销留资/预约注册表               ║
+-- ║  允许所有人匿名提交预约（C端留资表单），仅管理员可查询和删除   ║
+-- ╚════════════════════════════════════════════════════════════════╝
+
+CREATE TABLE IF NOT EXISTS "campaign_registrations" (
+  "id"          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "campaign_id" UUID REFERENCES campaigns(id) ON DELETE CASCADE,
+  "subdomain"   TEXT NOT NULL,
+  "phone"       TEXT NOT NULL,
+  "email"       TEXT NOT NULL,
+  "user_id"     UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  "created_at"  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE "campaign_registrations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "campaign_registrations" FORCE ROW LEVEL SECURITY;
+
+-- 允许所有人匿名提交预约（因为是 C 端留资表单）
+CREATE POLICY "campaign_registrations_insert_public" ON "campaign_registrations"
+  FOR INSERT TO public WITH CHECK (true);
+
+-- 仅允许管理员查看或删除留资记录
+CREATE POLICY "campaign_registrations_admin_all" ON "campaign_registrations"
+  FOR ALL TO authenticated USING ("is_admin"((SELECT auth.uid())));
+
+-- 索引，提高按活动域名过滤和按最新时间排序的响应速度
+CREATE INDEX IF NOT EXISTS "idx_campaign_registrations_subdomain" ON "campaign_registrations"("subdomain");
+CREATE INDEX IF NOT EXISTS "idx_campaign_registrations_created" ON "campaign_registrations"("created_at" DESC);

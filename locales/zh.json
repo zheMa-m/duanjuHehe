@@ -37,7 +37,6 @@
     "s16": "平台职责边界决策",
     "s17": "AI 提效与进阶黑科技",
     "s18": "三方支付系统集成",
-    "s19": "广告位与流量变现",
     "s20": "移动端用户认证体系"
   },
   "header": {
@@ -57,7 +56,9 @@
     "ctaH5": "体验营销 H5",
     "navArch": "技术架构",
     "navHelp": "帮助文档",
-    "navH5": "营销 H5（示例1）",
+    "navH5": "营销 H5",
+    "navH5_v1": "毛玻璃拟态 V1",
+    "navH5_v2": "新野兽派 V2",
     "navAdmin": "控制台",
     "navGitHub": "GitHub",
     "stackTitle": "技术栈",
@@ -278,10 +279,6 @@
           "desc": "Checkout Session 流程、双模式、Webhook、金额安全、测试卡号"
         },
         {
-          "title": "广告变现",
-          "desc": "ad_slots/ad_events 表、AdSense/Meta/Custom、CSP 配置、收入估算"
-        },
-        {
           "title": "社交反馈",
           "desc": "SocialShare 6平台组件、feedbacks 表、星级评分、管理员审批"
         },
@@ -450,18 +447,6 @@
         "类型",
         "结果"
       ]
-    },
-    "s10": {
-      "optionalModule": "可选模块",
-      "optionalModuleDesc": "本模块为可选功能，项目核心业务不依赖广告模块，可按需开启或完全移除。",
-      "adSlotTypes": "广告位形态",
-      "adSlotCols": [
-        "标识",
-        "名称",
-        "尺寸"
-      ],
-      "adProviders": "广告供应商",
-      "rlsPolicies": "RLS 策略"
     },
     "s11": {
       "socialShare": "社交分享组件",

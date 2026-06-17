@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
           <div class="domain-url">*.yourdomain.com</div>
           <div class="domain-route">→ /app/pages/(h5)/h5/[subdomain]/</div>
           <div><span class="domain-render render-swr">SWR · 10min</span></div>
-          <div class="domain-desc">各类活动推广、广告落地页、拉新转化。动态配置驱动，无代码发布新活动。</div>
+          <div class="domain-desc">各类活动推广、拉新转化落地页。动态配置驱动，无代码发布新活动。</div>
         </div>
         <div class="domain-card dc-green">
           <div class="domain-badge badge-green">管理后台 Admin</div>
@@ -510,7 +510,7 @@ onBeforeUnmount(() => {
         <div class="render-ttl" style="color:var(--accent-cyan);">600s</div>
         <div class="render-ttl-label">边缘缓存生命周期</div>
         <div class="render-path">/h5/**</div>
-        <div class="render-detail">营销 H5。支持动态配置实时更新，广告高峰流量直接命中边缘节点，零服务器压力。</div>
+        <div class="render-detail">营销 H5。支持动态配置实时更新，活动高峰流量直接命中边缘节点，零服务器压力。</div>
       </div>
       <div class="render-card" style="border-color:rgba(139,92,246,0.3);">
         <div class="render-icon">🔒</div>
@@ -1271,58 +1271,6 @@ onBeforeUnmount(() => {
     </div>
   </section>
 
-  <!-- S19: 广告位与流量变现 -->
-  <section class="section" id="s19">
-    <div class="section-header">
-      <div class="section-num num-orange">19</div>
-      <h2>广告位管理与流量变现</h2>
-    </div>
-    <div class="subsection">
-      <h3>广告位形态与渲染策略</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>广告位类型</th><th>渲染位置</th><th>典型尺寸</th><th>场景</th></tr></thead>
-          <tbody>
-            <tr><td><strong>header_banner</strong></td><td>H5 页面顶部</td><td>728×90 / 320×50</td><td>活动页顶部曝光</td></tr>
-            <tr><td><strong>footer_banner</strong></td><td>H5 页面底部</td><td>728×90</td><td>表单提交后转化引导</td></tr>
-            <tr><td><strong>native_inline</strong></td><td>内容区域原生嵌入</td><td>自适应宽度</td><td>表单下方、文章中间</td></tr>
-            <tr><td><strong>interstitial</strong></td><td>全屏插屏</td><td>全屏</td><td>特殊活动推广</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="subsection">
-      <h3>广告事件追踪流程</h3>
-      <div class="flow-steps">
-        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">广告位加载</div><div class="flow-desc">ClientAdSlot 组件挂载时从 /api/v1/ads 获取活跃广告位配置</div></div></div>
-        <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><div class="flow-title">曝光上报</div><div class="flow-desc">组件自动调用 POST /api/v1/ads/event 上报 impression 事件</div></div></div>
-        <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><div class="flow-title">点击追踪</div><div class="flow-desc">用户点击广告时上报 click 事件，记录 IP/User-Agent/Referrer</div></div></div>
-        <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><div class="flow-title">收入聚合</div><div class="flow-desc">Admin 收入分析面板汇总 CPM/CPC 估算，展示每日趋势与 CTR 指标</div></div></div>
-      </div>
-    </div>
-    <div class="subsection">
-      <h3>多平台广告供应商支持</h3>
-      <div class="decision-grid">
-        <div class="decision-box">
-          <h4>Google AdSense</h4>
-          <p class="di-desc">通过 <code>data-ad-client</code> 和 <code>data-ad-slot</code> 参数注入广告代码，ad_config JSONB 存储配置。</p>
-        </div>
-        <div class="decision-box">
-          <h4>Meta Audience Network</h4>
-          <p class="di-desc">支持 Meta 广告 SDK 集成，通过 ad_config 存储 placement_id 等参数。</p>
-        </div>
-        <div class="decision-box">
-          <h4>Custom HTML</h4>
-          <p class="di-desc">自定义 HTML 广告内容，管理员在后台直接编辑 ad_config.html 字段，支持富媒体广告。</p>
-        </div>
-      </div>
-    </div>
-    <div class="alert alert-note">
-      <div class="alert-icon">ℹ️</div>
-      <div class="alert-body"><strong>CSP 安全策略</strong>广告位配置中的第三方 script 必须通过 Content Security Policy 白名单控制。Admin 后台编辑广告 HTML 时建议启用 XSS 过滤。</div>
-    </div>
-  </section>
-
   <!-- S20: 移动端用户认证体系 -->
   <section class="section" id="s20">
     <div class="section-header">
@@ -1332,7 +1280,7 @@ onBeforeUnmount(() => {
     <div class="subsection">
       <h3>认证流程全链路</h3>
       <div class="flow-steps">
-        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">匿名用户浏览</div><div class="flow-desc">H5 页面加载时自动 signInAnonymously()，device_id 写入 Cookie 标识设备，用户可浏览广告和活动信息</div></div></div>
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">匿名用户浏览</div><div class="flow-desc">H5 页面加载时自动 signInAnonymously()，device_id 写入 Cookie 标识设备，用户可浏览活动信息</div></div></div>
         <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><div class="flow-title">触发登录引导</div><div class="flow-desc">用户点击支付/预约时，若未登录则弹出 H5LoginModal，缓存待执行操作（pendingAction）</div></div></div>
         <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><div class="flow-title">多方式登录</div><div class="flow-desc">支持 Email+Password、Google OAuth、Facebook OAuth、Apple OAuth，客户端直连 Supabase Auth</div></div></div>
         <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><div class="flow-title">Token 同步</div><div class="flow-desc">登录成功后 access_token 写入 sb-access-token Cookie，supabase-auth.client.ts 插件监听 onAuthStateChange 自动同步</div></div></div>
@@ -1375,7 +1323,7 @@ onBeforeUnmount(() => {
     <div class="subsection">
       <h3>匿名→绑定数据迁移策略</h3>
       <div class="flow-steps">
-        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">匿名用户行为记录</div><div class="flow-desc">广告事件、页面浏览等行为数据关联 device_id，存储在 ad_events 等表中</div></div></div>
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><div class="flow-title">匿名用户行为记录</div><div class="flow-desc">页面浏览等行为数据关联 device_id，存储在 activity_logs 等表中</div></div></div>
         <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><div class="flow-title">触发绑定</div><div class="flow-desc">用户点击“绑定账号”或“注册享更多”，调用 POST /api/v1/auth/link 绑定邮箱</div></div></div>
         <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><div class="flow-title">身份转换</div><div class="flow-desc">profiles 表更新 is_anonymous=false, auth_provider=email。Supabase Auth linkIdentity 合并身份</div></div></div>
         <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><div class="flow-title">数据归属</div><div class="flow-desc">后续新数据直接关联 user_id，历史行为数据可通过 device_id 回溯（审计用途）</div></div></div>

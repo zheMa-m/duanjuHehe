@@ -75,7 +75,6 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 |------|------|------|------|
 | 1 | `supabase/migrations/0001_core.sql` | profiles, tasks, activity_logs + `is_admin()` 函数 + 触发器函数 | 必选 |
 | 2 | `supabase/migrations/0002_campaign_optional.sql` | campaigns（营销模块） | ⚠️ 可选 |
-| 3 | `supabase/migrations/0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
 | 4 | `supabase/migrations/0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
 | 5 | `supabase/migrations/0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
 
@@ -89,7 +88,6 @@ tasks            ← 业务任务（CRUD 示例 + tenant_id 行级隔离）
 activity_logs    ← 统一活动日志（auth/admin/system）
 products         ← 商品（⚠️ 可选，tenant_id 行级隔离）
 orders            ← 支付订单（⚠️ 可选，含 orders_user_insert_own INSERT 策略）
-ad_slots         ← 广告位配置（⚠️ 可选）
 ad_events        ← 广告事件（⚠️ 可选）
 feedbacks        ← 用户评价（⚠️ 可选）
 storage.buckets  ← Supabase Storage Bucket（avatars + campaign-assets + uploads，内置于 0001_core）
@@ -147,18 +145,6 @@ INSERT INTO products (name, price, tenant_id) VALUES
 ### 5.3 广告位配置（可选）
 
 ```sql
-INSERT INTO ad_slots (name, position, is_active, ad_provider, ad_config) VALUES
-('Top Header Banner', 'header_banner', true, 'custom', '{"html": "<div class=\"ad-banner\">Sponsored Content</div>", "width": 728, "height": 90}'::jsonb),
-('Footer Banner', 'footer_banner', true, 'adsense', '{"data-ad-client": "ca-pub-xxxx", "data-ad-slot": "1234567890"}'::jsonb),
-('Native Inline Ad', 'native_inline', true, 'custom', '{"html": "<div class=\"native-ad\">Promoted</div>"}'::jsonb);
-```
-
-### 5.4 验证种子数据
-
-```sql
-SELECT subdomain, title FROM campaigns;
-SELECT id, name, price FROM products;
-SELECT position, is_active FROM ad_slots;
 -- 各返回 3 行即表示成功
 ```
 
@@ -607,7 +593,7 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │ CRUD 示例 + tenant_id 隔离 │ 操作审计流水               │
 │ RLS: tenant_id = uid      │ RLS: 管理员只读            │
 ├─────────────────────────────────────────────────────────┤
-│ orders ⚠️ 可选              │ ad_slots ⚠️ 可选            │
+│ orders ⚠️ 可选              │                             │
 │ user_id, amount, status   │ position, ad_config (JSONB) │
 │ RLS: 自己读+写 + 管理员   │ RLS: 公开读 + 管理员全权限  │
 ├─────────────────────────────────────────────────────────┤

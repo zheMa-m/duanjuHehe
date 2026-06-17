@@ -18,8 +18,9 @@ export const mockActivityLogsTable: Array<Record<string, any>> = [
 ]
 
 // 内存 Mock 营销活动配置表，支持后台热改，H5 前端秒级热重载渲染！
-export const mockCampaignsTable: Array<{ subdomain: string; title: string; subtitle: string; badge: string; color_from: string; color_to: string }> = [
+export const mockCampaignsTable: Array<{ id: string; subdomain: string; title: string; subtitle: string; badge: string; color_from: string; color_to: string }> = [
   {
+    id: 'c-ai',
     subdomain: 'ai',
     title: '🤖 HEHE AI 协作者首发',
     subtitle: '基于先进智能体的全自动化提效工作流上线。立即预约，锁定首月免费体验资格。',
@@ -28,6 +29,7 @@ export const mockCampaignsTable: Array<{ subdomain: string; title: string; subti
     color_to: 'to-indigo-600'
   },
   {
+    id: 'c-cloud',
     subdomain: 'cloud',
     title: '☁️ HEHE 云原生企业私有化',
     subtitle: '一键输出物理隔离安全沙盒，专为合规与核心系统容灾设计。首发限时 7 折特惠。',
@@ -36,12 +38,22 @@ export const mockCampaignsTable: Array<{ subdomain: string; title: string; subti
     color_to: 'to-cyan-600'
   },
   {
+    id: 'c-promo',
     subdomain: 'promo',
     title: '🚀 HEHE 全栈单仓极速版',
     subtitle: '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。',
     badge: '开发者特惠季',
     color_from: 'from-rose-600',
     color_to: 'to-orange-600'
+  },
+  {
+    id: 'c-h5-v2',
+    subdomain: 'h5-v2',
+    title: '🎨 HEHE 营销 H5 v2 新野兽派',
+    subtitle: '采用大胆的新野兽派视觉版式，引入 3D 浮动卡片、扫光粒子与极客跑马灯。',
+    badge: '全新 V2 体验',
+    color_from: 'from-green-400',
+    color_to: 'to-emerald-600'
   }
 ]
 
@@ -58,22 +70,6 @@ export const mockOrdersTable: Array<Record<string, any>> = [
   { id: 'ord-3', order_no: 'ORD-M1X2K3-FAIL03', product_id: 'p1', product_name: 'HEHE Pro 工具套件', amount: 29.99, currency: 'EUR', status: 'failed', user_id: 'mock-user-123', payment_provider: 'stripe', payment_intent_id: 'pi_mock_fail_003', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
 ]
 
-// 内存 Mock 广告位配置表
-export const mockAdSlotsTable: Array<Record<string, any>> = [
-  { id: 'ad-1', name: 'Top Header Banner', position: 'header_banner', is_active: true, campaign_id: null, ad_provider: 'custom', ad_config: { html: '<div class="ad-banner">Sponsored Content</div>', width: 728, height: 90 }, sort_order: 1, created_at: new Date(Date.now() - 86400000 * 7).toISOString() },
-  { id: 'ad-2', name: 'Footer Banner', position: 'footer_banner', is_active: true, campaign_id: null, ad_provider: 'adsense', ad_config: { 'data-ad-client': 'ca-pub-xxxx', 'data-ad-slot': '1234567890' }, sort_order: 2, created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { id: 'ad-3', name: 'Native Inline Ad', position: 'native_inline', is_active: true, campaign_id: null, ad_provider: 'custom', ad_config: { html: '<div class="native-ad">Promoted</div>' }, sort_order: 3, created_at: new Date(Date.now() - 86400000 * 3).toISOString() }
-]
-
-// 内存 Mock 广告事件表
-export const mockAdEventsTable: Array<Record<string, any>> = [
-  { id: 'ae-1', ad_slot_id: 'ad-1', event_type: 'impression', campaign_subdomain: 'promo', ip: '203.0.113.1', user_agent: 'Mozilla/5.0', referrer: 'https://google.com', created_at: new Date(Date.now() - 3600000 * 5).toISOString() },
-  { id: 'ae-2', ad_slot_id: 'ad-1', event_type: 'click', campaign_subdomain: 'promo', ip: '203.0.113.2', user_agent: 'Mozilla/5.0', referrer: 'https://google.com', created_at: new Date(Date.now() - 3600000 * 4).toISOString() },
-  { id: 'ae-3', ad_slot_id: 'ad-2', event_type: 'impression', campaign_subdomain: 'ai', ip: '203.0.113.3', user_agent: 'Chrome/120', referrer: '', created_at: new Date(Date.now() - 3600000 * 3).toISOString() },
-  { id: 'ae-4', ad_slot_id: 'ad-1', event_type: 'impression', campaign_subdomain: 'promo', ip: '203.0.113.4', user_agent: 'Safari/17', referrer: 'https://twitter.com', created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-  { id: 'ae-5', ad_slot_id: 'ad-3', event_type: 'impression', campaign_subdomain: 'cloud', ip: '203.0.113.5', user_agent: 'Mozilla/5.0', referrer: '', created_at: new Date(Date.now() - 3600000).toISOString() }
-]
-
 // 内存 Mock 用户档案表
 export const mockProfilesTable: Array<Record<string, any>> = [
   { id: 'mock-user-123', username: 'solo_hacker', role: 'admin', plan_status: 'pro', avatar_url: null, display_name: 'Solo Hacker', auth_provider: 'email', provider_id: null, device_id: null, is_anonymous: false, email_verified: true, phone: null, created_at: new Date(Date.now() - 86400000 * 30).toISOString(), updated_at: new Date().toISOString() }
@@ -87,6 +83,12 @@ export const mockFeedbacksTable: Array<Record<string, any>> = [
   { id: 'fb-2', user_id: 'mock-user-456', campaign_subdomain: 'promo', type: 'review', rating: 4, comment: 'Great landing page, very responsive.', display_name: 'Bob', is_approved: true, admin_reply: 'Thanks for your feedback!', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
   { id: 'fb-3', user_id: 'mock-user-789', campaign_subdomain: 'ai', type: 'review', rating: 5, comment: 'AI features are impressive, love the demo.', display_name: 'Charlie', is_approved: true, admin_reply: null, created_at: new Date(Date.now() - 86400000).toISOString() },
   { id: 'fb-4', user_id: 'mock-user-123', campaign_subdomain: 'promo', type: 'bug', rating: 2, comment: '表单提交后页面白屏了，刷新才恢复。', display_name: 'Solo Hacker', is_approved: true, admin_reply: null, created_at: new Date().toISOString() },
+]
+
+// 内存 Mock 营销活动预约留资表
+export const mockCampaignRegistrationsTable: Array<Record<string, any>> = [
+  { id: 'reg-1', campaign_id: 'c-promo', subdomain: 'promo', phone: '13800138000', email: 'lead1@example.com', user_id: 'mock-user-123', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: 'reg-2', campaign_id: 'c-ai', subdomain: 'ai', phone: '13912345678', email: 'lead2@example.com', user_id: null, created_at: new Date(Date.now() - 3600000).toISOString() },
 ]
 
 export function getDB(event: any) {
@@ -115,9 +117,8 @@ function getLocalMockDB() {
     if (tableName === 'profiles') return mockProfilesTable
     if (tableName === 'products') return mockProductsTable
     if (tableName === 'orders') return mockOrdersTable
-    if (tableName === 'ad_slots') return mockAdSlotsTable
-    if (tableName === 'ad_events') return mockAdEventsTable
     if (tableName === 'feedbacks') return mockFeedbacksTable
+    if (tableName === 'campaign_registrations') return mockCampaignRegistrationsTable
     return mockTasksTable
   }
 
@@ -356,20 +357,6 @@ function getLocalMockDB() {
           mockOrdersTable.unshift(newOrder)
           return { data: [newOrder], error: null }
         }
-        if (tableName === 'ad_events') {
-          const newEvent = {
-            id: Math.random().toString(36).substring(2, 9),
-            ad_slot_id: data.ad_slot_id || '',
-            event_type: data.event_type || 'impression',
-            campaign_subdomain: data.campaign_subdomain || null,
-            ip: data.ip || '127.0.0.1',
-            user_agent: data.user_agent || '',
-            referrer: data.referrer || '',
-            created_at: new Date().toISOString()
-          }
-          mockAdEventsTable.unshift(newEvent)
-          return { data: [newEvent], error: null }
-        }
 
         if (tableName === 'feedbacks') {
           const newFeedback = {
@@ -386,6 +373,20 @@ function getLocalMockDB() {
           }
           mockFeedbacksTable.unshift(newFeedback)
           return { data: [newFeedback], error: null }
+        }
+
+        if (tableName === 'campaign_registrations') {
+          const newReg = {
+            id: `reg-${Math.random().toString(36).substring(2, 9)}`,
+            campaign_id: data.campaign_id || null,
+            subdomain: data.subdomain || '',
+            phone: data.phone || '',
+            email: data.email || '',
+            user_id: data.user_id || null,
+            created_at: new Date().toISOString()
+          }
+          mockCampaignRegistrationsTable.unshift(newReg)
+          return { data: [newReg], error: null }
         }
         return { data: [data], error: null }
         }

@@ -37,7 +37,6 @@
     "s16": "Platform Boundary Decisions",
     "s17": "AI Efficiency & Advanced Tools",
     "s18": "Third-party Payment Integration",
-    "s19": "Ad Slots & Traffic Monetization",
     "s20": "Mobile User Authentication"
   },
   "header": {
@@ -57,7 +56,9 @@
     "ctaH5": "Try Marketing H5",
     "navArch": "Architecture",
     "navHelp": "Docs",
-    "navH5": "Marketing H5 (Demo 1)",
+    "navH5": "Marketing H5",
+    "navH5_v1": "Glassmorphism V1",
+    "navH5_v2": "Neo-brutalism V2",
     "navAdmin": "Console",
     "navGitHub": "GitHub",
     "stackTitle": "Tech Stack",
@@ -278,10 +279,6 @@
           "desc": "Checkout Session flow, dual mode, Webhook, amount safety, test card numbers"
         },
         {
-          "title": "Ad Monetization",
-          "desc": "ad_slots/ad_events tables, AdSense/Meta/Custom, CSP config, revenue estimation"
-        },
-        {
           "title": "Social & Feedback",
           "desc": "SocialShare 6-platform component, feedbacks table, star ratings, admin approval"
         },
@@ -450,18 +447,6 @@
         "Type",
         "Result"
       ]
-    },
-    "s10": {
-      "optionalModule": "Optional Module",
-      "optionalModuleDesc": "This is an optional module. The core project does not depend on the advertising module.",
-      "adSlotTypes": "Ad Slot Types",
-      "adSlotCols": [
-        "Key",
-        "Name",
-        "Size"
-      ],
-      "adProviders": "Ad Providers",
-      "rlsPolicies": "RLS Policies"
     },
     "s11": {
       "socialShare": "Social Sharing Component",

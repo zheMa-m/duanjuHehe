@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 
 const { t } = useI18n()
 const { localeLabel, toggleLocale } = useLocaleDetect()
@@ -8,6 +8,9 @@ useAppSEO({
   title: () => t('home.title'),
   description: () => t('home.description'),
 })
+
+const showH5Dropdown = ref(false)
+const showHeroH5Dropdown = ref(false)
 
 const features = computed(() => [
   {
@@ -30,7 +33,7 @@ const features = computed(() => [
     icon: '📱',
     title: t('home.featureH5'),
     desc: t('home.featureH5Desc'),
-    link: '/h5/promo',
+    isDropdown: true,
     tag: 'SWR',
     tagColor: 'orange',
   },
@@ -102,10 +105,23 @@ onBeforeUnmount(() => {
           <svg class="nav-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           {{ t('home.navHelp') }}
         </NuxtLink>
-        <NuxtLink to="/h5/promo" class="nav-link" target="_blank">
-          <svg class="nav-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          {{ t('home.navH5') }}
-        </NuxtLink>
+        <div class="dropdown-container" @mouseenter="showH5Dropdown = true" @mouseleave="showH5Dropdown = false">
+          <button class="nav-link dropdown-trigger">
+            <svg class="nav-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            {{ t('home.navH5') }}
+            <span class="chevron-icon">▼</span>
+          </button>
+          <Transition name="dropdown-fade">
+            <div v-show="showH5Dropdown" class="dropdown-menu-list">
+              <NuxtLink to="/h5/promo" class="dropdown-item" target="_blank" @click="showH5Dropdown = false">
+                {{ t('home.navH5_v1') }}
+              </NuxtLink>
+              <NuxtLink to="/h5-v2/promo" class="dropdown-item" target="_blank" @click="showH5Dropdown = false">
+                {{ t('home.navH5_v2') }}
+              </NuxtLink>
+            </div>
+          </Transition>
+        </div>
         <NuxtLink to="/admin" class="nav-link nav-link-primary" target="_blank">
           <svg class="nav-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           {{ t('home.navAdmin') }}
@@ -136,10 +152,22 @@ onBeforeUnmount(() => {
           <NuxtLink to="/architecture" class="btn btn-primary">
             {{ t('home.ctaArch') }}
           </NuxtLink>
-          <NuxtLink to="/h5/promo" target="_blank" class="btn btn-secondary">
-            {{ t('home.ctaH5') }}
-            <span class="btn-arrow">↗</span>
-          </NuxtLink>
+          <div class="hero-dropdown-container" @mouseenter="showHeroH5Dropdown = true" @mouseleave="showHeroH5Dropdown = false">
+            <button class="btn btn-secondary dropdown-trigger">
+              {{ t('home.ctaH5') }}
+              <span class="chevron-icon">▼</span>
+            </button>
+            <Transition name="dropdown-fade">
+              <div v-show="showHeroH5Dropdown" class="hero-dropdown-menu">
+                <NuxtLink to="/h5/promo" target="_blank" class="hero-dropdown-item" @click="showHeroH5Dropdown = false">
+                  {{ t('home.navH5_v1') }} ↗
+                </NuxtLink>
+                <NuxtLink to="/h5-v2/promo" target="_blank" class="hero-dropdown-item" @click="showHeroH5Dropdown = false">
+                  {{ t('home.navH5_v2') }} ↗
+                </NuxtLink>
+              </div>
+            </Transition>
+          </div>
         </div>
       </div>
     </section>
@@ -162,11 +190,13 @@ onBeforeUnmount(() => {
         <h2 class="section-title reveal">{{ t('home.featuresTitle') }}</h2>
         <p class="section-desc reveal">{{ t('home.featuresDesc') }}</p>
         <div class="features-grid">
-          <NuxtLink
+          <component
+            :is="f.isDropdown ? 'div' : 'NuxtLink'"
             v-for="f in features"
-            :key="f.link"
-            :to="f.link"
+            :key="f.title"
+            :to="f.isDropdown ? undefined : f.link"
             class="feature-card reveal"
+            :class="{ 'feature-card-dropdown': f.isDropdown }"
           >
             <div class="feature-icon">{{ f.icon }}</div>
             <div class="feature-body">
@@ -175,9 +205,17 @@ onBeforeUnmount(() => {
                 <span class="feature-tag" :class="`tag-${f.tagColor}`">{{ f.tag }}</span>
               </div>
               <p>{{ f.desc }}</p>
+              <div v-if="f.isDropdown" class="card-links">
+                <NuxtLink to="/h5/promo" target="_blank" class="card-btn-link v1">
+                  {{ t('home.navH5_v1') }} ↗
+                </NuxtLink>
+                <NuxtLink to="/h5-v2/promo" target="_blank" class="card-btn-link v2">
+                  {{ t('home.navH5_v2') }} ↗
+                </NuxtLink>
+              </div>
             </div>
-            <span class="feature-arrow">→</span>
-          </NuxtLink>
+            <span v-if="!f.isDropdown" class="feature-arrow">→</span>
+          </component>
         </div>
       </div>
     </section>
@@ -792,4 +830,196 @@ onBeforeUnmount(() => {
 .features-grid .reveal:nth-child(4) { transition-delay: 0.3s; }
 .tools-grid .reveal:nth-child(2) { transition-delay: 0.1s; }
 .tools-grid .reveal:nth-child(3) { transition-delay: 0.2s; }
+
+/* ── DROPDOWN ── */
+.dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 160px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chevron-icon {
+  font-size: 9px;
+  margin-left: 2px;
+  transition: transform 0.2s;
+  opacity: 0.6;
+}
+
+.dropdown-container:hover .chevron-icon {
+  transform: rotate(180deg);
+}
+
+.hero-dropdown-container {
+  position: relative;
+}
+
+.hero-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hero-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.hero-dropdown-item:hover {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+/* ── FEATURE CARD DROPDOWN LINKS ── */
+.feature-card-dropdown {
+  cursor: default !important;
+}
+.feature-card-dropdown:hover {
+  transform: none !important;
+}
+
+.card-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.card-btn-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.card-btn-link.v1 {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+.card-btn-link.v1:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.card-btn-link.v2 {
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  color: #67e8f9;
+}
+.card-btn-link.v2:hover {
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+/* ── TRANSITIONS ── */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -8px);
+}
+
+/* ── LIGHT MODE OVERRIDES ── */
+@media (prefers-color-scheme: light) {
+  .dropdown-menu-list, .hero-dropdown-menu {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  }
+  .dropdown-item {
+    color: #475569;
+  }
+  .dropdown-item:hover {
+    color: #0284c7;
+    background: rgba(2, 132, 199, 0.08);
+  }
+  .hero-dropdown-item {
+    color: #475569;
+  }
+  .hero-dropdown-item:hover {
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.08);
+  }
+  .card-btn-link.v1 {
+    background: rgba(245, 158, 11, 0.06);
+    border-color: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+  }
+  .card-btn-link.v1:hover {
+    background: rgba(245, 158, 11, 0.12);
+  }
+  .card-btn-link.v2 {
+    background: rgba(2, 132, 199, 0.06);
+    border-color: rgba(2, 132, 199, 0.15);
+    color: #0284c7;
+  }
+  .card-btn-link.v2:hover {
+    background: rgba(2, 132, 199, 0.12);
+  }
+}
 </style>

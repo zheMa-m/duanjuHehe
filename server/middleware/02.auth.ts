@@ -50,16 +50,14 @@ export default defineEventHandler(async (event) => {
     if (siteAccessCookie) {
       const adminPassword = process.env.SITE_ADMIN_PASSWORD || process.env.SITE_ACCESS_PASSWORD || ''
       if (adminPassword && siteAccessCookie === adminPassword) {
-        // 确保 Supabase Auth 中存在内置管理员用户（首次自动创建，固定 UUID）
-        // 这样 tasks/activity_logs 等表的 tenant_id/user_id 外键约束才能通过
-        const db = getDB(event)
-        const adminUser = await ensureAdminAuthUser(db)
-        
+        // ✅ 性能与容错优化：直接使用固定的管理员 UUID (BUILTIN_ADMIN_UUID = '9e638ba2-41aa-4434-a68b-6bd9f7ed0963')
+        // 构造管理员身份，避免在鉴权中间件中为每一个 API 请求发起远程 Supabase Auth Admin API 网络调用。
+        // 内置管理员的 Auth 用户实体仅在管理员点击登录 (/api/admin/login) 时进行幂等初始化。
         event.context.user = {
-          id: adminUser.id,                                        // ✅ 真实 Supabase Auth UUID
+          id: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963',
           username: process.env.SITE_ADMIN_USERNAME || 'admin',
           role: 'admin',
-          tenantId: adminUser.id,                                  // ✅ 真实 UUID，满足 FK
+          tenantId: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963',
           isAnonymous: false,
         }
         return

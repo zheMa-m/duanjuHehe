@@ -58,9 +58,9 @@ const healthStatus = computed(() => {
 })
 
 const healthClass = computed(() => ({
-  'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/20': healthStatus.value === 'HEALTHY',
-  'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/20': healthStatus.value === 'WARNING',
-  'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/20': healthStatus.value === 'CRITICAL',
+  'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/30 shadow-[0_0_15px_rgba(48,209,88,0.15)]': healthStatus.value === 'HEALTHY',
+  'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/30 shadow-[0_0_15px_rgba(255,159,10,0.15)]': healthStatus.value === 'WARNING',
+  'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/30 shadow-[0_0_15px_rgba(255,69,58,0.15)]': healthStatus.value === 'CRITICAL',
 }))
 
 const formatUptime = (seconds: number) => {
@@ -73,15 +73,15 @@ const formatUptime = (seconds: number) => {
 <template>
   <div class="space-y-8 animate-fade-in text-white">
     <!-- 标题栏 -->
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
       <div>
-        <h1 class="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+        <h1 class="text-2xl font-semibold text-white tracking-tight flex items-center gap-3">
           系统健康监控
           <span
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium border"
+            class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold border transition-all duration-300 animate-pulse-glow"
             :class="healthClass"
           >
-            <span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
             {{ healthStatus }}
           </span>
         </h1>
@@ -90,68 +90,72 @@ const formatUptime = (seconds: number) => {
       <button 
         @click="$emit('refresh')"
         :disabled="isLoading"
-        class="text-xs bg-white/10 hover:bg-white/15 text-white font-medium px-4 py-2 rounded-full transition-all flex items-center gap-1.5 active:scale-[0.98] disabled:opacity-50"
+        class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all flex items-center gap-1.5 active:scale-[0.98] cursor-pointer focus:outline-none"
       >
-        <span :class="{'animate-spin': isLoading}">🔄</span>
+        <span :class="{'animate-spin': isLoading}" class="inline-block">🔄</span>
         {{ isLoading ? '正在更新...' : '刷新指标' }}
       </button>
     </div>
 
-    <!-- P95 / P99 / 错误率卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-      <div class="bg-[#1c1c1e] border border-white/5 p-5 rounded-2xl">
-        <div class="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-1">平均响应时长</div>
-        <div class="text-2xl font-semibold text-white">
+    <!-- P95 / P99 / 错误率卡片 (Bento Panel) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
+        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">Avg Latency</div>
+        <div class="text-2xl font-bold text-white font-mono">
           {{ apmData?.summary?.averageDuration ? apmData.summary.averageDuration.toFixed(1) + ' ms' : '0.0 ms' }}
         </div>
-        <div class="text-[10px] text-white/30 mt-1.5">基于最近 100 次 API 数据</div>
+        <div class="text-[10px] text-white/25 mt-1 font-light">基于最近 100 次 API 数据</div>
       </div>
 
-      <div class="bg-[#1c1c1e] border border-white/5 p-5 rounded-2xl">
-        <div class="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-1">P95 响应时延</div>
-        <div class="text-2xl font-semibold text-[#0a84ff]">
+      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
+        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">P95 Latency</div>
+        <div class="text-2xl font-bold text-[#0a84ff] font-mono">
           {{ apmData?.summary?.p95Duration ? apmData.summary.p95Duration.toFixed(1) + ' ms' : '0.0 ms' }}
         </div>
-        <div class="text-[10px] text-white/30 mt-1.5">95% 的请求低于此值</div>
+        <div class="text-[10px] text-white/25 mt-1 font-light">95% 的请求响应低于此值</div>
       </div>
 
-      <div class="bg-[#1c1c1e] border border-white/5 p-5 rounded-2xl">
-        <div class="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-1">P99 响应时延</div>
-        <div class="text-2xl font-semibold text-[#8b5cf6]">
+      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
+        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">P99 Latency</div>
+        <div class="text-2xl font-bold text-[#bf5af2] font-mono">
           {{ apmData?.summary?.p99Duration ? apmData.summary.p99Duration.toFixed(1) + ' ms' : '0.0 ms' }}
         </div>
-        <div class="text-[10px] text-white/30 mt-1.5">极值时延表现指标</div>
+        <div class="text-[10px] text-white/25 mt-1 font-light">系统极限时延表现指标</div>
       </div>
 
-      <div class="bg-[#1c1c1e] border border-white/5 p-5 rounded-2xl">
-        <div class="text-white/40 text-[10px] font-medium uppercase tracking-wider mb-1">系统报错率</div>
-        <div class="text-2xl font-semibold" :class="(apmData?.summary?.errorRate ?? 0) > 0 ? 'text-[#ff453a]' : 'text-[#30d158]'">
+      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
+        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">Error Rate</div>
+        <div class="text-2xl font-bold font-mono" :class="(apmData?.summary?.errorRate ?? 0) > 0 ? 'text-[#ff453a]' : 'text-[#30d158]'">
           {{ apmData?.summary?.errorRate ? apmData.summary.errorRate.toFixed(1) + '%' : '0.0%' }}
         </div>
-        <div class="text-[10px] text-white/30 mt-1.5">状态码 >= 400 占比</div>
+        <div class="text-[10px] text-white/25 mt-1 font-light">状态码 >= 400 请求占比</div>
       </div>
     </div>
 
     <!-- 硬件负荷 + 告警控制台 -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <!-- CPU & 内存 -->
-      <div class="lg:col-span-1 bg-[#1c1c1e] border border-white/5 p-6 rounded-2xl flex flex-col justify-between">
-        <div class="space-y-6">
-          <h3 class="text-xs font-semibold text-white/60 uppercase tracking-wider pl-1">硬件负荷指标 (Hardware)</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- CPU & 内存 (高品质毛玻璃卡片) -->
+      <div class="lg:col-span-1 bg-[#0c0c0e]/60 border border-white/[0.06] p-6 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/12 relative group overflow-hidden">
+        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-blue-500/[0.02] blur-xl"></div>
+        
+        <div class="space-y-6 relative z-10">
+          <h3 class="text-xs font-semibold text-white/50 uppercase tracking-widest pl-1 font-mono">Hardware Load</h3>
           
           <!-- CPU -->
           <div class="space-y-2">
             <div class="flex justify-between text-xs font-light">
-              <span class="text-white/70">CPU 负载比例</span>
-              <span class="text-white font-medium">{{ apmData?.system?.cpuLoad }}%</span>
+              <span class="text-white/70 tracking-wide">CPU 负载比例</span>
+              <span class="text-white font-semibold font-mono">{{ apmData?.system?.cpuLoad }}%</span>
             </div>
-            <div class="h-2.5 w-full bg-white/[0.03] border border-white/5 rounded-full overflow-hidden">
+            <!-- 加宽呼吸外框与扫光背景 -->
+            <div class="h-3 w-full bg-white/[0.02] border border-white/[0.06] rounded-full overflow-hidden relative">
               <div 
-                class="h-full rounded-full transition-all duration-500" 
+                class="h-full rounded-full transition-all duration-500 relative progress-bar-shimmer" 
                 :class="{
-                  'bg-[#30d158]': (apmData?.system?.cpuLoad ?? 0) <= 70,
-                  'bg-[#ff9f0a]': (apmData?.system?.cpuLoad ?? 0) > 70 && (apmData?.system?.cpuLoad ?? 0) <= 90,
-                  'bg-[#ff453a]': (apmData?.system?.cpuLoad ?? 0) > 90
+                  'bg-gradient-to-r from-emerald-500 to-blue-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]': (apmData?.system?.cpuLoad ?? 0) <= 70,
+                  'bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]': (apmData?.system?.cpuLoad ?? 0) > 70 && (apmData?.system?.cpuLoad ?? 0) <= 90,
+                  'bg-gradient-to-r from-red-600 to-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]': (apmData?.system?.cpuLoad ?? 0) > 90
                 }"
                 :style="{ width: (apmData?.system?.cpuLoad ?? 0) + '%' }"
               ></div>
@@ -161,83 +165,88 @@ const formatUptime = (seconds: number) => {
           <!-- Memory -->
           <div class="space-y-2">
             <div class="flex justify-between text-xs font-light">
-              <span class="text-white/70">物理内存占用</span>
-              <span class="text-white font-medium">{{ apmData?.system?.memoryUsage }}%</span>
+              <span class="text-white/70 tracking-wide">物理内存占用</span>
+              <span class="text-white font-semibold font-mono">{{ apmData?.system?.memoryUsage }}%</span>
             </div>
-            <div class="h-2.5 w-full bg-white/[0.03] border border-white/5 rounded-full overflow-hidden">
+            <div class="h-3 w-full bg-white/[0.02] border border-white/[0.06] rounded-full overflow-hidden relative">
               <div 
-                class="h-full rounded-full transition-all duration-500" 
+                class="h-full rounded-full transition-all duration-500 relative progress-bar-shimmer" 
                 :class="{
-                  'bg-[#30d158]': (apmData?.system?.memoryUsage ?? 0) <= 80,
-                  'bg-[#ff9f0a]': (apmData?.system?.memoryUsage ?? 0) > 80 && (apmData?.system?.memoryUsage ?? 0) <= 95,
-                  'bg-[#ff453a]': (apmData?.system?.memoryUsage ?? 0) > 95
+                  'bg-gradient-to-r from-emerald-500 to-blue-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]': (apmData?.system?.memoryUsage ?? 0) <= 80,
+                  'bg-gradient-to-r from-amber-500 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]': (apmData?.system?.memoryUsage ?? 0) > 80 && (apmData?.system?.memoryUsage ?? 0) <= 95,
+                  'bg-gradient-to-r from-red-600 to-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]': (apmData?.system?.memoryUsage ?? 0) > 95
                 }"
                 :style="{ width: (apmData?.system?.memoryUsage ?? 0) + '%' }"
               ></div>
             </div>
-            <div class="text-[10px] text-white/30 flex justify-between">
+            <div class="text-[10px] text-white/30 flex justify-between font-mono">
               <span>共 {{ apmData?.system?.totalMemGb }} GB</span>
               <span>可用 {{ apmData?.system?.freeMemGb }} GB</span>
             </div>
           </div>
         </div>
 
-        <div class="pt-6 border-t border-white/5 text-[10px] text-white/40 flex justify-between items-center mt-6">
-          <span>Node.js 开机时长:</span>
-          <span class="font-mono text-white/70">{{ formatUptime(apmData?.system?.uptime ?? 0) }}</span>
+        <div class="pt-5 border-t border-white/[0.06] text-[10px] text-white/40 flex justify-between items-center mt-6 relative z-10">
+          <span class="tracking-wide">Node.js 服务已运行:</span>
+          <span class="font-mono text-white/80 font-medium">{{ formatUptime(apmData?.system?.uptime ?? 0) }}</span>
         </div>
       </div>
 
-      <!-- 告警清单 -->
-      <div class="lg:col-span-2 bg-[#1c1c1e] border border-white/5 p-6 rounded-2xl flex flex-col justify-between">
-        <div>
+      <!-- 告警清单 (双列高透卡片) -->
+      <div class="lg:col-span-2 bg-[#0c0c0e]/60 border border-white/[0.06] p-6 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/12 relative group overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-purple-500/[0.01] blur-xl"></div>
+        
+        <div class="relative z-10">
           <div class="flex justify-between items-center mb-4 pl-1">
-            <h3 class="text-xs font-semibold text-white/60 uppercase tracking-wider">异常告警中心 (Alerting)</h3>
-            <span class="text-[9px] px-2 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/5">规则即时计算</span>
+            <h3 class="text-xs font-semibold text-white/50 uppercase tracking-widest font-mono">Alerting Center</h3>
+            <span class="text-[9px] px-2.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/[0.05] font-mono">REAL-TIME CHECK</span>
           </div>
 
-          <div class="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+          <div class="space-y-3 max-h-[170px] overflow-y-auto pr-1 scrollbar-none">
             <div 
               v-for="alert in apmData?.alerts" 
               :key="alert.id"
-              class="p-3 rounded-xl border text-xs flex justify-between items-center transition-all"
+              class="p-3.5 rounded-xl border text-xs flex justify-between items-center transition-all shadow-sm"
               :class="{
-                'bg-[#ff453a]/10 border-[#ff453a]/25 text-white': alert.level === 'critical',
-                'bg-[#ff9f0a]/10 border-[#ff9f0a]/25 text-white/90': alert.level === 'warning'
+                'bg-[#ff453a]/5 border-[#ff453a]/20 text-white': alert.level === 'critical',
+                'bg-[#ff9f0a]/5 border-[#ff9f0a]/20 text-white/90': alert.level === 'warning'
               }"
             >
-              <div class="flex items-center gap-2">
-                <span>{{ alert.level === 'critical' ? '🔴' : '🟡' }}</span>
+              <div class="flex items-center gap-3">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="alert.level === 'critical' ? 'bg-[#ff453a]' : 'bg-[#ff9f0a]'"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2" :class="alert.level === 'critical' ? 'bg-[#ff453a]' : 'bg-[#ff9f0a]'"></span>
+                </span>
                 <div>
-                  <div class="font-medium text-[11px] uppercase tracking-wide opacity-50">{{ alert.type }}</div>
-                  <div class="font-light text-[11px] mt-0.5">{{ alert.message }}</div>
+                  <div class="font-bold text-[10px] uppercase tracking-widest opacity-40 font-mono">{{ alert.type }}</div>
+                  <div class="font-light text-[11px] mt-1 tracking-wide leading-relaxed">{{ alert.message }}</div>
                 </div>
               </div>
-              <span class="text-[9px] opacity-40 font-mono">{{ new Date(alert.timestamp).toLocaleTimeString() }}</span>
+              <span class="text-[9px] opacity-40 font-mono font-medium">{{ new Date(alert.timestamp).toLocaleTimeString() }}</span>
             </div>
 
-            <div v-if="!apmData?.alerts || apmData.alerts.length === 0" class="py-10 text-center text-xs text-white/30 flex flex-col items-center gap-2">
-              <span class="text-xl">✔</span>
-              暂无活动告警，服务器运行平稳。
+            <div v-if="!apmData?.alerts || apmData.alerts.length === 0" class="py-10 text-center text-xs text-white/20 flex flex-col items-center gap-2 font-light">
+              <span class="text-2xl text-emerald-500">✔</span>
+              暂无活动告警，服务器状态表现极其平稳。
             </div>
           </div>
         </div>
 
         <!-- 模拟测试 -->
-        <div class="pt-4 border-t border-white/5 mt-4 flex items-center justify-between gap-3">
-          <span class="text-[10px] text-white/30">模拟报警联动测试:</span>
-          <div class="flex gap-2">
+        <div class="pt-4 border-t border-white/[0.06] mt-4 flex items-center justify-between gap-3 relative z-10">
+          <span class="text-[9px] text-white/30 uppercase font-semibold font-mono tracking-widest">Simulator Test:</span>
+          <div class="flex gap-2.5">
             <button 
               @click="$emit('simulate', 'warning', '数据库连接出现瞬时抖动 (APM 模拟)')"
               :disabled="isSimulating"
-              class="text-[10px] font-medium bg-[#ff9f0a]/10 hover:bg-[#ff9f0a]/20 text-[#ff9f0a] px-3 py-1.5 rounded-full border border-[#ff9f0a]/20 transition-all active:scale-[0.96] disabled:opacity-50"
+              class="text-[10px] font-semibold bg-[#ff9f0a]/10 hover:bg-[#ff9f0a]/20 text-[#ff9f0a] px-4 py-2 rounded-full border border-[#ff9f0a]/20 transition-all active:scale-[0.96] disabled:opacity-50 cursor-pointer focus:outline-none"
             >
               ⚠️ WARNING 警报
             </button>
             <button 
               @click="$emit('simulate', 'critical', '服务器物理磁盘剩余可用空间不足 5%！(APM 模拟)')"
               :disabled="isSimulating"
-              class="text-[10px] font-medium bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-3 py-1.5 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.96] disabled:opacity-50"
+              class="text-[10px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-4 py-2 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.96] disabled:opacity-50 cursor-pointer focus:outline-none"
             >
               🚨 CRITICAL 警报
             </button>
@@ -246,55 +255,55 @@ const formatUptime = (seconds: number) => {
       </div>
     </div>
 
-    <!-- API 请求追踪表 -->
-    <div class="bg-[#1c1c1e] border border-white/5 rounded-2xl overflow-hidden">
-      <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center">
-        <h2 class="text-xs font-semibold text-white/60 uppercase tracking-wider">实时 API 请求流追踪 (Trace Metrics)</h2>
-        <span class="text-[9px] px-2 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/5">最近 100 次</span>
+    <!-- API 请求追踪表 (高奢暗黑卡片) -->
+    <div class="bg-[#0c0c0e]/60 border border-white/[0.06] rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+      <div class="px-6 py-5 border-b border-white/[0.06] flex justify-between items-center bg-white/[0.005]">
+        <h2 class="text-xs font-semibold text-white/50 uppercase tracking-widest font-mono font-semibold">Live Trace Metrics</h2>
+        <span class="text-[9px] px-2.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/[0.05] font-mono">LATEST 100 RECORDS</span>
       </div>
       
-      <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
+      <div class="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-none">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
-            <tr class="border-b border-white/5 text-white/40 uppercase tracking-wider text-[9px] sticky top-0 bg-[#1c1c1e] z-10">
-              <th class="px-6 py-3">请求路径 (Path)</th>
-              <th class="px-6 py-3">方法</th>
-              <th class="px-6 py-3">状态码</th>
-              <th class="px-6 py-3">性能耗时</th>
-              <th class="px-6 py-3">触发时间</th>
+            <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[9px] sticky top-0 bg-[#0d0d0f] z-10">
+              <th class="px-6 py-4 font-semibold font-mono">请求路径 (Path)</th>
+              <th class="px-6 py-4 font-semibold font-mono">方法</th>
+              <th class="px-6 py-4 font-semibold font-mono">状态码</th>
+              <th class="px-6 py-4 font-semibold font-mono">性能耗时</th>
+              <th class="px-6 py-4 font-semibold font-mono">触发时间</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-white/5">
-            <tr v-for="metric in apmData?.metrics" :key="metric.timestamp + metric.path" class="hover:bg-white/[0.02] transition-colors">
-              <td class="px-6 py-3 font-mono text-[11px] text-white/80">{{ metric.path }}</td>
-              <td class="px-6 py-3">
-                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono"
+          <tbody class="divide-y divide-white/[0.04]">
+            <tr v-for="metric in apmData?.metrics" :key="metric.timestamp + metric.path" class="hover:bg-white/[0.02] transition-colors duration-200">
+              <td class="px-6 py-4 font-mono text-[11px] text-white/80 tracking-wide">{{ metric.path }}</td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold font-mono border"
                   :class="{
-                    'bg-[#0a84ff]/10 text-[#0a84ff]': metric.method === 'GET',
-                    'bg-[#30d158]/10 text-[#30d158]': metric.method === 'POST',
-                    'bg-[#ff9f0a]/10 text-[#ff9f0a]': metric.method === 'PATCH',
-                    'bg-[#ff453a]/10 text-[#ff453a]': metric.method === 'DELETE'
+                    'bg-[#0a84ff]/10 text-[#0a84ff] border-[#0a84ff]/15': metric.method === 'GET',
+                    'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/15': metric.method === 'POST',
+                    'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/15': metric.method === 'PATCH',
+                    'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/15': metric.method === 'DELETE'
                   }"
                 >
                   {{ metric.method }}
                 </span>
               </td>
-              <td class="px-6 py-3">
-                <span class="font-mono font-medium" :class="metric.status >= 400 ? 'text-[#ff453a]' : 'text-[#30d158]'">
+              <td class="px-6 py-4">
+                <span class="font-mono font-bold text-xs" :class="metric.status >= 400 ? 'text-[#ff453a]' : 'text-[#30d158]'">
                   {{ metric.status }}
                 </span>
               </td>
-              <td class="px-6 py-3 font-mono" :class="{
-                'text-[#ff453a] font-medium': metric.duration > 800,
-                'text-white/60': metric.duration <= 800
+              <td class="px-6 py-4 font-mono text-xs" :class="{
+                'text-[#ff453a] font-bold filter drop-shadow-[0_0_4px_rgba(255,69,58,0.2)]': metric.duration > 800,
+                'text-white/60 font-light': metric.duration <= 800
               }">
                 {{ metric.duration.toFixed(1) }} ms
               </td>
-              <td class="px-6 py-3 text-white/40 font-mono text-[10px]">{{ new Date(metric.timestamp).toLocaleTimeString() }}</td>
+              <td class="px-6 py-4 text-white/40 font-mono text-[11px]">{{ new Date(metric.timestamp).toLocaleTimeString() }}</td>
             </tr>
             <tr v-if="!apmData?.metrics || apmData.metrics.length === 0">
-              <td colspan="5" class="py-12 text-center text-xs text-white/30">
-                ⌛ 暂未捕获到接口流量，请尝试在其他标签页进行操作触发 API。
+              <td colspan="5" class="py-12 text-center text-xs text-white/20 font-light">
+                ⌛ 暂未捕获到接口流量，请尝试在其他面板操作或刷新页面。
               </td>
             </tr>
           </tbody>
@@ -303,3 +312,38 @@ const formatUptime = (seconds: number) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 进度条扫光 shimmer 扫掠动效 */
+@keyframes shimmer-move {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+.progress-bar-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: shimmer-move 2s linear infinite;
+  pointer-events: none;
+}
+
+/* 呼吸点动画 */
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 1px currentColor); opacity: 0.7; }
+  50% { filter: drop-shadow(0 0 5px currentColor); opacity: 1; }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
