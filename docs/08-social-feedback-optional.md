@@ -82,8 +82,9 @@
 | `rating` | INTEGER (1-5) | 星级评分（review 类型必填） |
 | `comment` | TEXT | 文字评论 |
 | `display_name` | TEXT | 显示昵称 |
-| `is_approved` | BOOLEAN | 是否已审批 |
+| `is_approved` | BOOLEAN | 是否已审批（默认 FALSE，需管理员审核） |
 | `admin_reply` | TEXT | 管理员回复 |
+| `updated_at` | TIMESTAMPTZ | 最后更新时间（自动更新） |
 
 ### RLS 策略
 
@@ -230,7 +231,7 @@ POST /api/v1/feedback   ← 提交评价（需登录）
 
 ### Q: 提交评价后看不到自己的评论
 
-GET `/api/v1/feedback` 默认只返回 `is_approved = true` 的评价。新提交的评价默认 `is_approved = true`（代码中写入时设置），所以应该立即可见。如果看不到：
+GET `/api/v1/feedback` 默认只返回 `is_approved = true` 的评价。新提交的评价默认 `is_approved = false`（需管理员审核后才公开显示）。如果已审核通过但仍看不到：
 1. 检查 `feedbacks` 表是否有记录
 2. 检查 `is_approved` 字段是否为 true
 3. 检查查询的 `subdomain` 参数是否匹配

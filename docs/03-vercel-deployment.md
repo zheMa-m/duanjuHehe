@@ -159,8 +159,6 @@ Nuxt 在 Vercel 上构建时，只有以下变量会暴露给浏览器端代码�
 
 ## 5. 域名配置
 
-本项目使用多子域名架构（主站、管理后台、API、H5 营销页矩阵），需要配置域名。
-
 ### 5.1 域名架构概览
 
 ```
@@ -236,17 +234,7 @@ Vercel 自动为所有域名（含通配符）签发 Let's Encrypt SSL 证书，
 | Vercel Preview | `VERCEL_URL`（自动注入） | `https://hehe-app-git-main.vercel.app` |
 | Vercel Production | `VERCEL_URL`（绑定域名后自动） | `https://yourdomain.com` |
 
-### 6.1 自定义域名绑定
-
-1. 进入 Vercel 项目 → **Settings → Domains**
-2. 添加你的域名（如 `yourdomain.com`）
-3. 按提示配置 DNS（推荐 Vercel Nameservers）
-4. 添加通配符域名 `*.yourdomain.com`（用于 H5 子域名路由）
-5. SSL 证书自动签发，无需手动操作
-
-绑定完成后，Vercel Production 部署的 `VERCEL_URL` 自动变为你的自定义域名。
-
-### 6.2 子域名路由中间件
+### 6.1 子域名路由中间件
 
 `server/middleware/01.subdomain-rewrite.ts` 通过 `useRuntimeConfig().rootDomain` 自动获取根域名，无需手动配置：
 
@@ -262,7 +250,7 @@ const _resolveBaseUrl = (): string => {
 - **Vercel 单域名环境**：自动跳过子域名重写，Nuxt pages 直接匹配路由
 - **本地子域名开发**：设置 `ROOT_DOMAIN=yourdomain.localhost` 环境变量即可覆盖
 
-### 6.3 手动覆盖（可选）
+### 6.2 手动覆盖（可选）
 
 如需显式指定站点 URL，可设置 `NUXT_PUBLIC_BASE_URL` 环境变量（最高优先级）：
 
@@ -603,10 +591,9 @@ git push origin feature/xxx     # 自动生成预览环境
 - [ ] 所有环境变量已在 Vercel Dashboard 配置（第 4 节清单）
 - [ ] `MOCK_DB` 已设为 `false`
 - [ ] 自定义域名已添加到 Vercel 并配置 DNS（自动生效，无需额外环境变量）
-- [ ] Supabase 数据库迁移已执行（0001_core 核心表 + Storage + 可选模块）
+- [ ] Supabase 数据库迁移已执行（0001_core 核心表 + Storage + 0002-0005 可选模块）
 - [ ] Supabase 中已创建管理员账号
-- [ ] 域名已添加到 Vercel 并配置 DNS
-- [ ] 通配符域名 `*.yourdomain.com` 已添加（使用 Vercel Nameservers）
+- [ ] 自定义域名及通配符 `*.yourdomain.com` 已添加到 Vercel（使用 Vercel Nameservers）
 - [ ] Stripe Webhook 已配置指向 `https://yourdomain.com/api/v1/payments/webhook`
 - [ ] Supabase OAuth 回调 URL 已更新为生产地址
 - [ ] `npm run check` 类型检查通过

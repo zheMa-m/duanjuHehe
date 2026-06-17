@@ -69,10 +69,14 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 | `payment_provider` | TEXT | stripe / paypal / manual |
 | `payment_intent_id` | TEXT | Stripe Payment Intent ID |
 
+### 外键约束
+
+- `products.tenant_id` → `auth.users(id) ON DELETE CASCADE`
+
 ### RLS 策略
 
-- `orders_user_select_own`：用户只能查看自己的订单
-- `orders_user_insert_own`：认证用户可创建自己的订单（user_id = auth.uid）
+- `orders_user_own`：用户可查看和创建自己的订单（user_id = auth.uid，SELECT + INSERT 合并）
+- `orders_service_update`：service_role 可更新订单状态（Webhook 回调）
 - `orders_admin_all`：管理员全权限
 
 ---

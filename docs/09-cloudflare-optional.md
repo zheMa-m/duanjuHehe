@@ -87,8 +87,8 @@ dig yourdomain.com NS
 
 > **核心原则**：Vercel 域名记录使用 **DNS-only（灰色云朵）** 模式，不要开启 Cloudflare 代理（橙色云朵）。
 
-| 类型 | 名称 | 内容 | 代理状态 | 说明 |
-|------|------|------|----------|------|
+| 类型 | 名称 | 值 | 代理状态 | 说明 |
+|------|------|-----|----------|------|
 | CNAME | `@` | `cname.vercel-dns.com` | DNS-only（灰色） | 主站指向 Vercel |
 | CNAME | `www` | `cname.vercel-dns.com` | DNS-only（灰色） | www 子域 |
 | CNAME | `admin` | `cname.vercel-dns.com` | DNS-only（灰色） | 管理后台 |

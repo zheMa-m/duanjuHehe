@@ -536,5 +536,5 @@ gh run view <run-id>            # 查看某次运行详情
 
 - 部署配置 → [03-vercel-deployment.md](./03-vercel-deployment.md) 第 2 节（GitHub 仓库准备）、第 11 节（Preview Deployments）
 - 项目基础 → [01-scaffold-basics.md](./01-scaffold-basics.md)（项目结构和环境变量）
-- 数据库集成 → [02-supabase-integration.md](./02-supabase-integration.md)（迁移文件需提交到 git）
+- 数据库集成 → [02-supabase-integration.md](./02-supabase-integration.md)（迁移文件 0001-0005 需提交到 git）
 - Cloudflare（可选） → [09-cloudflare-optional.md](./09-cloudflare-optional.md)（DNS 管理与 CDN 加速）

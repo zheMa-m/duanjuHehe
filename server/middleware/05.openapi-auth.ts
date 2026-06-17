@@ -14,7 +14,7 @@
  *   - 生产环境必须设置 OPENAPI_TOKEN 环境变量，否则 403 拒绝所有访问
  *   - OPENAPI_TOKEN 留空或未设置 → 生产环境下 API 文档不可访问（安全默认值）
  */
-import { defineEventHandler, getQuery, parseCookies } from 'h3'
+import { defineEventHandler, getQuery, parseCookies, createError } from 'h3'
 
 const OPENAPI_PATHS = ['/_openapi.json', '/_swagger', '/_scalar']
 

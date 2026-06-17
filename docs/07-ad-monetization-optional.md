@@ -70,10 +70,12 @@ Admin 收入分析面板汇总 CPM/CPC/CTR
 
 ### RLS 策略
 
-| 表 | 策略 |
-|----|------|
-| `ad_slots` | 所有人可读取活跃广告位，管理员全权限 |
-| `ad_events` | 任何人可写入（H5 上报），管理员可查看 |
+| 表 | 策略 | 说明 |
+|----|------|------|
+| `ad_slots` | `ad_slots_public_select` | 所有人可读取 `is_active = true` 的广告位 |
+| `ad_slots` | `ad_slots_admin_all` | 管理员全权限 |
+| `ad_events` | `ad_events_public_insert` | 任何人可写入（H5 上报） |
+| `ad_events` | `ad_events_admin_select` | 管理员可查看 |
 
 ---
 
@@ -237,11 +239,12 @@ const {
 
 ## 10. 索引优化
 
-```sql
-CREATE INDEX idx_ad_events_slot_id ON ad_events(ad_slot_id);
-CREATE INDEX idx_ad_events_created_at ON ad_events(created_at DESC);
-CREATE INDEX idx_ad_slots_position_active ON ad_slots(position, is_active);
-```
+已创建的索引：
+
+| 索引名 | 表 | 字段 | 用途 |
+|--------|----|------|------|
+| `idx_ad_events_slot_type_time` | ad_events | (ad_slot_id, event_type, created_at DESC) | 收入面板按广告位 + 事件类型统计 |
+| `idx_ad_slots_position_active` | ad_slots | (position, is_active) | 按位置获取活跃广告位 |
 
 高频查询场景（如统计面板）建议使用 Materialized View 预聚合。
 

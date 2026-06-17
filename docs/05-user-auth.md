@@ -48,6 +48,8 @@ profiles 表自动创建 → orders 表 user_id 衔接
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
+| `email` | TEXT | 用户邮箱（从 auth.users 同步，方便业务查询） |
+| `username` | TEXT | 用户名（最长 50 字符） |
 | `avatar_url` | TEXT | 用户头像 URL |
 | `display_name` | TEXT | 显示昵称 |
 | `auth_provider` | TEXT | 登录来源：email/google/facebook/apple/anonymous |
@@ -56,7 +58,7 @@ profiles 表自动创建 → orders 表 user_id 衔接
 | `is_anonymous` | BOOLEAN | 是否匿名用户 |
 | `email_verified` | BOOLEAN | 邮箱是否已验证 |
 | `phone` | TEXT | 手机号码 |
-| `updated_at` | TIMESTAMPTZ | 最后更新时间 |
+| `updated_at` | TIMESTAMPTZ | 最后更新时间（自动更新） |
 
 ### activity_logs 表（category = 'auth'）
 
@@ -73,7 +75,7 @@ profiles 表自动创建 → orders 表 user_id 衔接
 
 ### 自动 Profile 创建触发器
 
-`handle_new_user()` 函数在 `auth.users` INSERT 时自动触发，从 `raw_user_meta_data` 提取 username/display_name/provider 写入 profiles 表。OAuth 用户（google/facebook/apple）自动设置 `email_verified=TRUE`，邮箱注册用户设为 `FALSE`。
+`handle_new_user()` 函数在 `auth.users` INSERT 时自动触发，从 `raw_user_meta_data` 提取 username/display_name/provider 写入 profiles 表，同时将 `auth.users.email` 同步到 `profiles.email` 字段以便业务查询。OAuth 用户（google/facebook/apple）自动设置 `email_verified=TRUE`，邮箱注册用户设为 `FALSE`。
 
 ---
 
@@ -143,8 +145,10 @@ const {
 
 `app/plugins/supabase-auth.client.ts` 插件监听 `onAuthStateChange`：
 
-- `SIGNED_IN` / `TOKEN_REFRESHED` → 写入 Cookie
+- `SIGNED_IN` / `TOKEN_REFRESHED` → 写入 Cookie（`SameSite=Strict; Secure` for HTTPS）
 - `SIGNED_OUT` → 删除 Cookie
+
+`app/composables/auth.ts` 中 `saveTokensToCookie()` 同样使用 `SameSite=Strict` 策略，最大化 CSRF 防护。
 
 ---
 
@@ -297,7 +301,7 @@ npm run dev
 
 ## 14. 相关文档
 
-- 数据库设计 → [02-supabase-integration.md](./02-supabase-integration.md) 第 5 节（种子数据）、第 6 节（管理员创建）
+- 数据库设计 → [02-supabase-integration.md](./02-supabase-integration.md) 第 5 节（种子数据）、第 6 节（管理员创建）、第 7 节（profiles RLS 策略）
 - 部署配置 → [03-vercel-deployment.md](./03-vercel-deployment.md) 第 5 节（域名 + OAuth 回调）
-- 支付模块 → [06-payment-integration.md](./06-payment-integration.md)（登录状态是支付前置条件）
-- 用户评价 → [08-social-feedback.md](./08-social-feedback.md)（评价提交依赖登录状态）
+- 支付模块 → [06-payment-integration-optional.md](./06-payment-integration-optional.md)（登录状态是支付前置条件）
+- 用户评价 → [08-social-feedback-optional.md](./08-social-feedback-optional.md)（评价提交依赖登录状态）
