@@ -78,7 +78,6 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 | 3 | `supabase/migrations/0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
 | 4 | `supabase/migrations/0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
 | 5 | `supabase/migrations/0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
-| 6 | `supabase/migrations/0006_storage_optional.sql` | Storage Bucket + RLS（avatars, campaign-assets, uploads） | ⚠️ 可选 |
 
 3. 每次执行一个文件，确认无报错后再执行下一个
 4. 执行完成后进入 **Table Editor**，确认所有表已创建：
@@ -93,12 +92,12 @@ orders            ← 支付订单（⚠️ 可选，含 orders_user_insert_own 
 ad_slots         ← 广告位配置（⚠️ 可选）
 ad_events        ← 广告事件（⚠️ 可选）
 feedbacks        ← 用户评价（⚠️ 可选）
-storage.buckets  ← Supabase Storage Bucket（⚠️ 可选，avatars + campaign-assets + uploads）
+storage.buckets  ← Supabase Storage Bucket（avatars + campaign-assets + uploads，内置于 0001_core）
 ```
 
-### 4.2 方式二：Supabase CLI 自动推送（推荐后续迭代）
+### 4.2 方式二：Supabase CLI 自动推送（推荐）
 
-适用于已有本地开发环境的持续迭代。
+适用于已关联远程项目的标准流程。
 
 ```bash
 # 1. 登录 Supabase CLI（首次需要）
@@ -208,7 +207,7 @@ SELECT id, username, role, plan_status FROM profiles;
 | Apple | [developer.apple.com](https://developer.apple.com/account/resources/identifiers/list/serviceId) | 同上 |
 
 3. 在 **Authentication → URL Configuration** 中设置：
-   - **Site URL**：`http://yourdomain.localhost:3000`（开发）或 `https://yourdomain.com`（生产）
+   - **Site URL**：本地开发填 `http://localhost:3000`，生产填 `https://yourdomain.com`
    - **Redirect URLs**：添加上述回调 URL
 
 ### 7.1 邮箱登录设置
@@ -234,7 +233,9 @@ https://your-project-id.supabase.co/auth/v1/callback
 
 Supabase 完成 OAuth 认证后会重定向回你的站点，中间件自动处理 session cookie。
 
-> **注意**：如果同时在生产和本地测试 OAuth，需要在 Supabase **Redirect URLs** 中添加多个地址（`http://localhost:3000` 和 `https://yourdomain.com`）。
+> **注意**：如果同时在生产和本地测试 OAuth，需要在 Supabase **Redirect URLs** 中添加多个地址：
+> - `http://localhost:3000/api/v1/auth/callback`（本地开发）
+> - `https://yourdomain.com/api/v1/auth/callback`（生产环境）
 
 ---
 
@@ -288,7 +289,7 @@ npm run dev
 |--------|------|------|
 | 数据库连接 | 打开 `/tasks` 页面创建一条任务 | 任务持久化到 DB，刷新不丢失 |
 | 管理员登录 | 打开 `/admin` 用 admin 账号登录 | 正常进入后台 |
-| H5 营销页 | 访问 `http://ai.localhost:3000` | 页面正常渲染（campaigns 表有数据） |
+| H5 营销页 | 访问 `/h5/promo` 页面 | 页面正常渲染（campaigns 表有数据） |
 | 用户注册 | H5 页面用邮箱注册 | profiles 表自动创建记录 |
 | RLS 隔离 | 用两个不同用户登录 `/tasks` | 各自只能看到自己的任务 |
 | 活动日志 | 后台执行一个写操作 | activity_logs 表有记录 |
@@ -362,15 +363,17 @@ default_pool_size = 15
 
 ## 11. 配置 Supabase Storage（文件上传）
 
-项目内置 Supabase Storage 支持，提供三个 Bucket 覆盖全部业务场景。执行 `0006_storage_optional.sql` 迁移后自动创建。
+项目内置 Supabase Storage 支持，提供三个 Bucket 覆盖全部业务场景。Storage 功能已集成在 `0001_core.sql` 迁移中，执行核心迁移后 Bucket 及 RLS 策略自动创建。
 
 ### 11.1 Bucket 清单
 
 | Bucket | 可见性 | 大小限制 | 允许类型 | 写入权限 |
 |--------|--------|----------|----------|----------|
-| `avatars` | 公开 | 2 MB | `image/*` | 认证用户写自己目录 |
-| `campaign-assets` | 公开 | 10 MB | `image/*`, `video/mp4` | 仅管理员 |
+| `avatars` | 公开 | 2 MB | `image/png`, `image/jpeg`, `image/gif`, `image/webp` | 认证用户写自己目录 |
+| `campaign-assets` | 公开 | 10 MB | `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `video/mp4` | 仅管理员 |
 | `uploads` | 私有 | 50 MB | 不限制 | 认证用户写自己目录 |
+
+> **注意**：`allowed_mime_types` 必须使用 PostgreSQL `ARRAY['image/png', ...]` 语法，不支持通配符（如 `'image/*'`）。详见 0006 迁移文件。
 
 ### 11.2 路径规范与 RLS 隔离
 
@@ -421,13 +424,27 @@ const url = await getSignedUrl('uploads', 'user-id/5678_doc.pdf')
 const publicUrl = getPublicUrl('avatars', 'user-id/1234_photo.png')
 ```
 
-### 11.6 手动创建 Bucket（备选方案）
+### 11.6 Storage RLS 安全加固（0001_core 内置）
+
+Supabase 对 public bucket 默认创建的 DELETE 策略过于宽松（anon 用户可删除任意文件）。`0001_core.sql` 中的 4d 节添加了 3 条 RESTRICTIVE 策略进行加固：
+
+| 策略 | 类型 | 作用 |
+|------|------|------|
+| `storage_scope_restrict` | RESTRICTIVE | 限制所有操作只能在 3 个业务 bucket 范围内（FOR ALL 同时声明 USING + WITH CHECK） |
+| `campaign_assets_restrict_delete` | RESTRICTIVE | campaign-assets bucket 禁止非管理员删除 |
+| `uploads_restrict_anon` | RESTRICTIVE | anon 用户完全禁止访问 uploads bucket（USING + WITH CHECK） |
+
+> **注意**：RESTRICTIVE 策略的 `FOR ALL` 必须同时声明 `USING` 和 `WITH CHECK`，因为 PostgreSQL 对 `INSERT` 操作只看 `WITH CHECK`。另外，permissive 策略中 auth.uid() 使用 `(SELECT auth.uid())` 子查询形式，避免每行重复调用函数，提升性能。
+
+> **注意**：RESTRICTIVE 策略与 PERMISSIVE 策略是 AND 逻辑。Supabase Storage API 的 `remove()` 在 RLS 阻止删除时返回 `error=null, data=[]`（假成功），但文件实际未被删除。验证删除是否成功需检查文件是否仍存在。详见 `0001_core.sql` 中的 4d 节。
+
+### 11.7 手动创建 Bucket（备选方案）
 
 如果不使用迁移文件，也可以在 Supabase Dashboard 手动创建：
 
 1. 进入 **Storage → New Bucket**
 2. 分别创建 `avatars`（Public）、`campaign-assets`（Public）、`uploads`（Private）
-3. 在各 Bucket 的 **Policies** 页面，参照 `0006_storage_optional.sql` 中的 RLS 策略手动添加
+3. 在各 Bucket 的 **Policies** 页面，参照 `0001_core.sql` 中第 4 节的 RLS 策略手动添加
 
 > 推荐使用迁移文件方式，确保本地与远程环境一致。
 
@@ -601,11 +618,12 @@ DROP TABLE IF EXISTS "table_name" CASCADE;
 │ rating (1-5), comment, is_approved, admin_reply         │
 │ RLS: 公开读(已审批) + 认证用户写 + 管理员全权限          │
 ├─────────────────────────────────────────────────────────┤
-│ Storage Buckets ⚠️ 可选                                 │
-│ avatars (public, 2MB, image/*)                          │
-│ campaign-assets (public, 10MB, image/*+video, 管理员写) │
+│ Storage Buckets（内置于 0001_core）                        │
+│ avatars (public, 2MB, image/png+jpeg+gif+webp)          │
+│ campaign-assets (public, 10MB, image+video, 管理员写) │
 │ uploads (private, 50MB, 不限类型, uid 路径隔离)         │
 │ RLS: foldername[1]=uid 隔离 + is_admin() 管理员全权限   │
+│ RESTRICTIVE 策略防 anon 写入/删除公共 bucket            │
 ├─────────────────────────────────────────────────────────┤
 │ is_admin(uuid) SECURITY DEFINER STABLE 函数              │
 │ 以表 owner 身份执行，绕过 RLS，打破策略无限递归链       │
@@ -637,6 +655,14 @@ supabase migration repair <ts>    # 修复迁移历史记录
 
 # ── 类型生成 ──
 npm run gen:types                 # 生成 TypeScript 类型
+
+# ── 脚本工具 ──
+npm run test:api-safety          # API 越权安全扫描
+npm run test:supabase             # 数据库连接健康检查
+npm run test:storage              # Storage 全链路集成测试
+npm run gen:crud <resource>       # 生成 CRUD API 控制器组
+npm run gen:rls <table> --admin   # 生成 RLS 策略 SQL（含管理员）
+npm run scaffold <name>           # 生成 API + 前端页面脚手架
 
 # ── 本地开发 ──
 supabase start                    # 启动本地 Supabase 全套服务

@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "campaigns" (
   "cta_url"       TEXT,
   "cover_image"   TEXT,
   "description"   TEXT,
-  "features"      JSONB NOT NULL DEFAULT '[]',
+  "features"      JSONB NOT NULL DEFAULT '[]' CHECK (jsonb_typeof("features") = 'array'),
   "sort_order"    INTEGER NOT NULL DEFAULT 0,
   "created_at"    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "updated_at"    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -48,7 +48,7 @@ CREATE POLICY "campaigns_read_public" ON "campaigns"
 
 -- 管理员全权限（含下线/上线切换）
 CREATE POLICY "campaigns_admin_all" ON "campaigns"
-  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
+  FOR ALL TO authenticated USING ("is_admin"((SELECT auth.uid())));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_campaigns_active_sort" ON "campaigns"("is_active", "sort_order") WHERE "is_active" = true;

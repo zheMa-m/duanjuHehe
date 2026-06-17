@@ -1,6 +1,6 @@
 # 脚手架基础说明
 
-> 单人全栈单仓混合技术架构 v1.0 — 面向独立开发者的闭环项目脚手架
+> 单人全栈单仓混合技术架构 — 面向独立开发者的闭环项目脚手架
 
 ---
 
@@ -50,7 +50,7 @@ hehe-app/
 │   ├── composables/       # Vue Composables（自动导入，含 useLocaleDetect）
 │   ├── pages/
 │   │   ├── (admin)/admin/ # 管理后台页面（SPA）
-│   │   ├── (client)/      # 官网首页 + 任务看板（ISR）
+│   │   ├── (client)/      # 官网首页 + /architecture 白皮书 + /tasks 看板（ISR）
 │   │   └── (h5)/h5/       # 营销 H5 页面（SWR）
 │   ├── plugins/           # Nuxt 插件
 │   ├── utils/             # 前端工具函数
@@ -71,7 +71,7 @@ hehe-app/
 │   └── migrations/        # SQL 迁移文件（版本号递增）
 ├── public/                # 静态资源
 ├── scripts/               # 运维脚本
-├── DESIGN-*.md            # 三端设计系统规范（client/admin/h5）
+├── DESIGN.md              # 三端统一设计系统规范（client/admin/h5）
 └── docs/                  # 核心文档（本目录）
 ```
 
@@ -79,14 +79,14 @@ hehe-app/
 
 ## 5. 多域名路由设计
 
-通过 `01.subdomain-rewrite.ts` 中间件实现子域名路由重写：
+通过 `01.subdomain-rewrite.ts` 中间件实现子域名路由重写，根域名从 `useRuntimeConfig().rootDomain` 自动获取（由 `NUXT_PUBLIC_BASE_URL` 或 Vercel `VERCEL_URL` 派生）：
 
 | 子域名 | 路径重写 | 渲染策略 |
 |--------|----------|----------|
-| `yourdomain.localhost` | → `/client/` | ISR (3600s) |
-| `admin.yourdomain.localhost` | → `/admin/` | SPA (ssr: false) |
-| `api.yourdomain.localhost` | → `/api/v1/` | no-store |
-| `*.yourdomain.localhost` | → `/h5/{subdomain}/` | SWR (600s) |
+| 根域名（localhost / yourdomain.com） | → `/client/` | ISR (3600s) |
+| `admin.` 子域名 | → `/admin/` | SPA (ssr: false) |
+| `api.` 子域名 | → `/api/v1/` | no-store |
+| 其他子域名（如 `ai.`） | → `/h5/{subdomain}/` | SWR (600s) |
 
 ---
 
@@ -94,7 +94,7 @@ hehe-app/
 
 | 路由 | 策略 | 说明 |
 |------|------|------|
-| `/client/**` | ISR 3600s | 官网首页，定时增量再生 |
+| `/` `/architecture` `/tasks` | ISR 3600s | 官网首页 + 技术架构白皮书 + 任务看板，定时增量再生 |
 | `/h5/**` | SWR 600s | 营销 H5，后台修改秒级热更新 |
 | `/admin/**` | SPA (ssr: false) | 管理后台，完全客户端渲染 |
 | `/api/**` | no-store | API 接口，绝对禁止缓存 |
@@ -119,16 +119,15 @@ NUXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 STRIPE_PUBLIC_KEY=pk_test_xxx
-
-# 生产环境根域名（部署到 Vercel 时填写真实域名）
-ROOT_DOMAIN=yourdomain.localhost
 ```
 
 > **安全原则**：`SUPABASE_SERVICE_ROLE_KEY` 和 `STRIPE_SECRET_KEY` 严禁出现在前端代码中（禁止 `NUXT_PUBLIC_` 前缀）。
+>
+> **站点 URL 零配置**：本地默认 `http://localhost:3000`，Vercel 部署自动使用 `VERCEL_URL`（Production 自动为你绑定的自定义域名），无需手动配置。
 
 > **环境变量详细说明**：
 > - `MOCK_DB` 切换说明 → [02-supabase-integration.md](./02-supabase-integration.md) 第 3 节
-> - `ROOT_DOMAIN` 部署配置 → [03-vercel-deployment.md](./03-vercel-deployment.md) 第 6 节
+> - 域名与部署配置 → [03-vercel-deployment.md](./03-vercel-deployment.md) 第 6 节
 
 ---
 
@@ -213,9 +212,8 @@ npm run check
 | `0003_ad_optional.sql` | ad_slots, ad_events | ⚠️ 可选 |
 | `0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
 | `0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
-| `0006_storage_optional.sql` | Storage Bucket + RLS（avatars, campaign-assets, uploads） | ⚠️ 可选 |
 
-所有表必须开启 RLS（`ENABLE ROW LEVEL SECURITY`）+ `FORCE ROW LEVEL SECURITY`，数据行级隔离。管理员权限策略统一使用 `is_admin(auth.uid())` SECURITY DEFINER 函数，避免 FORCE RLS 下的无限递归。
+核心迁移包含 profiles、tasks、activity_logs、Storage Buckets 等所有必要基础设施。
 
 > **完整接入指南**：从 Mock DB 切换到真实 Supabase 的详细操作步骤见 [02-supabase-integration.md](./02-supabase-integration.md)
 
@@ -306,12 +304,14 @@ const { t } = useI18n()
 
 ### Q: 子域名路由不生效
 
-确认本地已绑定 `/etc/hosts`：
+确认本地已绑定 `/etc/hosts`（仅子域名开发模式需要）：
 ```bash
 127.0.0.1 yourdomain.localhost
 127.0.0.1 admin.yourdomain.localhost
 127.0.0.1 ai.yourdomain.localhost
 ```
+
+> 注：本地普通开发无需子域名路由，直接访问 `http://localhost:3000` 即可。
 
 ### Q: Mock DB 切换真实 DB 后页面白屏
 

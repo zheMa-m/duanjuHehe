@@ -1,10 +1,12 @@
 -- ====================================================================
--- 0001 核心基础表 + 认证体系
+-- 0001 核心基础表 + 认证体系 + Storage
 --
--- 核心表（项目必须依赖）：
+-- 核心表与功能（项目必须依赖）：
 --   1. profiles            — 用户档案（auth.users FK）
 --   2. tasks               — 业务任务（CRUD 示例 + tenant_id 隔离）
 --   3. activity_logs       — 统一审计日志（append-only）
+--   4. storage.buckets     — Supabase Storage Bucket（avatars, campaign-assets, uploads）
+--     + storage.objects RLS 策略（路径隔离 + RESTRICTIVE 加固）
 --
 -- 通用函数：
 --   set_updated_at()       — updated_at 自动刷新
@@ -40,7 +42,8 @@ $$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS "profiles" (
   "id"                 UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  "username"           TEXT,                                       -- 匿名用户可为 NULL，非 NULL 时唯一
+  "email"              TEXT,                                        -- 冗余 auth.users.email，方便业务查询
+  "username"           TEXT CHECK (char_length("username") <= 50),  -- 匿名用户可为 NULL，非 NULL 时唯一
   "role"               TEXT NOT NULL DEFAULT 'user'
                        CHECK ("role" IN ('user', 'admin')),
   "plan_status"        TEXT NOT NULL DEFAULT 'free'
@@ -75,15 +78,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS "profiles_username_unique"
 
 -- 用户 SELECT 自己的 profile
 CREATE POLICY "profiles_select_own" ON "profiles"
-  FOR SELECT TO authenticated USING (auth.uid() = id);
+  FOR SELECT TO authenticated USING ((SELECT auth.uid()) = id);
 
 -- 用户 UPDATE 自己的 profile
 CREATE POLICY "profiles_update_own" ON "profiles"
-  FOR UPDATE TO authenticated USING (auth.uid() = id);
+  FOR UPDATE TO authenticated USING ((SELECT auth.uid()) = id);
 
 -- 管理员全权限
 CREATE POLICY "profiles_admin_all" ON "profiles"
-  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
+  FOR ALL TO authenticated USING ("is_admin"((SELECT auth.uid())));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_profiles_device_id" ON "profiles"("device_id") WHERE "device_id" IS NOT NULL;
@@ -104,7 +107,8 @@ CREATE TABLE IF NOT EXISTS "tasks" (
   "id"          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "title"       TEXT NOT NULL,
   "completed"   BOOLEAN NOT NULL DEFAULT false,
-  "tenant_id"   UUID NOT NULL,
+  "tenant_id"   UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  "updated_at"  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "created_at"  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -114,15 +118,20 @@ ALTER TABLE "tasks" FORCE ROW LEVEL SECURITY;
 -- 行级隔离：用户仅操作自己项目数据
 CREATE POLICY "tasks_tenant_isolation" ON "tasks"
   FOR ALL TO authenticated
-  USING ("tenant_id" = auth.uid())
-  WITH CHECK ("tenant_id" = auth.uid());
+  USING ("tenant_id" = (SELECT auth.uid()))
+  WITH CHECK ("tenant_id" = (SELECT auth.uid()));
 
 -- 管理员全权限
 CREATE POLICY "tasks_admin_all" ON "tasks"
-  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
+  FOR ALL TO authenticated USING ("is_admin"((SELECT auth.uid())));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_tasks_tenant_id" ON "tasks"("tenant_id");
+
+-- updated_at 自动更新触发器
+CREATE TRIGGER "tasks_set_updated_at"
+  BEFORE UPDATE ON "tasks"
+  FOR EACH ROW EXECUTE FUNCTION "set_updated_at"();
 
 
 -- ╔════════════════════════════════════════════════════════════════╗
@@ -148,17 +157,17 @@ ALTER TABLE "activity_logs" FORCE ROW LEVEL SECURITY;
 -- 用户查看自己的认证日志
 CREATE POLICY "activity_logs_user_select_own" ON "activity_logs"
   FOR SELECT TO authenticated
-  USING (auth.uid() = user_id AND category = 'auth');
+  USING ((SELECT auth.uid()) = user_id AND category = 'auth');
 
 -- 管理员查看所有日志
 CREATE POLICY "activity_logs_admin_select" ON "activity_logs"
   FOR SELECT TO authenticated
-  USING ("is_admin"(auth.uid()));
+  USING ("is_admin"((SELECT auth.uid())));
 
 -- 认证用户写入自己的认证日志
 CREATE POLICY "activity_logs_auth_insert" ON "activity_logs"
   FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = user_id AND category = 'auth');
+  WITH CHECK ((SELECT auth.uid()) = user_id AND category = 'auth');
 
 -- service_role 直写任意日志
 CREATE POLICY "activity_logs_server_insert" ON "activity_logs"
@@ -169,6 +178,7 @@ CREATE POLICY "activity_logs_server_insert" ON "activity_logs"
 CREATE INDEX IF NOT EXISTS "idx_activity_logs_category"   ON "activity_logs"(category);
 CREATE INDEX IF NOT EXISTS "idx_activity_logs_user_id"    ON "activity_logs"(user_id);
 CREATE INDEX IF NOT EXISTS "idx_activity_logs_created_at" ON "activity_logs"(created_at DESC);
+CREATE INDEX IF NOT EXISTS "idx_activity_logs_metadata"   ON "activity_logs" USING GIN (metadata);
 
 
 -- ╔════════════════════════════════════════════════════════════════╗
@@ -186,10 +196,11 @@ BEGIN
   is_oauth     := provider_val IN ('google', 'facebook', 'apple');
 
   INSERT INTO public.profiles (
-    id, username, display_name, auth_provider, is_anonymous, email_verified
+    id, email, username, display_name, auth_provider, is_anonymous, email_verified
   )
   VALUES (
     NEW.id,
+    NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
     provider_val,
@@ -204,3 +215,137 @@ DROP TRIGGER IF EXISTS "on_auth_user_created" ON "auth"."users";
 CREATE TRIGGER "on_auth_user_created"
   AFTER INSERT ON "auth"."users"
   FOR EACH ROW EXECUTE FUNCTION "handle_new_user"();
+
+
+-- ╔════════════════════════════════════════════════════════════════╗
+-- ║  4. Supabase Storage Bucket + RLS 策略                        ║
+-- ║  Bucket: avatars (公开), campaign-assets (公开), uploads (私有) ║
+-- ║                                                               ║
+-- ║  RLS 策略设计原则：                                             ║
+-- ║  - 每 bucket 1 条用户操作策略 + 1 条管理员策略（permissive）     ║
+-- ║  - SELECT 策略按需独立（public/authenticated 不同）             ║
+-- ║  - RESTRICTIVE 策略防 anon 写入/删除 + 限制 bucket 范围          ║
+-- ║  - 使用 (SELECT auth.uid()) 子查询优化每行重复评估              ║
+-- ╚════════════════════════════════════════════════════════════════╝
+
+-- ════════════════════════════════════════════════════════════════
+--  4a. avatars — 用户头像 Bucket（公开读）
+--  认证用户操作自己目录（路径第一段 = uid）
+-- ════════════════════════════════════════════════════════════════
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'avatars', 'avatars', true,
+  2097152,   -- 2 MB
+  ARRAY['image/png','image/jpeg','image/gif','image/webp']
+) ON CONFLICT (id) DO NOTHING;
+
+-- 认证用户操作自己目录（SELECT/INSERT/UPDATE/DELETE 合一）
+CREATE POLICY "avatars_user_own" ON storage.objects
+  FOR ALL TO authenticated
+  USING (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  )
+  WITH CHECK (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  );
+
+-- 管理员全权限
+CREATE POLICY "avatars_admin_all" ON storage.objects
+  FOR ALL TO authenticated
+  USING (bucket_id = 'avatars' AND "is_admin"((SELECT auth.uid())));
+
+-- 公开读取
+CREATE POLICY "avatars_public_select" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'avatars');
+
+
+-- ════════════════════════════════════════════════════════════════
+--  4b. campaign-assets — 营销活动素材 Bucket（公开读，管理员写）
+-- ════════════════════════════════════════════════════════════════
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'campaign-assets', 'campaign-assets', true,
+  10485760,  -- 10 MB
+  ARRAY['image/png','image/jpeg','image/gif','image/webp','video/mp4']
+) ON CONFLICT (id) DO NOTHING;
+
+-- 管理员全权限（SELECT/INSERT/UPDATE/DELETE 合一）
+CREATE POLICY "campaign_assets_admin_all" ON storage.objects
+  FOR ALL TO authenticated
+  USING (
+    bucket_id = 'campaign-assets'
+    AND "is_admin"((SELECT auth.uid()))
+  );
+
+-- 公开读取
+CREATE POLICY "campaign_assets_public_select" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'campaign-assets');
+
+
+-- ════════════════════════════════════════════════════════════════
+--  4c. uploads — 私有文件 Bucket（用户路径隔离 + 管理员全权限）
+-- ════════════════════════════════════════════════════════════════
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'uploads', 'uploads', false,
+  52428800,  -- 50 MB
+  NULL       -- 不限制 MIME 类型
+) ON CONFLICT (id) DO NOTHING;
+
+-- 认证用户操作自己目录（SELECT/INSERT/UPDATE/DELETE 合一）
+CREATE POLICY "uploads_user_own" ON storage.objects
+  FOR ALL TO authenticated
+  USING (
+    bucket_id = 'uploads'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  )
+  WITH CHECK (
+    bucket_id = 'uploads'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  );
+
+-- 管理员全权限
+CREATE POLICY "uploads_admin_all" ON storage.objects
+  FOR ALL TO authenticated
+  USING (bucket_id = 'uploads' AND "is_admin"((SELECT auth.uid())));
+
+
+-- ════════════════════════════════════════════════════════════════
+--  4d. Storage RLS 加固 — RESTRICTIVE 策略
+--  permissive 策略为 OR 逻辑，RESTRICTIVE 策略为 AND 逻辑
+--  最终权限 = (通过所有 RESTRICTIVE) AND (通过至少一条 permissive)
+-- ════════════════════════════════════════════════════════════════
+
+-- ① 限制所有操作只能在管理的 3 个 bucket 范围内
+--    FOR ALL 必须同时声明 USING + WITH CHECK（INSERT 只看 WITH CHECK）
+CREATE POLICY "storage_scope_restrict" ON storage.objects
+  AS RESTRICTIVE
+  FOR ALL
+  TO public
+  USING (bucket_id IN ('avatars', 'campaign-assets', 'uploads'))
+  WITH CHECK (bucket_id IN ('avatars', 'campaign-assets', 'uploads'));
+
+-- ② campaign-assets：DELETE 仅限管理员（加固 permissive 策略）
+CREATE POLICY "campaign_assets_restrict_delete" ON storage.objects
+  AS RESTRICTIVE
+  FOR DELETE
+  TO public
+  USING (
+    bucket_id != 'campaign-assets'
+    OR "is_admin"((SELECT auth.uid()))
+  );
+
+-- ③ uploads：anon 角色完全禁止（private bucket 加固）
+CREATE POLICY "uploads_restrict_anon" ON storage.objects
+  AS RESTRICTIVE
+  FOR ALL
+  TO anon
+  USING (bucket_id != 'uploads')
+  WITH CHECK (bucket_id != 'uploads');

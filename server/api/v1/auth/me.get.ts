@@ -33,7 +33,7 @@ export default defineEventHandler(async (event: H3Event) => {
   // 从 profiles 表获取完整用户信息
   const { data: profile, error } = await db
     .from('profiles')
-    .select('id, username, display_name, avatar_url, role, auth_provider, is_anonymous, email_verified, phone, created_at, updated_at')
+    .select('id, email, username, display_name, avatar_url, role, auth_provider, is_anonymous, email_verified, phone, created_at, updated_at')
     .eq('id', ctxUser.id)
     .single()
 

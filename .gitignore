@@ -26,3 +26,5 @@ logs
 .qoder
 
 supabase/.temp
+
+.codebuddy

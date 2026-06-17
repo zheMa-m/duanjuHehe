@@ -9,11 +9,12 @@ import { AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME } from '~/composables/auth'
 
 function setCookie(name: string, value: string, days = 7) {
   const expires = new Date(Date.now() + days * 864e5).toUTCString()
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`
+  const isSecure = window.location.protocol === 'https:'
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Strict${isSecure ? ';Secure' : ''}`
 }
 
 function removeCookie(name: string) {
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`
 }
 
 export default defineNuxtPlugin({
@@ -22,6 +23,22 @@ export default defineNuxtPlugin({
   async setup() {
     // 仅在客户端执行
     if (typeof window === 'undefined') return
+
+    // ── 处理 OAuth 回调：从 URL query 提取 token 写入 cookie ──
+    // 服务端 callback.get.ts 重定向到 /?auth_token=xxx&refresh_token=xxx
+    // 此处提取并设置 cookie，然后清理 URL 参数
+    const params = new URLSearchParams(window.location.search)
+    const authToken = params.get('auth_token')
+    const refreshToken = params.get('refresh_token')
+    if (authToken) {
+      setCookie(AUTH_COOKIE_NAME, authToken, 1)
+      if (refreshToken) setCookie(REFRESH_COOKIE_NAME, refreshToken, 30)
+      // 清理 URL 中的 token 参数，避免刷新页面时重复处理
+      const url = new URL(window.location.href)
+      url.searchParams.delete('auth_token')
+      url.searchParams.delete('refresh_token')
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+    }
 
     const supabase = useSupabaseClient()
 

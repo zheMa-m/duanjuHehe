@@ -117,6 +117,8 @@ vercel --prod
 | `STRIPE_SECRET_KEY` | `sk_test_...` | Stripe 密钥（测试阶段可用测试 key） |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Stripe Webhook 签名密钥 |
 | `STRIPE_PUBLIC_KEY` | `pk_test_...` | Stripe 公钥 |
+| `OPENAPI_TOKEN` | `hehe-api-docs-2024` | OpenAPI 文档访问令牌 |
+| `SITE_ACCESS_PASSWORD` | `hehe2024` | 站点访问密码（留空则不启用保护） |
 
 ### 4.2 操作步骤
 
@@ -136,7 +138,7 @@ Nuxt 在 Vercel 上构建时，只有以下变量会暴露给浏览器端代码�
 
 ```
 浏览器可见: NUXT_PUBLIC_SUPABASE_URL, NUXT_PUBLIC_SUPABASE_ANON_KEY
-仅服务端:   SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+仅服务端:   SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, OPENAPI_TOKEN, SITE_ACCESS_PASSWORD
 ```
 
 > **安全红线**：`SUPABASE_SERVICE_ROLE_KEY` 和 `STRIPE_SECRET_KEY` 绝对不能加 `NUXT_PUBLIC_` 前缀。
@@ -224,43 +226,48 @@ Vercel 自动为所有域名（含通配符）签发 Let's Encrypt SSL 证书，
 
 ---
 
-## 6. 修改子域名路由中间件
+## 6. 站点 URL 与子域名路由
 
-项目中 `server/middleware/01.subdomain-rewrite.ts` 的 `ROOT_DOMAIN` 硬编码为 `yourdomain.localhost`（开发用）。部署到 Vercel 前需要改为读取环境变量。
+项目采用零配置方案，站点 URL 自动适配：
 
-### 6.1 新增环境变量
+| 环境 | URL 来源 | 示例 |
+|------|----------|------|
+| 本地开发 | 默认值 | `http://localhost:3000` |
+| Vercel Preview | `VERCEL_URL`（自动注入） | `https://hehe-app-git-main.vercel.app` |
+| Vercel Production | `VERCEL_URL`（绑定域名后自动） | `https://yourdomain.com` |
 
-在 `.env`（本地）和 Vercel Dashboard 中添加：
+### 6.1 自定义域名绑定
+
+1. 进入 Vercel 项目 → **Settings → Domains**
+2. 添加你的域名（如 `yourdomain.com`）
+3. 按提示配置 DNS（推荐 Vercel Nameservers）
+4. 添加通配符域名 `*.yourdomain.com`（用于 H5 子域名路由）
+5. SSL 证书自动签发，无需手动操作
+
+绑定完成后，Vercel Production 部署的 `VERCEL_URL` 自动变为你的自定义域名。
+
+### 6.2 子域名路由中间件
+
+`server/middleware/01.subdomain-rewrite.ts` 通过 `useRuntimeConfig().rootDomain` 自动获取根域名，无需手动配置：
+
+```ts
+// nuxt.config.ts 中的自动派生逻辑
+const _resolveBaseUrl = (): string => {
+  if (process.env.NUXT_PUBLIC_BASE_URL) return process.env.NUXT_PUBLIC_BASE_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'http://localhost:3000'
+}
+```
+
+- **Vercel 单域名环境**：自动跳过子域名重写，Nuxt pages 直接匹配路由
+- **本地子域名开发**：设置 `ROOT_DOMAIN=yourdomain.localhost` 环境变量即可覆盖
+
+### 6.3 手动覆盖（可选）
+
+如需显式指定站点 URL，可设置 `NUXT_PUBLIC_BASE_URL` 环境变量（最高优先级）：
 
 ```env
-# 生产环境根域名（不含协议前缀）
-ROOT_DOMAIN=yourdomain.com
-```
-
-### 6.2 修改中间件代码
-
-将 `01.subdomain-rewrite.ts` 中的硬编码域名改为环境变量读取：
-
-```ts
-// 修改前
-const ROOT_DOMAIN = 'yourdomain.localhost'
-
-// 修改后
-const ROOT_DOMAIN = process.env.ROOT_DOMAIN || 'yourdomain.localhost'
-```
-
-这样本地开发使用 `yourdomain.localhost`，Vercel 生产环境使用 `yourdomain.com`。
-
-### 6.3 同步修改前端代码
-
-检查项目中所有硬编码 `yourdomain.localhost` 的地方（如 `index.vue` 的链接、H5 页面的子域名提示等），按需替换：
-
-```ts
-// 通用写法：从当前请求 host 动态获取根域名
-const rootDomain = computed(() => {
-  if (import.meta.server) return process.env.ROOT_DOMAIN || 'yourdomain.localhost'
-  return window.location.host.split('.').slice(-2).join('.')
-})
+NUXT_PUBLIC_BASE_URL=https://yourdomain.com
 ```
 
 ---
@@ -271,7 +278,7 @@ const rootDomain = computed(() => {
 
 | 路由 | routeRules | Vercel 行为 |
 |------|-----------|-------------|
-| `/` `/tasks` | `isr: 3600` | ISR — Vercel 边缘缓存 1 小时，过期后后台再生 |
+| `/` `/architecture` `/tasks` | `isr: 3600` | ISR — Vercel 边缘缓存 1 小时，过期后后台再生 |
 | `/h5/**` | `swr: 600` | SWR — 10 分钟缓存，过期后首次请求触发重验证 |
 | `/admin/**` | `ssr: false` | SPA — Vercel 返回静态 HTML，客户端 hydration |
 | `/api/**` | `no-store` | Serverless — 每次请求实时执行，零缓存 |
@@ -595,9 +602,8 @@ git push origin feature/xxx     # 自动生成预览环境
 - [ ] Vercel 项目已创建并导入 GitHub 仓库
 - [ ] 所有环境变量已在 Vercel Dashboard 配置（第 4 节清单）
 - [ ] `MOCK_DB` 已设为 `false`
-- [ ] `ROOT_DOMAIN` 已设为生产域名
-- [ ] `01.subdomain-rewrite.ts` 已改为读取 `process.env.ROOT_DOMAIN`
-- [ ] Supabase 数据库迁移已执行（0001~0006 共 6 个 SQL 文件）
+- [ ] 自定义域名已添加到 Vercel 并配置 DNS（自动生效，无需额外环境变量）
+- [ ] Supabase 数据库迁移已执行（0001_core 核心表 + Storage + 可选模块）
 - [ ] Supabase 中已创建管理员账号
 - [ ] 域名已添加到 Vercel 并配置 DNS
 - [ ] 通配符域名 `*.yourdomain.com` 已添加（使用 Vercel Nameservers）

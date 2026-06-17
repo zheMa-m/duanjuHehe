@@ -22,8 +22,9 @@ CREATE TABLE IF NOT EXISTS "products" (
   "id"          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "name"        TEXT NOT NULL,
   "price"       NUMERIC(10, 2) NOT NULL,
-  "tenant_id"   UUID NOT NULL,
-  "created_at"  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  "tenant_id"   UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  "created_at"  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  "updated_at"  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 ALTER TABLE "products" ENABLE ROW LEVEL SECURITY;
@@ -32,16 +33,21 @@ ALTER TABLE "products" FORCE ROW LEVEL SECURITY;
 -- 行级隔离：用户仅操作自己项目数据
 CREATE POLICY "products_tenant_isolation" ON "products"
   FOR ALL TO authenticated
-  USING ("tenant_id" = auth.uid())
-  WITH CHECK ("tenant_id" = auth.uid());
+  USING ("tenant_id" = (SELECT auth.uid()))
+  WITH CHECK ("tenant_id" = (SELECT auth.uid()));
 
 -- 管理员全权限
 CREATE POLICY "products_admin_all" ON "products"
-  FOR ALL TO authenticated USING ("is_admin"(auth.uid()));
+  FOR ALL TO authenticated USING ("is_admin"((SELECT auth.uid())));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_products_tenant_id"  ON "products"("tenant_id");
 CREATE INDEX IF NOT EXISTS "idx_products_created_at" ON "products"("created_at" DESC);
+
+-- updated_at 自动更新触发器
+CREATE TRIGGER "products_set_updated_at"
+  BEFORE UPDATE ON "products"
+  FOR EACH ROW EXECUTE FUNCTION "set_updated_at"();
 
 
 -- ╔════════════════════════════════════════════════════════════════╗
@@ -69,20 +75,21 @@ CREATE TABLE IF NOT EXISTS "orders" (
 ALTER TABLE "orders" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "orders" FORCE ROW LEVEL SECURITY;
 
--- 用户查看自己的订单
-CREATE POLICY "orders_user_select_own" ON "orders"
-  FOR SELECT TO authenticated
-  USING (auth.uid() = user_id);
-
--- 用户创建自己的订单
-CREATE POLICY "orders_user_insert_own" ON "orders"
-  FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+-- 用户操作自己的订单（SELECT/INSERT 合一）
+CREATE POLICY "orders_user_own" ON "orders"
+  FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = user_id)
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- 管理员全权限
 CREATE POLICY "orders_admin_all" ON "orders"
   FOR ALL TO authenticated
-  USING ("is_admin"(auth.uid()));
+  USING ("is_admin"((SELECT auth.uid())));
+
+-- service_role 可更新任意订单（支付回调等场景）
+CREATE POLICY "orders_service_update" ON "orders"
+  FOR UPDATE TO service_role
+  USING (true);
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_orders_user_id"            ON "orders"("user_id");

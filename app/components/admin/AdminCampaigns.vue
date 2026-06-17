@@ -13,6 +13,8 @@ const props = defineProps<{
   isLoading: boolean
 }>()
 
+const baseUrl = useRuntimeConfig().public.baseUrl
+
 const emit = defineEmits<{
   refresh: []
   save: [campaign: Campaign]
@@ -136,7 +138,7 @@ defineExpose({ onSaved })
               <td class="px-6 py-3.5 text-white/50 max-w-[200px] truncate font-light">{{ cam.subtitle }}</td>
               <td class="px-6 py-3.5 text-right space-x-2">
                 <a 
-                  :href="`http://localhost:3000/h5/${cam.subdomain}`" 
+                  :href="`${baseUrl}/h5/${cam.subdomain}`"
                   target="_blank"
                   class="text-xs bg-white/5 hover:bg-white/10 text-white/80 px-3 py-1.5 rounded-full transition-all inline-block text-[11px] font-medium"
                 >

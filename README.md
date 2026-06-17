@@ -1,151 +1,537 @@
-# Hehe 单人全栈独立闭环项目脚手架
+<div align="center">
 
-本脚手架是专为 **单人全栈工程师 (Solo Hacker)** 设计的极速开发模板。采用 **Nuxt 4 全栈混合架构**，在同一套单仓中同时支撑了主站官网（SSR 渲染）与管理后台（SPA 客户端渲染），并内置了多语言国际化、全方位安全防护网与 AI 辅助开发工具链，赋能单个开发者高效、独立地进行项目全生命周期的开发、维护、上线、测试及运维。
+<img src="public/favicon.svg" alt="HeHe App" width="64" height="64" />
+
+# HeHe App
+
+### 单人全栈独立闭环脚手架
+
+[![Nuxt 4](https://img.shields.io/badge/Nuxt-4-00DC82?logo=nuxt.js&logoColor=white)](https://nuxt.com)
+[![Vue 3](https://img.shields.io/badge/Vue-3.4-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-PG-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Vercel](https://img.shields.io/badge/Vercel-Deploy-000000?logo=vercel&logoColor=white)](https://vercel.com)
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+
+</div>
 
 ---
 
-## 核心架构特色
+## 概述
 
-1.  **混合渲染模式隔离**：
-    *   **主站官网 (`/`)**：使用 **SSR (服务端渲染)** 策略，保障首屏秒开率和完美的 SEO 收录。
-    *   **管理后台 (`/admin`)**：通过 `routeRules` 强制指定 `ssr: false`。纯客户端渲染 (SPA) 隔离，彻底规避了 `window`/`localStorage` 在服务端构建及水合阶段的报错。
-2.  **API 物理路径隔离与鉴权**：
-    *   **管理员接口 (`/api/admin/**`)**：由前置中间件自动拦截，无条件执行管理员断言 `assertAdmin` 保护。
-    *   **业务接口 (`/api/v1/**`)**：执行 `assertUser` 用户态断言，并在数据查询中追加项目数据隔离（基于用户 ID 的行级安全校验）。
-3.  **开发期 MockDB 沙盒模式**：
-    *   通过全局 `process.env.MOCK_DB === 'true'` 开箱即用，在 Node 内存中模拟数据增删改查。无需繁琐的云数据库配置，立即可进入前端逻辑与鉴权测试开发。在生产环境中无缝切换至真实的 Supabase 物理云数据库。支持 `.insert().select('*')` 链式调用，与 Supabase JS Client API 保持一致。
-4.  **多域名重写与分流路由 (Subdomain Routing)**：
-    *   内建 `server/middleware/01.subdomain-rewrite.ts` 中间件，自动根据请求 Host 解析，把主域名、`admin` 子域名、`api` 子域名和普通的活动营销子域名（如 `ai.yourdomain.localhost`）分别在服务端静默重写路由到对应页面目录。零跨域配置、零额外部署成本即可掌握一站式多端域名路由网关。
-5.  **多语言国际化 (i18n)**：
-    *   基于 `@nuxtjs/i18n` 模块，主站官网和 H5 营销页支持中英文双语切换。采用 `prefix_except_default` 路由策略（默认中文无前缀，英文 `/en` 前缀），内置浏览器语言检测 + Cookie 持久化 + 时区推断的智能语言识别，提供 `useLocaleDetect()` composable 和 `LanguageSwitcher` 组件实现一键切换。管理后台保持纯中文。
+HeHe App 是一个为 **单人全栈工程师 (Solo Hacker)** 设计的生产级脚手架。基于 **Nuxt 4 全栈混合架构**，在单一代码仓库中同时支撑**主站官网**（SSR）、**管理后台**（SPA）、**营销 H5 落地页**（SWR）和 **REST API** 四类运行时，配套 Supabase PostgreSQL 数据库、i18n 国际化、AI 辅助开发工具链，赋能单个开发者高效完成从开发到运维的全生命周期。
+
+> **核心理念**：一仓覆盖全业务，零代码切换沙盒/生产，AI 友好的工具链。
+
+---
+
+## 目录
+
+- [快速开始](#快速开始)
+- [架构设计](#架构设计)
+- [技术栈](#技术栈)
+- [渲染策略](#渲染策略)
+- [项目结构](#项目结构)
+- [功能特性](#功能特性)
+- [数据库集成](#数据库集成)
+- [安全模型](#安全模型)
+- [国际化 (i18n)](#国际化-i18n)
+- [设计系统](#设计系统)
+- [API 文档](#api-文档)
+- [自动化工具链](#自动化工具链)
+- [部署](#部署)
+- [环境变量](#环境变量)
+- [开发指南](#开发指南)
+- [参考文档](#参考文档)
+
+---
+
+## 快速开始
+
+### 前置要求
+
+- **Node.js** ≥ 18
+- **npm** ≥ 9
+- （可选）**Supabase CLI** — 本地数据库实例
+
+### 安装与运行
+
+```bash
+# 1. 克隆项目
+git clone <your-repo-url> && cd hehe-app
+
+# 2. 安装依赖
+npm install
+
+# 3. 启动开发服务（Mock DB 模式，无需数据库）
+npm run dev
+
+# 4. 启动开发服务 + Supabase 本地实例
+npm run dev:all
+```
+
+浏览器访问：
+| 地址 | 说明 |
+|---|---|
+| `http://localhost:3000` | 主站官网 |
+| `http://localhost:3000/admin` | 管理后台（测试账号：`admin` / `admin888`） |
+| `http://localhost:3000/h5/demo` | 示例营销 H5 页 |
+| `http://localhost:3000/_scalar` | Scalar API 文档 |
+| `http://localhost:3000/_swagger` | Swagger UI |
+
+---
+
+## 架构设计
+
+### 多端统一架构
+
+```
+                   ┌─────────────────────────────────┐
+                   │         Nuxt 4 Monorepo          │
+                   │                                  │
+    Browser ──────▶│  (client)/  → SSR  (ISR 3600s)  │──▶ Supabase PG
+    Admin   ──────▶│  (admin)/   → SPA  (ssr: false)  │──▶ Supabase Storage
+    H5      ──────▶│  (h5)/      → SWR  (ISR 600s)    │──▶ Stripe API
+                   │                                  │
+    API Client ───▶│  /api/v1/*  → no-store            │──▶ Vercel KV
+                   │  /api/admin/* → no-store          │
+                   └─────────────────────────────────┘
+                            │
+                    Vercel Serverless
+```
+
+### 中间件责任链
+
+请求进入后依次经过编号中间件，形成清晰的安全管道：
+
+```
+00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 05.openapi-auth → 06.access-guard
+  │              │                  │           │             │                │                │
+  │              │                  │           │             │                │                │
+  性能监控     子域名路由         Bearer/      管理员        用户态           OpenAPI        站点访问
+              重写到对应路径     Cookie      断言守卫      强制认证         Token 鉴权      密码保护
+                               双模鉴权
+```
+
+### API 安全声明
+
+每个 API 端点通过注释声明其安全级别，配合 `test:api-safety` 自动扫描：
+
+```typescript
+// @api-auth: admin   → 仅管理员（03.admin 中间件保护）
+// @api-auth: user    → 需认证用户（04.auth-guard 中间件保护）
+// @api-auth: public  → 无需认证
+```
+
+---
+
+## 技术栈
+
+| 类别 | 技术 | 说明 |
+|---|---|---|
+| **框架** | Nuxt 4 (Vue 3.4) | 全栈混合渲染框架 |
+| **语言** | TypeScript 5.5 | 全量类型覆盖 |
+| **数据库** | Supabase PostgreSQL | 云托管 PG + 内置 Auth + Storage |
+| **部署** | Vercel | Serverless 部署，零配置 |
+| **CSS** | UnoCSS | 原子化 CSS 引擎 |
+| **校验** | Zod 3 | 运行时类型校验 |
+| **国际化** | @nuxtjs/i18n 10 | 中英文双语切换 |
+| **图片** | @nuxt/image 2 | 图片优化与缓存 |
+| **支付** | Stripe | 懒加载，Mock 模式返回假数据 |
+| **PWA** | @vite-pwa/nuxt | 管理后台 PWA 离线支持 |
+| **监控** | Vercel Analytics + Speed Insights | 前端性能与分析 |
+| **API 文档** | Nitro OpenAPI 3.1 + Scalar + Swagger | 自动生成交互式文档 |
+
+---
+
+## 渲染策略
+
+| 路由 | 策略 | 缓存 | 理由 |
+|---|---|---|---|
+| `/` `/architecture` `/tasks` | **SSR + ISR** | 3600s | SEO 友好，首屏秒开 |
+| `/h5/**` | **SSR + SWR** | 600s | 营销页需快速更新 |
+| `/admin/**` | **SPA** | `ssr: false` | 纯客户端，隔离 SSR 泄露 |
+| `/api/**` | **no-store** | 无 | 实时数据，零缓存 |
+
+---
+
+## 项目结构
+
+```
+hehe-app/
+├── app/                            # 前端应用层
+│   ├── components/
+│   │   ├── admin/                  # 管理后台组件（本地导入）
+│   │   ├── client/                 # 主站组件
+│   │   ├── h5/                     # H5 营销组件
+│   │   └── shared/                 # 跨端共享组件
+│   ├── composables/                # 自动导入的组合式函数
+│   ├── pages/
+│   │   ├── (client)/               # 主站页面 → /、/tasks、/architecture
+│   │   ├── (admin)/admin/          # 管理后台 → /admin
+│   │   └── (h5)/h5/[subdomain]/    # H5 营销页 → /h5/:subdomain
+│   └── plugins/                    # Nuxt 插件
+├── server/                         # 服务端层
+│   ├── api/
+│   │   ├── admin/                  # 管理员 API（03.admin 保护）
+│   │   └── v1/                     # 公开/用户 API
+│   ├── middleware/                  # 编号中间件链（00 → 06）
+│   └── utils/                      # 服务端工具函数
+├── supabase/migrations/            # 版本化 SQL 迁移（0001 → 0005）
+├── locales/                        # i18n 翻译文件（zh.json / en.json）
+├── scripts/                        # AI 辅助工具链脚本
+│   ├── _shared.mjs                 # 共享 .env 加载 + 彩色输出
+│   ├── gen-crud-api.mjs            # CRUD 控制器生成器
+│   ├── scaffolder.mjs              # API + 页面脚手架
+│   ├── generate-rls-sql.mjs        # RLS 策略生成器
+│   ├── test-api-safety.mjs         # API 安全扫描器
+│   ├── test-supabase-connection.mjs # 数据库健康检查
+│   └── test-storage.mjs            # Storage 全链路集成测试
+├── docs/                           # 详细技术文档（9 篇）
+├── design/                         # 设计系统规范
+├── nuxt.config.ts                  # Nuxt 配置
+├── tsconfig.json                   # TypeScript 配置
+└── uno.config.ts                   # UnoCSS 配置
+```
 
 ---
 
 ## 功能特性
 
-### 1. 简易管理台登录
-*   未登录时，后台工作区自动隐藏，呈现苹果极简风格的毛玻璃登录卡片。
-*   默认测试账号：`admin`，密码：`admin888`。
-*   登录成功后，状态持久化写入本地 `localStorage`，刷新后自动保持会话。在顶栏右上角支持一键"退出登录"并清除缓存。
-*   未登录状态下，前端发起的管理后台数据拉取（`/api/admin/*`）自动携带 `'x-mock-unauthorized': 'true'` 探针头部，触发后端 401 拦截。
+### 🛡️ 管理后台
 
-### 2. 系统健康监控与告警 (APM)
-*   **性能指标追踪**：自动捕捉最近 100 次 API 的耗时、路径、状态码，计算滑动时窗下的**平均时延**、**P95 时延**、**P99 时延**及**报错率**。
-*   **系统负荷图表**：实时抓取物理内存占用率（可用/共计 GB）、CPU 负载率及 Node 运行开机时长。
-*   **异常告警系统**：当时延超过 800ms (Warning) 或 2000ms (Critical)、或是请求返回 5xx 错误时，自动记入警报并在 Node.js 后台终端输出带有 `🚨` 颜色高亮的彩色警报日志。
-*   **一键模拟告警**：在监控面板底部提供一键触发 Warning 和 Critical 警报的调试按钮，方便开发者验证警报收录。
+- **苹果极简风格登录**：毛玻璃卡片，`localStorage` 持久化会话
+- **系统健康监控 (APM)**：P95/P99 时延、CPU/内存占用、异常告警（800ms Warning / 2000ms Critical）
+- **审计日志**：动态条件筛选、模糊搜索、UTF-8 BOM 防乱码 CSV 导出
+- **密码修改**：毛玻璃 Modal，调用受保护 API，自动记入审计流
 
-### 3. 基础审计日志管理与一键 CSV 导出
-*   **动态条件筛选**：提供按"操作状态"过滤与按"操作内容/操作人/IP"进行模糊搜索，实时过滤安全流水。
-*   **展示范围控制**：支持一键切换"展示前 5 条"与"展示全部流水"，方便轻量概览或深度追溯。
-*   **中文无乱码 CSV 导出**：自动添加 `\uFEFF` UTF-8 BOM 标头防乱码机制，支持零后端消耗的前端一键极速报表下载。
+### 📱 营销 H5 矩阵
 
-### 4. 个人设置与安全凭据管理
-*   **安全凭证重置**：点击顶栏右上角管理员头像，展开磨砂毛玻璃 Modal。管理员输入新密码并确认修改后，将调用受保护的 `PATCH /api/admin/profile/password` API 路由，成功后写入 `ADMIN_PASSWORD_CHANGED` 审计日志，并在本地 `localStorage` 同步持久化存储，下次登录自动对齐。
+- **云端实时发布**：后台编辑活动配置（Badge / 标题 / 描述），PATCH 接口落库后前端秒级生效
+- **SWR 驱动渲染**：600s 间隔的 SWR 策略，无需重新部署即可更新活动页
+- **拟真手机框架**：苹果拟物外壳 + 磨砂玻璃 + 渐变光晕微动画
+- **赛博风电子票券**：表单提交后生成随机编号的发光票券
+- **全量 i18n**：表单、按钮、评价区均支持中英文自动切换
 
-### 5. 营销 H5 矩阵子系统 (Marketing H5 System)
-*   **云端实时发布与更新**：项目后台内置 `campaigns` 标签页，支持直接编辑特定营销活动的 Badge 徽章、Title 标题和 Subtitle 介绍。通过 `PATCH /api/admin/campaigns/[subdomain]` 提交后即刻落库并记入安全审计流水，前端秒级生效。
-*   **基于 SWR 驱动的极速页面渲染**：营销单页 `app/pages/(h5)/h5/[subdomain]/index.vue` 使用 SWR 模式，以零等待响应的方式拉取最新的活动配置，保证活动变更在秒级传达给客户端，无需任何前端打包部署流程。
-*   **高端拟真与微交互**：内置苹果拟物手机外壳框架，配合高端的磨砂玻璃与背景渐变光圈微动画。在登记表单提交成功后，动态展现出具有随机编号和赛博风格的发光电子票券，提升用户留存。
-*   **多语言支持**：H5 页面全量接入 i18n，表单 placeholder、按钮文案、成功提示、评价区文案等均支持中英文自动切换，适配海外用户访问场景。
+### 💾 Supabase Storage
 
-### 6. Supabase Storage 文件存储
-*   **三个 Bucket 覆盖全业务场景**：`avatars`（用户头像，公开读，2MB 限制）、`campaign-assets`（营销素材，仅管理员写，10MB 限制）、`uploads`（私有文件，认证用户读写自己目录，50MB 不限类型）。
-*   **RLS 行级隔离**：通过路径首段 `foldername[1] = auth.uid()::text` 校验实现用户目录隔离，管理员使用 `is_admin()` SECURITY DEFINER 函数获得全权限。
-*   **混合上传策略**：小文件（< 5MB）走服务端中转（Nitro + service_role），大文件（≥ 5MB）走客户端直传（Signed URL），兼顾安全与性能。
+- **三个业务 Bucket**：`avatars`（头像，公开读）、`campaign-assets`（营销素材）、`uploads`（私有文件）
+- **RLS + RESTRICTIVE 双重加固**：用户目录隔离 + 防止 anon 未授权写入
+- **混合上传策略**：小文件服务端中转（安全），大文件客户端 Signed URL 直传（性能）
+
+### 📊 OpenAPI 文档
+
+- **三套交互式 UI**：Scalar（紫色主题）、Swagger UI、原始 OpenAPI 3.1.0 JSON
+- **生产环境 Token 保护**：`OPENAPI_TOKEN` 环境变量，支持 query / Bearer / Cookie 三种方式
 
 ---
 
-## 真实 Supabase 数据库集成
+## 数据库集成
 
-脚手架设计了平滑过渡真实的 Supabase 生产云数据库的机制，保障从沙盒到生产环境的极速切换：
+### 迁移文件
 
-1.  **版本化数据库迁移脚本**：
-    *   所有 SQL 迁移文件统一存放在 `supabase/migrations/` 目录下，按版本号递增命名：
-        *   `0001_core.sql` — 核心基础表（`profiles`、`tasks`、`activity_logs`）+ `is_admin()` 函数 + 触发器函数（必选）
-        *   `0002_campaign_optional.sql` — 营销活动配置（`campaigns`）（⚠️ 可选）
-        *   `0003_ad_optional.sql` — 广告变现（`ad_slots`、`ad_events`）（⚠️ 可选）
-        *   `0004_feedback_optional.sql` — 用户反馈与评价（`feedbacks`）（⚠️ 可选）
-        *   `0005_payment_optional.sql` — 支付模块（`products`、`orders`）（⚠️ 可选）
-        *   `0006_storage_optional.sql` — Supabase Storage 文件存储（`avatars`、`campaign-assets`、`uploads` Bucket）（⚠️ 可选）
-    *   最小部署只需执行 `0001_core.sql` 即可运行核心业务（用户认证 + 任务管理）。
-    *   **RLS 安全函数**：核心迁移内置 `is_admin(uuid)` SECURITY DEFINER 函数，所有管理员权限策略统一调用此函数，避免 `FORCE ROW LEVEL SECURITY` 下的无限递归问题。
-2.  **Cookie + Bearer 双模式鉴权**：
-    *   在真实生产环境下，鉴权中间件 [02.auth.ts](./server/middleware/02.auth.ts) 支持从 Bearer Header 或 Cookie（`sb-access-token`）中提取 JWT 令牌，同时联合 profiles 数据库表对用户权限角色进行最终校验。H5 移动端走 Cookie、App 端走 Bearer，匿名用户通过 `device-id` Cookie 标识。
-3.  **极简环境变量切换**：
-    *   修改本地 `.env` 文件即可实现零代码更改迁移：
-        ```env
-        MOCK_DB=false
-        SUPABASE_URL=https://您的项目ID.supabase.co
-        SUPABASE_SERVICE_ROLE_KEY=您的service_role密钥
-        NUXT_PUBLIC_SUPABASE_URL=https://您的项目ID.supabase.co
-        NUXT_PUBLIC_SUPABASE_ANON_KEY=您的anon公钥
-        ```
+`supabase/migrations/` 下按版本号递增的 SQL 文件，最小部署仅需 `0001_core.sql`（含核心表 + Storage Bucket + RLS 策略）：
+
+| 迁移 | 内容 | 状态 |
+|---|---|---|
+| `0001_core.sql` | 核心表（profiles、tasks、activity_logs）+ Storage Bucket + RLS 策略 | **必选** |
+| `0002_campaign_optional.sql` | 营销活动 campaigns | 可选 |
+| `0003_ad_optional.sql` | 广告位 ad_slots、ad_events | 可选 |
+| `0004_feedback_optional.sql` | 用户反馈 feedbacks | 可选 |
+| `0005_payment_optional.sql` | 支付 products、orders | 可选 |
+
+### RLS 设计原则
+
+- 所有表**必须**启用 `FORCE ROW LEVEL SECURITY`
+- 管理员权限统一使用 `is_admin(auth.uid())` SECURITY DEFINER 函数，**禁止**内联 `EXISTS` 子查询（防止无限递归）
+- 金额字段使用 `NUMERIC` 类型，**禁止**浮点数
+- 列表查询上限 `pageSize <= 100`
+
+### Mock DB → 生产切换
+
+```env
+# .env
+MOCK_DB=false                                    # 关闭 Mock 模式
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
+NUXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NUXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
+```
+
+Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order().single()` / `.insert().select()`），开发期零配置即可进入前端逻辑开发。
 
 ---
 
-## 自动化开发工具链 (AI 辅助提效)
+## 安全模型
 
-为最大化提升单个开发者配合 AI 的开发效率，脚手架内置了三套提效生成器与测试工具：
+### 多层纵深防御
 
-### 1. CRUD API 生成器
-一键为指定的单数资源自动在 `server/api/v1/` 下生成全套符合项目数据隔离规范的 RESTful CRUD 控制器：
-```bash
-node scripts/gen-crud-api.mjs [资源单数名称]
-
-# 示例: 快速生成 product 资源的列表拉取、创建、修改及回收删除接口
-node scripts/gen-crud-api.mjs product
 ```
-*   生成的文件自动附加 `// @api-auth: user` 安全声明。
-
-### 2. RLS 隔离 SQL 策略生成器
-读取指定的表名，快速在 `scripts/rls-output/` 导出符合 Supabase 安全合规的 PostgreSQL 行级安全防护 SQL 脚本：
-```bash
-node scripts/generate-rls-sql.mjs [表名称]
-
-# 示例: 快速生成 products 表的数据行级隔离策略 SQL
-node scripts/generate-rls-sql.mjs products
+┌──────────────────────────────────────────────┐
+│  Layer 1: 站点访问密码 (SITE_ACCESS_PASSWORD) │
+│  Layer 2: OpenAPI Token 保护                  │
+│  Layer 3: 管理员断言 (assertAdmin)             │
+│  Layer 4: 用户认证守卫 (assertUser)            │
+│  Layer 5: RLS 行级安全 (FORCE ROW LEVEL)       │
+│  Layer 6: Zod 输入校验                          │
+│  Layer 7: API 安全扫描 (@api-auth 声明)        │
+└──────────────────────────────────────────────┘
 ```
 
-### 3. 声明式 API 越权扫描器
-升级后的测试探针会自动提取 API 代码顶部的 `// @api-auth: admin | user | public` 声明，对声明与接口实际拦截状态进行 401 未授权探针双向测试，并在终端打印合规评估汇总：
+### 密钥安全边界
+
+**绝不暴露到前端（禁止 `NUXT_PUBLIC_` 前缀）：**
+
+| 密钥 | 用途 |
+|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | 服务端数据库操作 |
+| `STRIPE_SECRET_KEY` | Stripe 支付密钥 |
+| `STRIPE_WEBHOOK_SECRET` | Stripe Webhook 验证 |
+| `SITE_ACCESS_PASSWORD` | 站点访问密码 |
+| `OPENAPI_TOKEN` | API 文档 Token |
+
+### 鉴权流程
+
+1. 中间件从 **Bearer Header** → **Cookie** (`sb-access-token`) → **device-id** 提取身份
+2. JWT 令牌由 Supabase Auth 签发，服务端通过 Supabase 验证
+3. OAuth `client_secret` 存储在 Supabase Dashboard，永不在代码中出现
+4. 匿名用户可访问公开 API，但支付/订单等端点由 `04.auth-guard` 返回 403
+
+---
+
+## 国际化 (i18n)
+
+基于 `@nuxtjs/i18n`，支持**中文（默认）**和**英文**：
+
+- **策略**：`prefix_except_default` — 中文无前缀，英文 `/en` 前缀
+- **智能检测**：URL 路径 > Cookie (`i18n_locale`) > 浏览器语言 > 时区推断 > fallback `zh`
+- **覆盖范围**：主站官网 + H5 营销页；管理后台保持纯中文
+- **翻译文件**：`locales/zh.json` + `locales/en.json`，按功能命名空间分组
+- **使用方式**：`const { t } = useI18n()` → `t('home.title')`
+
+> 新增页面时，提取所有用户可见文案到 `locales/*.json`，使用 `t()` 函数调用，禁止硬编码中文。
+
+---
+
+## 设计系统
+
+三端统一设计规范（详见 [DESIGN.md](./DESIGN.md)）：
+
+| 平台 | 视觉性格 | 背景体系 | 排版特点 |
+|---|---|---|---|
+| **Client** | 深海暗色科技 | 三层递进（`#080c18` → `#0a0e1a` → `#131d35`） | h1: 2rem/700，body: 0.875rem/1.7 |
+| **Admin** | 纯黑极简 | 白色透明度层级（5%/8%/10%） | h1: 1.25rem/600，body: 0.75rem |
+| **H5** | 深色沉浸 + 手机框架 | Slate 色系 + 动态渐变光晕 | h1: 1.25rem/800，body: 0.75rem |
+
+**共享基础**：Inter 字体栈、JetBrains Mono 代码字体、8px 基准间距网格、语义功能色体系。
+
+---
+
+## API 文档
+
+### 可用端点
+
+| 端点 | 说明 | 环境 |
+|---|---|---|
+| `/_openapi.json` | 原始 OpenAPI 3.1.0 规范 | 开发 + 生产 |
+| `/_scalar` | Scalar 交互式文档（紫色主题） | 开发 + 生产 |
+| `/_swagger` | Swagger UI 交互式文档 | 开发 + 生产 |
+
+### 生产环境访问
+
 ```bash
+# Query 参数
+curl "https://hehe-app.vercel.app/_swagger?token=<OPENAPI_TOKEN>"
+
+# Bearer Header
+curl -H "Authorization: Bearer <OPENAPI_TOKEN>" "https://hehe-app.vercel.app/_scalar"
+```
+
+> 开发环境自动放行，无需 Token。
+
+### API 分组
+
+Auth · Products · Tasks · Payments · Orders · Ads · Campaigns · Feedback · User · Admin Tasks · Admin Orders · Admin Campaigns · Admin Ad Slots · Admin APM · Admin Audit · Admin Revenue · Admin Profile
+
+---
+
+## 自动化工具链
+
+所有脚本共享 `scripts/_shared.mjs`（`.env` 加载 + 彩色输出），可直接通过 `npm run` 调用：
+
+### CRUD 生成器
+
+```bash
+npm run gen:crud <resource>
+```
+
+自动在 `server/api/v1/` 下生成全套 RESTful 控制器，包含 `defineRouteMeta` OpenAPI 元数据、Zod 参数校验、`sendSuccess`/`throwError` 统一响应、`@api-auth: user` 安全声明。
+
+### 脚手架生成器
+
+```bash
+npm run scaffold <name>
+```
+
+同时生成 API 端点和配套前端页面骨架（含 SEO 元数据 + 表单 + 结果展示）。
+
+### RLS 策略生成器
+
+```bash
+npm run gen:rls <table>           # 基础租户隔离
+npm run gen:rls <table> --admin   # 额外生成 is_admin() 管理员策略
+```
+
+输出到 `scripts/rls-output/` 目录。
+
+### API 安全扫描
+
+```bash
+npm run test:api-safety          # 默认 localhost:3000
+npm run test:api-safety 3001     # 指定端口
+```
+
+自动提取 `@api-auth` 声明，对未认证请求进行 401/403 探针测试。**任何接口返回 200 即为 FAIL，应阻断合入。**
+
+### Supabase 健康检查
+
+```bash
+npm run test:supabase
+```
+
+一键验证数据库连接、表结构、Storage Bucket、迁移版本。
+
+### Storage 集成测试
+
+```bash
+npm run test:storage
+```
+
+对三个 Bucket 执行 20 项端到端测试（上传、公开 URL、Signed URL、RLS 权限验证）。
+
+### 生成数据库类型
+
+```bash
+npm run gen:types
+```
+
+从 Supabase 本地实例生成 TypeScript 类型定义到 `app/types/database.types.ts`。
+
+---
+
+## 部署
+
+### Vercel 一键部署
+
+项目配置了 `nitro.preset: 'vercel'`，推送到 GitHub 后 Vercel 自动部署：
+
+1. 在 Vercel 中导入项目
+2. 配置 [环境变量](#环境变量)
+3. 部署完成
+
+### 环境变量
+
+```env
+# ── 数据库 ──
+MOCK_DB=true                                    # 开发模式（true=内存模拟 / false=真实 Supabase）
+SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
+NUXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NUXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
+
+# ── Stripe（可选）──
+STRIPE_SECRET_KEY=<stripe_secret>
+STRIPE_WEBHOOK_SECRET=<stripe_webhook>
+
+# ── 安全 ──
+SITE_ACCESS_PASSWORD=<your_password>            # 站点访问密码（生产环境）
+OPENAPI_TOKEN=<your_token>                      # API 文档访问 Token
+
+# ── 站点 ──
+NUXT_PUBLIC_BASE_URL=https://yourdomain.com     # 站点 URL（可选，自动探测）
+ROOT_DOMAIN=yourdomain.com                      # 根域名（子域名路由用）
+```
+
+> `.env` 文件包含密钥，已加入 `.gitignore`，永不提交。
+
+---
+
+## 开发指南
+
+### 常用命令
+
+| 命令 | 说明 |
+|---|---|
+| `npm install` | 安装依赖 |
+| `npm run dev` | 启动开发服务（Mock DB） |
+| `npm run dev:all` | 开发服务 + Supabase 本地实例 |
+| `npm run build` | 构建生产包 |
+| `npm run preview` | 本地预览构建产物 |
+| `npm run check` | TypeScript + Vue SFC 类型检查 |
+| `npm run gen:types` | 生成 Supabase TypeScript 类型 |
+
+### 代码规范
+
+- **Composition API** + `<script setup lang="ts">` — 禁止 Options API
+- **Zod** 校验所有 API 入参 — 永不信客户端数据
+- **`sendSuccess()`** / **`throwError()`** — 统一 API 响应格式
+- 服务端错误消息用英文，前端通过 `t()` 翻译展示
+- 图片使用 `<NuxtImg>` 替代原生 `<img>`
+- 首屏图片添加 `fetchpriority="high"` + `loading="eager"`
+
+### 新增功能工作流
+
+```bash
+# 1. 添加数据库迁移（如需要）
+# 创建 supabase/migrations/0008_xxx.sql
+
+# 2. 生成 CRUD API
+npm run gen:crud <resource>
+
+# 3. 生成 RLS 策略
+npm run gen:rls <table> --admin
+
+# 4. 生成前端页面
+npm run scaffold <name>
+
+# 5. 添加 i18n 翻译
+# 编辑 locales/zh.json 和 locales/en.json
+
+# 6. 安全扫描
 npm run test:api-safety
-```
-*   **安全防线**：任何新增接口在未设置保护或测试泄露（返回 200）时，自测程序将直接标红（FAIL）并拦截 Git 合入，安全缺陷防御率 100%。
 
-### 4. 多语言翻译管理
-翻译文件统一维护在 `locales/zh.json` 和 `locales/en.json`，按功能分组（common / nav / header / hero / tasks / h5 / login / review / share）。新增页面或组件时，只需在翻译文件中添加对应 key-value，并在组件中使用 `t('key')` 调用即可。
-
----
-
-## 启动与编译指令
-
-### 1. 安装依赖
-```bash
-npm install
-```
-
-### 2. 启动本地开发服务 (热监听)
-```bash
-npm run dev
-```
-
-### 3. 运行 TypeScript 与 Vue SFC 类型静态校验
-```bash
+# 7. 类型检查
 npm run check
 ```
 
-### 4. 运行全栈 API 越权漏洞自动化安全自测
-```bash
-npm run test:api-safety
-```
+### Mock DB 开发
 
-### 5. 生成生产包或进行本地预览
-```bash
-# 构建生产包
-npm run build
+设置 `MOCK_DB=true` 即可离线开发。Mock 适配器支持：
+- 链式查询：`.eq().order().single()`
+- 插入返回：`.insert(data).select('*')`
+- 聚合查询：`{ count: 'exact', head: true }`
+- 认证模拟：`signUp` / `signInWithPassword` / `signInWithOAuth` / `signOut`
 
-# 本地预览构建产物
-npm run preview
-```
+---
+
+## 参考文档
+
+| 文档 | 内容 |
+|---|---|
+| [AGENTS.md](./AGENTS.md) | AI Agent 开发手册 |
+| [DESIGN.md](./DESIGN.md) | 三端设计系统规范 |
+| [docs/01-scaffold-basics.md](./docs/01-scaffold-basics.md) | 脚手架基础 |
+| [docs/02-supabase-integration.md](./docs/02-supabase-integration.md) | Supabase 集成指南 |
+| [docs/03-vercel-deployment.md](./docs/03-vercel-deployment.md) | Vercel 部署指南 |
+| [docs/04-github-integration.md](./docs/04-github-integration.md) | GitHub 集成 |
+| [docs/05-user-auth.md](./docs/05-user-auth.md) | 用户认证 |
+| [docs/06-payment-integration-optional.md](./docs/06-payment-integration-optional.md) | 支付集成 |
+| [docs/07-ad-monetization-optional.md](./docs/07-ad-monetization-optional.md) | 广告变现 |
+| [docs/08-social-feedback-optional.md](./docs/08-social-feedback-optional.md) | 社交反馈 |
+| [docs/09-cloudflare-optional.md](./docs/09-cloudflare-optional.md) | Cloudflare 接入 |
+
+---
+
+## License
+
+MIT © HeHe App

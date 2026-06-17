@@ -73,7 +73,7 @@ export default defineEventHandler(async (event: H3Event) => {
     rating: body.rating || null,
     comment: body.comment || null,
     display_name: body.displayName || ctxUser.username || 'Anonymous',
-    is_approved: true,
+    is_approved: false,
     admin_reply: null,
     created_at: new Date().toISOString(),
   }).select('*')

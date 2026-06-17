@@ -27,11 +27,12 @@ export default defineEventHandler(async (event: H3Event) => {
     await db.auth.signOut().catch(() => { /* ignore */ })
   }
 
-  // 清理 cookie（通过 Set-Cookie header 过期）
+  // 清理 cookie（通过 Set-Cookie header 过期，带上安全属性）
   const expired = 'Thu, 01 Jan 1970 00:00:00 GMT'
+  const secureFlag = process.env.NODE_ENV === 'production' ? ';Secure' : ''
   setResponseHeader(event, 'Set-Cookie', [
-    `sb-access-token=;expires=${expired};path=/`,
-    `sb-refresh-token=;expires=${expired};path=/`,
+    `sb-access-token=;expires=${expired};path=/;SameSite=Strict${secureFlag}`,
+    `sb-refresh-token=;expires=${expired};path=/;SameSite=Strict${secureFlag}`,
   ].join(', '))
 
   return sendSuccess(event, null, 'Logout successful')

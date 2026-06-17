@@ -1,51 +1,88 @@
+#!/usr/bin/env node
+/**
+ * 脚手架生成器 — 快速创建 API + 前端页面骨架
+ *
+ * 生成：
+ *   - server/api/v1/{name}/index.post.ts  (含 defineRouteMeta + Zod + sendSuccess)
+ *   - app/pages/(client)/{name}.vue       (含 SEO + 表单 + 结果展示)
+ *
+ * 用法: node scripts/scaffolder.mjs billing
+ */
+
 import fs from 'fs'
 import path from 'path'
+import { c, ok, section, info } from './_shared.mjs'
 
 const name = process.argv[2]
 if (!name) {
-  console.error('Please specify a resource name (e.g. node scripts/scaffolder.mjs billing)')
+  console.error(`\n${c.red}  错误: 请指定资源名称${c.reset}`)
+  console.error(`${c.yellow}  示例: node scripts/scaffolder.mjs billing${c.reset}\n`)
   process.exit(1)
 }
 
-const apiPath = path.resolve(`server/api/v1/${name}/index.post.ts`)
-const pagePath = path.resolve(`app/pages/(client)/${name}.vue`)
+const cleanName = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '')
+const tag = cleanName.charAt(0).toUpperCase() + cleanName.slice(1)
 
-// 自动化生成符合架构规范的 API 控制器模板
-const apiTemplate = `import { z } from 'zod'
+const apiPath = path.resolve(`server/api/v1/${cleanName}/index.post.ts`)
+const pagePath = path.resolve(`app/pages/(client)/${cleanName}.vue`)
+
+section(`脚手架生成: ${cleanName}`)
+
+// ─── API 控制器模板 ──────────────────────────────────
+const apiTemplate = `// @api-auth: user
+import { defineEventHandler } from 'h3'
+import { z } from 'zod'
+import { assertUser } from '~~/server/utils/auth'
 import { getDB } from '~~/server/utils/db'
+import { sendSuccess } from '~~/server/utils/response'
 
-export const ${name}Schema = z.object({
-  // 在此定义输入参数校验契约
-  title: z.string().min(1, 'Title cannot be empty')
+defineRouteMeta({
+  openAPI: {
+    tags: ['${tag}'],
+    summary: '创建${cleanName}',
+    description: 'TODO: 补充端点描述',
+    security: [{ BearerAuth: [] }],
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+            },
+            required: ['title'],
+          },
+        },
+      },
+    },
+    responses: {
+      201: { description: '创建成功' },
+      400: { description: '参数校验失败' },
+    },
+  } as any,
+})
+
+const ${cleanName}Schema = z.object({
+  title: z.string().min(1, 'Title cannot be empty'),
 })
 
 export default defineEventHandler(async (event) => {
-  try {
-    const body = await readValidatedBody(event, ${name}Schema.parse)
-    const db = getDB(event)
-    
-    // TODO: 执行具体的数据库读写
-    // const { data, error } = await db.from('${name}').insert(body)
-    
-    return {
-      status: 'success',
-      message: 'Created ${name} successfully',
-      receivedData: body
-    }
-  } catch (error: any) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: error.message || 'Validation Error'
-    })
-  }
-})`
+  const user = assertUser(event)
+  const body = await readValidatedBody(event, ${cleanName}Schema.parse)
+  const db = getDB(event)
 
-// 自动化生成符合架构规范（含 App SEO 与 useFetch 端到端推断）的前端页面模板
+  // TODO: 执行具体的数据库读写
+  // const { data, error } = await db.from('${cleanName}').insert({ ...body, tenant_id: user.tenantId })
+
+  return sendSuccess(event, body, 'Created ${cleanName} successfully', 201)
+})
+`
+
+// ─── 前端页面模板 ──────────────────────────────────────
 const pageTemplate = `<script setup lang="ts">
-// 强制执行架构规范：必须声明 SEO
 useSeoMeta({
-  title: '${name.toUpperCase()} - 全栈单仓独立项目',
-  description: '配置和管理您的 ${name}。',
+  title: '${tag} - 全栈单仓独立项目',
+  description: '配置和管理您的 ${cleanName}。',
 })
 
 const formData = ref({ title: '' })
@@ -53,10 +90,9 @@ const responseData = ref<any>(null)
 
 const submitData = async () => {
   try {
-    // 调用生成的接口契约
-    const res = await $fetch('/api/v1/${name}', {
+    const res = await $fetch('/api/v1/${cleanName}', {
       method: 'POST',
-      body: formData.value
+      body: formData.value,
     })
     responseData.value = res
   } catch (e: any) {
@@ -68,7 +104,7 @@ const submitData = async () => {
 <template>
   <div class="p-8 max-w-4xl mx-auto">
     <div class="mb-8 pb-4 border-b border-slate-800 flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-white">${name.toUpperCase()} 模块</h1>
+      <h1 class="text-2xl font-bold text-white">${tag} 模块</h1>
       <NuxtLink to="/" class="text-slate-400 hover:text-white text-sm">返回首页</NuxtLink>
     </div>
 
@@ -78,14 +114,14 @@ const submitData = async () => {
         <form @submit.prevent="submitData" class="space-y-4">
           <div>
             <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2">Title 字段</label>
-            <input 
-              v-model="formData.title" 
-              type="text" 
+            <input
+              v-model="formData.title"
+              type="text"
               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
               placeholder="请输入参数..."
             />
           </div>
-          <button 
+          <button
             type="submit"
             class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 rounded-lg transition-all"
           >
@@ -100,15 +136,18 @@ const submitData = async () => {
       </div>
     </div>
   </div>
-</template>`
+</template>
+`
 
-// 创建目录并写入文件
+// ─── 写入文件 ─────────────────────────────────────────
 fs.mkdirSync(path.dirname(apiPath), { recursive: true })
 fs.mkdirSync(path.dirname(pagePath), { recursive: true })
-fs.mkdirSync('scripts', { recursive: true })
 
 fs.writeFileSync(apiPath, apiTemplate)
-fs.writeFileSync(pagePath, pageTemplate)
+ok(`API  → ${path.relative(process.cwd(), apiPath)}`)
 
-console.log(`[OK] Created API: ${apiPath}`)
-console.log(`[OK] Created Page: ${pagePath}`)
+fs.writeFileSync(pagePath, pageTemplate)
+ok(`Page → ${path.relative(process.cwd(), pagePath)}`)
+
+console.log()
+process.exit(0)

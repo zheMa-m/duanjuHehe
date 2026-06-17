@@ -68,10 +68,6 @@ Admin 收入分析面板汇总 CPM/CPC/CTR
 | `user_agent` | TEXT | 浏览器 UA |
 | `referrer` | TEXT | 来源页面 |
 
-### revenue_snapshots 已移除
-
-收入快照功能已移除，改为从 `orders` + `ad_events` 实时聚合计算，无需独立存表。
-
 ### RLS 策略
 
 | 表 | 策略 |
@@ -245,7 +241,6 @@ const {
 CREATE INDEX idx_ad_events_slot_id ON ad_events(ad_slot_id);
 CREATE INDEX idx_ad_events_created_at ON ad_events(created_at DESC);
 CREATE INDEX idx_ad_slots_position_active ON ad_slots(position, is_active);
-~~CREATE INDEX idx_revenue_snapshots_date ON revenue_snapshots(snapshot_date DESC);~~ -- 已移除
 ```
 
 高频查询场景（如统计面板）建议使用 Materialized View 预聚合。

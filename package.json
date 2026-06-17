@@ -14,13 +14,18 @@
     "dev:all": "concurrently \"npm:supabase:start\" \"npm:dev\"",
     "gen:types": "supabase gen types typescript --local > app/types/database.types.ts",
     "test:api-safety": "node scripts/test-api-safety.mjs",
-    "test:supabase": "node scripts/test-supabase-connection.mjs"
+    "test:supabase": "node scripts/test-supabase-connection.mjs",
+    "test:storage": "node scripts/test-storage.mjs",
+    "gen:crud": "node scripts/gen-crud-api.mjs",
+    "gen:rls": "node scripts/generate-rls-sql.mjs",
+    "scaffold": "node scripts/scaffolder.mjs"
   },
   "dependencies": {
     "@nuxtjs/i18n": "^10.4.0",
     "@supabase/supabase-js": "^2.43.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "@vite-pwa/nuxt": "^1.1.1",
     "nuxt": "^3.12.2",
     "vue": "^3.4.31",
     "vue-router": "^4.4.0",

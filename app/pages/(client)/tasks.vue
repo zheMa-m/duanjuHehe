@@ -1,8 +1,7 @@
 <script setup lang="ts">
 const { t } = useI18n()
 
-// 强制执行架构规范：必须声明 SEO
-useSeoMeta({
+useAppSEO({
   title: () => t('tasks.pageTitle'),
   description: () => t('tasks.pageDesc'),
 })

@@ -33,7 +33,8 @@ export const DEVICE_COOKIE_NAME = 'device-id'
 function setCookie(name: string, value: string, days = 7) {
   if (typeof document === 'undefined') return
   const expires = new Date(Date.now() + days * 864e5).toUTCString()
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`
+  const isSecure = window.location.protocol === 'https:'
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Strict${isSecure ? ';Secure' : ''}`
 }
 
 function getCookie(name: string): string | null {
@@ -44,7 +45,7 @@ function getCookie(name: string): string | null {
 
 function removeCookie(name: string) {
   if (typeof document === 'undefined') return
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`
 }
 
 function generateDeviceId(): string {
@@ -73,6 +74,7 @@ export function useAuth() {
   function clearCookies() {
     removeCookie(AUTH_COOKIE_NAME)
     removeCookie(REFRESH_COOKIE_NAME)
+    removeCookie(DEVICE_COOKIE_NAME) // 清除设备标识，避免登出后仍被识别为匿名用户
   }
 
   // ── Mock 模式：通过服务端 API ────────────────────────────
@@ -90,7 +92,7 @@ export function useAuth() {
   function mapProfileToUser(profile: any): AuthUser {
     return {
       id: profile.id,
-      email: profile.email || profile.username,
+      email: profile.email || null,
       username: profile.username,
       displayName: profile.display_name || profile.username,
       avatarUrl: profile.avatar_url,
@@ -265,19 +267,3 @@ export function useAuth() {
   }
 }
 
-// 兼容旧接口
-export function useUser() {
-  const auth = useAuth()
-  return {
-    user: computed(() => auth.user.value ? {
-      id: auth.user.value.id,
-      username: auth.user.value.username || auth.user.value.email || 'anonymous',
-      role: auth.user.value.role,
-      tenantId: auth.user.value.id,
-    } : null),
-    isLoggedIn: auth.isLoggedIn,
-    isAdmin: auth.isAdmin,
-    fetchUser: auth.refreshUser,
-    clearUser: auth.signOut,
-  }
-}

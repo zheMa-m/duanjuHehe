@@ -1,9 +1,45 @@
+// ── 站点 URL 自动探测（本地 / Vercel 统一） ──
+// 优先级：显式 NUXT_PUBLIC_BASE_URL > Vercel VERCEL_URL > 本地默认值
+// Vercel 会自动注入 VERCEL_URL：Preview 为分支 URL，Production 为绑定的自定义域名
+const _resolveBaseUrl = (): string => {
+  if (process.env.NUXT_PUBLIC_BASE_URL) return process.env.NUXT_PUBLIC_BASE_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'http://localhost:3000'
+}
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
+
+  app: {
+    head: {
+      link: [
+        // 字体预加载：Inter 400/700 woff2，消除 FOUT
+        { rel: 'preload', href: '/fonts/inter-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+        { rel: 'preload', href: '/fonts/inter-v18-latin-700.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+        // SVG favicon（轻量 <1KB）
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        // Apple Touch Icon
+        { rel: 'apple-touch-icon', href: '/og-default.png' },
+      ],
+    },
+  },
+
+  runtimeConfig: {
+    // 站点访问密码（生产环境保护内部访问，服务端专用，严禁暴露给前端）
+    accessPassword: process.env.SITE_ACCESS_PASSWORD || '',
+    // 根域名，从 baseUrl 自动提取 hostname；本地子域名开发可用 ROOT_DOMAIN 覆盖
+    rootDomain: process.env.ROOT_DOMAIN || (() => {
+      try { return new URL(_resolveBaseUrl()).hostname } catch { return 'localhost' }
+    })(),
+    public: {
+      baseUrl: _resolveBaseUrl(),
+      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
+      supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    },
+  },
   
-  // 启用 Nuxt 4 新版结构兼容性
   future: {
     compatibilityVersion: 4,
   },
@@ -16,6 +52,7 @@ export default defineNuxtConfig({
     '/h5/**': { isr: 600 },
     // 官网首页与任务看板走 ISR（(client) route group 不出现在 URL 中）
     '/': { isr: 3600 },
+    '/architecture': { isr: 3600 },
     '/tasks': { isr: 3600 },
     // API 接口绝对禁止缓存，确保每次请求实时响应
     '/api/**': { cors: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
@@ -49,7 +86,12 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ['@unocss/nuxt', '@nuxt/image', '@nuxtjs/i18n'],
+  modules: ['@unocss/nuxt', '@nuxt/image', '@nuxtjs/i18n', '@vite-pwa/nuxt'],
+
+  // Bundle 分析：ANALYZE=true npm run build 生成可视化报告
+  build: {
+    analyze: process.env.ANALYZE === 'true',
+  },
 
   i18n: {
     restructureDir: '.',
@@ -66,5 +108,38 @@ export default defineNuxtConfig({
       fallbackLocale: 'zh',
     },
     langDir: 'locales/',
+  },
+
+  pwa: {
+    registerType: 'autoUpdate',
+    scope: '/admin/',
+    manifest: {
+      name: 'HEHE Admin',
+      short_name: 'HEHE',
+      description: 'HEHE 管理后台',
+      theme_color: '#0a0e1a',
+      background_color: '#0a0e1a',
+      display: 'standalone',
+      scope: '/admin/',
+      start_url: '/admin/',
+      icons: [
+        { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
+      ],
+    },
+    workbox: {
+      // 仅缓存 admin SPA 静态资源，不缓存其他页面
+      navigateFallback: '/admin/',
+      globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+      runtimeCaching: [
+        {
+          urlPattern: /\/api\/admin\//,
+          handler: 'NetworkFirst',
+          options: { cacheName: 'admin-api', expiration: { maxEntries: 50, maxAgeSeconds: 300 } },
+        },
+      ],
+    },
+    client: {
+      installPrompt: true,
+    },
   },
 })

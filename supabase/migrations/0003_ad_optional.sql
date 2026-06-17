@@ -20,23 +20,29 @@ CREATE TABLE IF NOT EXISTS "ad_slots" (
                   CHECK ("ad_provider" IN ('adsense', 'meta', 'custom')),
   "ad_config"     JSONB NOT NULL DEFAULT '{}',
   "sort_order"    INTEGER NOT NULL DEFAULT 0,
-  "created_at"    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  "created_at"    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  "updated_at"    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 ALTER TABLE "ad_slots" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "ad_slots" FORCE ROW LEVEL SECURITY;
 
--- 所有人可查看广告位（H5 公开渲染）
+-- 所有人可查看活跃广告位（H5 公开渲染，隐藏已下线广告位）
 CREATE POLICY "ad_slots_public_select" ON "ad_slots"
-  FOR SELECT USING (true);
+  FOR SELECT USING ("is_active" = true);
 
 -- 管理员全权限
 CREATE POLICY "ad_slots_admin_all" ON "ad_slots"
   FOR ALL TO authenticated
-  USING ("is_admin"(auth.uid()));
+  USING ("is_admin"((SELECT auth.uid())));
 
 -- 索引
 CREATE INDEX IF NOT EXISTS "idx_ad_slots_position_active" ON "ad_slots"("position", "is_active");
+
+-- updated_at 自动更新触发器
+CREATE TRIGGER "ad_slots_set_updated_at"
+  BEFORE UPDATE ON "ad_slots"
+  FOR EACH ROW EXECUTE FUNCTION "set_updated_at"();
 
 
 -- ╔════════════════════════════════════════════════════════════════╗
@@ -65,8 +71,9 @@ CREATE POLICY "ad_events_public_insert" ON "ad_events"
 -- 管理员可查看
 CREATE POLICY "ad_events_admin_select" ON "ad_events"
   FOR SELECT TO authenticated
-  USING ("is_admin"(auth.uid()));
+  USING ("is_admin"((SELECT auth.uid())));
 
 -- 索引
-CREATE INDEX IF NOT EXISTS "idx_ad_events_slot_id"     ON "ad_events"("ad_slot_id");
-CREATE INDEX IF NOT EXISTS "idx_ad_events_created_at"  ON "ad_events"("created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_ad_events_slot_id"            ON "ad_events"("ad_slot_id");
+CREATE INDEX IF NOT EXISTS "idx_ad_events_created_at"         ON "ad_events"("created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_ad_events_slot_type_time"     ON "ad_events"("ad_slot_id", "event_type", "created_at" DESC);

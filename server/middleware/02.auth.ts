@@ -1,4 +1,4 @@
-import { defineEventHandler, getHeader, parseCookies } from 'h3'
+import { defineEventHandler, getHeader, parseCookies, setResponseHeader } from 'h3'
 import { getDB } from '~~/server/utils/db'
 
 export default defineEventHandler(async (event) => {
@@ -60,6 +60,12 @@ export default defineEventHandler(async (event) => {
       const { data: { user }, error: authError } = await db.auth.getUser(token)
 
       if (authError || !user) {
+        // JWT 无效或过期，设置 context 为 null（不抛异常，让 04.auth-guard 决定是否拦截）
+        // 同时清除无效的 cookie（如果存在），避免重复验证
+        if (authError?.message?.includes('expired') || authError?.message?.includes('invalid')) {
+          const expired = 'Thu, 01 Jan 1970 00:00:00 GMT'
+          setResponseHeader(event, 'Set-Cookie', `sb-access-token=;expires=${expired};path=/;SameSite=Strict`)
+        }
         event.context.user = null
         return
       }
@@ -67,7 +73,7 @@ export default defineEventHandler(async (event) => {
       // 获取当前用户的 profiles 属性以确认身份角色
       const { data: profile, error: profileError } = await db
         .from('profiles')
-        .select('role, username, display_name, avatar_url, auth_provider, is_anonymous')
+        .select('email, role, username, display_name, avatar_url, auth_provider, is_anonymous')
         .eq('id', user.id)
         .single()
 

@@ -13,7 +13,7 @@ export default defineEventHandler((event) => {
     return
   }
 
-  const ROOT_DOMAIN = process.env.ROOT_DOMAIN || 'yourdomain.localhost'
+  const ROOT_DOMAIN = useRuntimeConfig().rootDomain
 
   // ── Vercel / 无子域名环境：直接路径路由，不做 Host 重写 ──
   // 当 Host 不匹配 ROOT_DOMAIN 且不是子域名格式时，

@@ -6,6 +6,7 @@ import AdminAdSlots from '~/components/admin/AdminAdSlots.vue'
 import AdminRevenue from '~/components/admin/AdminRevenue.vue'
 
 useSeoMeta({ title: '项目管理后台 - Project Admin Portal' })
+const baseUrl = useRuntimeConfig().public.baseUrl
 
 // ── 类型定义 ──────────────────────────────────────────────────
 interface ActivityLog { id: number; category: string; user_id: string | null; action: string; ip: string | null; metadata: Record<string, any>; created_at: string }
@@ -239,7 +240,7 @@ const handleAdSlotDelete = async (id: string) => {
             </span>
           </div>
           <div class="flex items-center gap-5">
-            <a href="http://yourdomain.localhost:3000/" class="text-xs text-white/60 hover:text-white transition-all">主站官网</a>
+            <a :href="`${baseUrl}`" class="text-xs text-white/60 hover:text-white transition-all">主站官网</a>
             <div class="h-3 w-px bg-white/10"></div>
             <div 
               @click="showProfileModal = true"

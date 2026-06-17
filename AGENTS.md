@@ -12,9 +12,14 @@ Single-developer full-stack monorepo: marketing site (SSR), H5 campaign pages (S
 - Dev server (Mock DB): `npm run dev`
 - Dev with Supabase: `npm run dev:all`
 - Type check: `npm run check` (vue-tsc)
-- API safety scan: `npm run test:api-safety`
 - Build: `npm run build`
 - Generate DB types: `npm run gen:types`
+- API safety scan: `npm run test:api-safety`
+- Supabase connection test: `npm run test:supabase`
+- Storage integration test: `npm run test:storage`
+- Generate CRUD API: `npm run gen:crud <resource>`
+- Generate RLS SQL: `npm run gen:rls <table> [--admin]`
+- Scaffold API + Page: `npm run scaffold <name>`
 
 ## Project Structure
 
@@ -25,10 +30,10 @@ app/
     client/      # Public site components
     h5/          # H5 marketing page components (login modal, user bar, review section)
     shared/      # Cross-context shared components (social share, language switcher)
-  composables/   # Vue composables — auto-imported (useAuth, usePayment, useAdSlot, useLocaleDetect)
+  composables/   # Vue composables — auto-imported (useAuth, usePayment, useAdSlot, useAppSEO, useLocaleDetect)
   pages/
     (admin)/     # Admin dashboard (SPA, ssr: false)
-    (client)/    # Public site + whitepaper (ISR 3600s)
+    (client)/    # Public site: homepage + /architecture whitepaper + /tasks (ISR 3600s)
     (h5)/        # Campaign landing pages (SWR 600s)
   plugins/       # Nuxt plugins (supabase-auth.client.ts)
   utils/         # Client-side utilities (supabase-client.ts)
@@ -37,19 +42,26 @@ server/
   api/
     admin/       # Admin-only endpoints — 03.admin.ts middleware enforces assertAdmin
     v1/          # Public/user endpoints — auth via Bearer header or Cookie
-  middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard
+  middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.openapi-auth → 06.access-guard
   utils/         # Server utilities: db.ts, auth.ts, payments.ts, ads.ts, ip.ts, logger.ts, response.ts
-supabase/migrations/  # Versioned SQL migrations (0001_core → 0006_storage_optional)
+supabase/migrations/  # Versioned SQL migrations (0001_core → 0005_payment_optional)
 docs/            # Core architecture documentation (9 files, incl. Supabase, Vercel, GitHub & Cloudflare guides)
-design/            # Platform design system specs (DESIGN-CLIENT.md, DESIGN-ADMIN.md, DESIGN-H5.md)
-scripts/         # CLI generators and test probes
+DESIGN.md          # Unified design system (Client/Admin/H5 three-platform specs)
+scripts/         # CLI generators and test probes (shared via _shared.mjs)
+  _shared.mjs    # Shared .env loader + colored output helpers
+  gen-crud-api.mjs       # CRUD controller generator (defineRouteMeta + Zod + sendSuccess)
+  scaffolder.mjs         # API + Page scaffold generator
+  generate-rls-sql.mjs   # RLS policy SQL generator (--admin for admin policies)
+  test-api-safety.mjs    # API auth safety scanner
+  test-supabase-connection.mjs  # DB connection + table + bucket health check
+  test-storage.mjs       # Supabase Storage full-chain integration test
 ```
 
 ## Rendering Strategy
 
 | Route | Strategy | Rationale |
 |-------|----------|-----------|
-| `/` `/tasks` | ISR 3600s | SEO-friendly, incremental regeneration |
+| `/` `/architecture` `/tasks` | ISR 3600s | SEO-friendly, incremental regeneration |
 | `/h5/**` | SWR 600s | Campaign pages update fast from admin |
 | `/admin/**` | SPA (ssr: false) | No SSR leak, pure client |
 | `/api/**` | no-store | Real-time, zero cache |
@@ -69,6 +81,7 @@ scripts/         # CLI generators and test probes
 **NEVER expose to frontend (no `NUXT_PUBLIC_` prefix):**
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
+- `SITE_ACCESS_PASSWORD` — 生产环境站点访问密码，由 `06.access-guard` 中间件校验
 
 **Authentication:**
 - Frontend Supabase client uses anon key only (`NUXT_PUBLIC_SUPABASE_ANON_KEY`)
@@ -122,6 +135,8 @@ Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashb
 ## Testing
 
 - API safety scan: `npm run test:api-safety` — validates `@api-auth` declarations match actual middleware behavior
+- Storage test: `npm run test:storage` — full-chain Storage integration test (upload, public URL, signed URL, RLS)
+- Supabase health: `npm run test:supabase` — connection, table, bucket, migration status check
 - Any endpoint returning 200 without proper auth is a FAIL (blocks merge)
 
 ## OpenAPI Documentation
@@ -153,7 +168,7 @@ Nitro's built-in OpenAPI 3.1.0 support is enabled for **both dev and production*
 - `.env` — contains secrets, never commit real values
 - `node_modules/` — managed by npm
 - `supabase/migrations/` existing files — create new numbered files instead
-- `server/middleware/` numbering — order matters (00→01→02→03→04)
+- `server/middleware/` numbering — order matters (00→01→02→03→04→05→06)
 - Mock DB adapter (`server/utils/db.ts`) chain API — fragile, extend carefully
 
 ## Mock DB Development

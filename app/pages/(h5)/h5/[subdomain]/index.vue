@@ -30,21 +30,12 @@ const isSubmitted = ref(false)
 const isLoading = ref(false)
 const isPurchasing = ref(false)
 
-// 认证集成
-const { isLoggedIn, signInAnonymously } = useAuth()
+// 认证集成（不再自动触发匿名登录，由 supabase-auth.client.ts 插件初始化 device-id）
+const { isLoggedIn } = useAuth()
 const { t } = useI18n()
 const showLoginModal = ref(false)
 const loginMode = ref<'login' | 'register' | 'bind'>('login')
 const pendingAction = ref<(() => void) | null>(null)
-
-// 页面加载时尝试匿名登录
-onMounted(async () => {
-  if (!isLoggedIn.value) {
-    try {
-      await signInAnonymously()
-    } catch { /* ignore */ }
-  }
-})
 
 // 支付集成
 // 票券编号（提交时固定，避免重渲染时跳变）
@@ -96,6 +87,12 @@ const showRegisterModal = () => {
 // -------------------------------------------------------------
 const { data: response } = await useFetch<CampaignResponse>(`/api/v1/campaigns/${subdomain.value}`)
 const campaign = computed(() => response.value?.data)
+
+// 统一 SEO 注入（使用活动数据驱动标题和描述）
+useAppSEO({
+  title: () => campaign.value?.title || subdomain.value,
+  description: () => campaign.value?.subtitle || '',
+})
 
 // 背景光圈逻辑计算
 const themeGlow = computed(() => {
@@ -276,7 +273,7 @@ const handleRegister = async () => {
             <div class="pt-2 border-t border-dashed border-slate-800">
               <p class="text-[9px] text-slate-500 text-center mb-2">{{ t('h5.shareTitle') }}</p>
               <div class="flex justify-center">
-                <SocialShare
+                <SharedSocialShare
                   :title="campaign?.title || 'HEHE VIP'"
                   :description="campaign?.subtitle || ''"
                   :subdomain="subdomain"

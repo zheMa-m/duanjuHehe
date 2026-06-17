@@ -69,7 +69,7 @@ export async function createCheckoutSession(params: CheckoutParams): Promise<Che
     const fakePI = `pi_mock_${orderId}`
     return {
       sessionId: fakeSessionId,
-      url: successUrl || `http://localhost:3000/payments/confirm?session_id=${fakeSessionId}`,
+      url: successUrl || `${process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/payments/confirm?session_id=${fakeSessionId}`,
       paymentIntentId: fakePI,
     }
   }

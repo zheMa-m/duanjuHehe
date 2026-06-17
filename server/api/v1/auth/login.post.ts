@@ -125,7 +125,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
   // ── 模式 2: 社交 OAuth ──────────────────────────────────
   if ('provider' in body) {
-    const redirectTo = body.redirect_to || `${event.headers.get('origin') || 'http://localhost:3000'}/api/v1/auth/callback`
+    const redirectTo = body.redirect_to || `${event.headers.get('origin') || useRuntimeConfig().public.baseUrl}/api/v1/auth/callback`
 
     const { data, error } = await db.auth.signInWithOAuth({
       provider: body.provider,
@@ -144,19 +144,16 @@ export default defineEventHandler(async (event: H3Event) => {
 
   // ── 模式 3: 匿名用户 ────────────────────────────────────
   if ('anonymous' in body && body.anonymous) {
-    // 匿名登录：使用 device_id 作为标识
-    // Supabase 支持 anonymous sign-in，返回一个临时用户
-    const { data, error } = await db.auth.signInAnonymously?.() || {
-      data: {
-        user: { id: `anon-${body.device_id}`, email: null },
-        session: {
-          access_token: `mock-anon-${Date.now()}`,
-          refresh_token: `mock-anon-refresh-${Date.now()}`,
-          expires_at: Date.now() + 86400000,
+    // 匿名登录：传递 provider/is_anonymous 元数据，让 handle_new_user 触发器正确设置 profile
+    const { data, error } = await db.auth.signInAnonymously({
+      options: {
+        data: {
+          provider: 'anonymous',
+          is_anonymous: true,
+          device_id: body.device_id,
         }
-      },
-      error: null
-    }
+      }
+    })
 
     if (error) {
       throw createError({ statusCode: 400, statusMessage: error.message || 'Anonymous sign-in failed' })

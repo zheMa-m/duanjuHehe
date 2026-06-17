@@ -202,9 +202,25 @@ function getLocalMockDB() {
         error: null
       }),
       signOut: async () => ({ error: null }),
+      signInAnonymously: async (opts?: { options?: { data?: any } }) => ({
+        data: {
+          user: {
+            id: `anon-${Date.now().toString(36)}`,
+            email: null,
+            user_metadata: opts?.options?.data || { provider: 'anonymous', is_anonymous: true }
+          },
+          session: {
+            access_token: `mock-anon-access-${Date.now()}`,
+            refresh_token: `mock-anon-refresh-${Date.now()}`,
+            expires_at: Date.now() + 86400000,
+          }
+        },
+        error: null
+      }),
       signInWithOAuth: async ({ provider, options }: { provider: string; options?: any }) => ({
         data: {
-          url: `${options?.redirectTo || 'http://localhost:3000'}/api/v1/auth/callback?provider=${provider}&mock=true`,
+          // redirectTo 已包含完整回调路径，直接拼接 query 参数即可
+          url: `${options?.redirectTo || 'http://localhost:3000/api/v1/auth/callback'}?provider=${provider}&mock=true`,
           provider
         },
         error: null
@@ -322,7 +338,7 @@ function getLocalMockDB() {
             rating: data.rating || null,
             comment: data.comment || null,
             display_name: data.display_name || 'Anonymous',
-            is_approved: true,
+            is_approved: data.is_approved !== undefined ? data.is_approved : false,
             admin_reply: null,
             created_at: new Date().toISOString()
           }

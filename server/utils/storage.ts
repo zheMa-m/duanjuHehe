@@ -44,6 +44,10 @@ export const BUCKET_CONFIG: Record<StorageBucket, {
 // 服务端中转上传的大小阈值（超过此值应走 signed URL 直传）
 export const SERVER_PROXY_MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 
+// Signed URL 默认过期时间（秒）
+export const SIGNED_URL_EXPIRY = 300 // 5 分钟（仅用于上传）
+export const SIGNED_DOWNLOAD_URL_EXPIRY = 3600 // 1 小时（下载链接）
+
 let storageClient: SupabaseClient | null = null
 
 /**
@@ -162,12 +166,14 @@ export async function createSignedUploadUrl(
   bucket: StorageBucket,
   path: string,
   event?: any,
-): Promise<{ signedUrl: string }> {
+): Promise<{ signedUrl: string; path: string }> {
   const storage = getStorage(event)
 
   const { data, error } = await storage
     .from(bucket)
-    .createSignedUploadUrl(path)
+    .createSignedUploadUrl(path, {
+      upsert: false,
+    })
 
   if (error) {
     throw createError({
@@ -176,7 +182,7 @@ export async function createSignedUploadUrl(
     })
   }
 
-  return { signedUrl: data.signedUrl }
+  return { signedUrl: data.signedUrl, path }
 }
 
 /**
@@ -194,7 +200,7 @@ export function getPublicUrl(bucket: StorageBucket, path: string, event?: any): 
 export async function getSignedUrl(
   bucket: StorageBucket,
   path: string,
-  expiresIn: number = 3600,
+  expiresIn: number = SIGNED_DOWNLOAD_URL_EXPIRY,
   event?: any,
 ): Promise<{ signedUrl: string }> {
   const storage = getStorage(event)

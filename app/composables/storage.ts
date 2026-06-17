@@ -8,7 +8,22 @@
 
 type StorageBucket = 'avatars' | 'campaign-assets' | 'uploads'
 
+interface UploadOptions {
+  path?: string
+  onProgress?: (percent: number) => void
+}
+
+interface UploadResult {
+  path: string
+  publicUrl: string | null
+}
+
 const SIZE_THRESHOLD = 5 * 1024 * 1024 // 5 MB
+
+// 文件名安全清理
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255)
+}
 
 export function useStorage() {
   const config = useRuntimeConfig()
@@ -19,8 +34,8 @@ export function useStorage() {
   async function upload(
     file: File,
     bucket: StorageBucket,
-    options?: { path?: string },
-  ): Promise<{ path: string; publicUrl: string | null }> {
+    options?: UploadOptions,
+  ): Promise<UploadResult> {
     if (file.size >= SIZE_THRESHOLD) {
       return uploadViaSignedUrl(file, bucket, options)
     }
@@ -33,24 +48,29 @@ export function useStorage() {
   async function uploadViaServer(
     file: File,
     bucket: StorageBucket,
-    options?: { path?: string },
-  ): Promise<{ path: string; publicUrl: string | null }> {
+    options?: UploadOptions,
+  ): Promise<UploadResult> {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file, sanitizeFileName(file.name))
     formData.append('bucket', bucket)
     if (options?.path) {
       formData.append('path', options.path)
     }
 
-    const res = await $fetch<{
-      success: boolean
-      data: { path: string; publicUrl: string | null }
-    }>('/api/v1/storage/upload', {
-      method: 'POST',
-      body: formData,
-    })
+    try {
+      const res = await $fetch<{
+        success: boolean
+        data: { path: string; publicUrl: string | null }
+      }>('/api/v1/storage/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-    return res.data
+      return res.data
+    } catch (err: any) {
+      const message = err?.data?.statusMessage || err?.message || 'Upload failed'
+      throw new Error(message)
+    }
   }
 
   /**
@@ -59,31 +79,62 @@ export function useStorage() {
   async function uploadViaSignedUrl(
     file: File,
     bucket: StorageBucket,
-    _options?: { path?: string },
-  ): Promise<{ path: string; publicUrl: string | null }> {
+    options?: UploadOptions,
+  ): Promise<UploadResult> {
     // 1. 获取 signed upload URL
-    const urlRes = await $fetch<{
-      success: boolean
-      data: { signedUrl: string; path: string }
-    }>('/api/v1/storage/signed-url', {
-      method: 'POST',
-      body: {
-        bucket,
-        filename: file.name,
-        contentType: file.type,
-      },
-    })
+    let signedUrl: string, path: string
+    try {
+      const urlRes = await $fetch<{
+        success: boolean
+        data: { signedUrl: string; path: string }
+      }>('/api/v1/storage/signed-url', {
+        method: 'POST',
+        body: {
+          bucket,
+          filename: sanitizeFileName(file.name),
+          contentType: file.type || 'application/octet-stream',
+        },
+      })
 
-    const { signedUrl, path } = urlRes.data
+      signedUrl = urlRes.data.signedUrl
+      path = urlRes.data.path
+    } catch (err: any) {
+      const message = err?.data?.statusMessage || err?.message || 'Failed to get signed upload URL'
+      throw new Error(message)
+    }
 
-    // 2. 直传文件到 Supabase Storage
-    await $fetch(signedUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    })
+    // 2. 直传文件到 Supabase Storage（带进度回调）
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('PUT', signedUrl)
+
+        if (options?.onProgress) {
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              options.onProgress!(Math.round((e.loaded / e.total) * 100))
+            }
+          }
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve()
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`))
+          }
+        }
+
+        xhr.onerror = () => reject(new Error('Network error during upload'))
+        xhr.ontimeout = () => reject(new Error('Upload timed out'))
+
+        xhr.timeout = 120000 // 2 分钟超时
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+        xhr.send(file)
+      })
+    } catch (err: any) {
+      throw new Error(err.message || 'Direct upload failed')
+    }
 
     // 3. 构建公开 URL（仅 public bucket 有意义）
     let publicUrl: string | null = null
@@ -114,17 +165,22 @@ export function useStorage() {
     path: string,
     expires?: number,
   ): Promise<string> {
-    const query: Record<string, string> = {}
-    if (expires) query.expires = String(expires)
+    try {
+      const query: Record<string, string> = {}
+      if (expires) query.expires = String(expires)
 
-    const res = await $fetch<{
-      success: boolean
-      data: { signedUrl: string; expiresIn: number }
-    }>(`/api/v1/storage/signed-url/${bucket}/${path}`, {
-      params: query,
-    })
+      const res = await $fetch<{
+        success: boolean
+        data: { signedUrl: string; expiresIn: number }
+      }>(`/api/v1/storage/signed-url/${bucket}/${path}`, {
+        params: query,
+      })
 
-    return res.data.signedUrl
+      return res.data.signedUrl
+    } catch (err: any) {
+      const message = err?.data?.statusMessage || err?.message || 'Failed to get signed URL'
+      throw new Error(message)
+    }
   }
 
   /**
