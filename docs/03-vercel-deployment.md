@@ -117,8 +117,7 @@ vercel --prod
 | `STRIPE_SECRET_KEY` | `sk_test_...` | Stripe 密钥（测试阶段可用测试 key） |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Stripe Webhook 签名密钥 |
 | `STRIPE_PUBLIC_KEY` | `pk_test_...` | Stripe 公钥 |
-| `OPENAPI_TOKEN` | `hehe-api-docs-2024` | OpenAPI 文档访问令牌 |
-| `SITE_ACCESS_PASSWORD` | `hehe2024` | 站点访问密码（留空则不启用保护） |
+| `SITE_ACCESS_PASSWORD` | `hehe2024` | 统一访问密码（保护页面 + API 文档，留空则不启用） |
 
 ### 4.2 操作步骤
 
@@ -138,7 +137,7 @@ Nuxt 在 Vercel 上构建时，只有以下变量会暴露给浏览器端代码�
 
 ```
 浏览器可见: NUXT_PUBLIC_SUPABASE_URL, NUXT_PUBLIC_SUPABASE_ANON_KEY
-仅服务端:   SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, OPENAPI_TOKEN, SITE_ACCESS_PASSWORD
+仅服务端:   SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SITE_ACCESS_PASSWORD
 ```
 
 > **安全红线**：`SUPABASE_SERVICE_ROLE_KEY` 和 `STRIPE_SECRET_KEY` 绝对不能加 `NUXT_PUBLIC_` 前缀。

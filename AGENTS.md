@@ -42,7 +42,7 @@ server/
   api/
     admin/       # Admin-only endpoints — 03.admin.ts middleware enforces assertAdmin
     v1/          # Public/user endpoints — auth via Bearer header or Cookie
-  middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.openapi-auth → 06.access-guard
+  middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.access-guard
   utils/         # Server utilities: db.ts, auth.ts, payments.ts, ads.ts, ip.ts, logger.ts, response.ts
 supabase/migrations/  # Versioned SQL migrations (0001_core → 0005_payment_optional)
 docs/            # Core architecture documentation (9 files, incl. Supabase, Vercel, GitHub & Cloudflare guides)
@@ -81,7 +81,7 @@ scripts/         # CLI generators and test probes (shared via _shared.mjs)
 **NEVER expose to frontend (no `NUXT_PUBLIC_` prefix):**
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
-- `SITE_ACCESS_PASSWORD` — 生产环境站点访问密码，由 `06.access-guard` 中间件校验
+- `SITE_ACCESS_PASSWORD` — 生产环境统一访问密码，由 `05.access-guard` 中间件校验（页面 + API 文档）
 
 **Authentication:**
 - Frontend Supabase client uses anon key only (`NUXT_PUBLIC_SUPABASE_ANON_KEY`)

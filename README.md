@@ -105,11 +105,11 @@ npm run dev:all
 请求进入后依次经过编号中间件，形成清晰的安全管道：
 
 ```
-00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 05.openapi-auth → 06.access-guard
-  │              │                  │           │             │                │                │
-  │              │                  │           │             │                │                │
-  性能监控     子域名路由         Bearer/      管理员        用户态           OpenAPI        站点访问
-              重写到对应路径     Cookie      断言守卫      强制认证         Token 鉴权      密码保护
+00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 05.access-guard
+  │              │                  │           │             │                │
+  │              │                  │           │             │                │
+  性能监控     子域名路由         Bearer/      管理员        用户态          站点访问
+              重写到对应路径     Cookie      断言守卫      强制认证        密码保护
                                双模鉴权
 ```
 
@@ -222,7 +222,7 @@ hehe-app/
 ### 📊 OpenAPI 文档
 
 - **三套交互式 UI**：Scalar（紫色主题）、Swagger UI、原始 OpenAPI 3.1.0 JSON
-- **生产环境 Token 保护**：`OPENAPI_TOKEN` 环境变量，支持 query / Bearer / Cookie 三种方式
+- **生产环境密码保护**：`SITE_ACCESS_PASSWORD` 环境变量，支持 `?token=` / `?password=` / Bearer / Cookie 四种方式
 
 ---
 
@@ -269,12 +269,12 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 ```
 ┌──────────────────────────────────────────────┐
 │  Layer 1: 站点访问密码 (SITE_ACCESS_PASSWORD) │
-│  Layer 2: OpenAPI Token 保护                  │
-│  Layer 3: 管理员断言 (assertAdmin)             │
-│  Layer 4: 用户认证守卫 (assertUser)            │
-│  Layer 5: RLS 行级安全 (FORCE ROW LEVEL)       │
-│  Layer 6: Zod 输入校验                          │
-│  Layer 7: API 安全扫描 (@api-auth 声明)        │
+│           → 页面拦截 + API 文档保护           │
+│  Layer 2: 管理员断言 (assertAdmin)            │
+│  Layer 3: 用户认证守卫 (assertUser)           │
+│  Layer 4: RLS 行级安全 (FORCE ROW LEVEL)      │
+│  Layer 5: Zod 输入校验                         │
+│  Layer 6: API 安全扫描 (@api-auth 声明)       │
 └──────────────────────────────────────────────┘
 ```
 
@@ -287,8 +287,7 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 | `SUPABASE_SERVICE_ROLE_KEY` | 服务端数据库操作 |
 | `STRIPE_SECRET_KEY` | Stripe 支付密钥 |
 | `STRIPE_WEBHOOK_SECRET` | Stripe Webhook 验证 |
-| `SITE_ACCESS_PASSWORD` | 站点访问密码 |
-| `OPENAPI_TOKEN` | API 文档 Token |
+| `SITE_ACCESS_PASSWORD` | 站点访问密码（页面 + API 文档统一） |
 
 ### 鉴权流程
 
@@ -341,10 +340,10 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 
 ```bash
 # Query 参数
-curl "https://hehe-app.vercel.app/_swagger?token=<OPENAPI_TOKEN>"
+curl "https://hehe-app.vercel.app/_swagger?token=<SITE_ACCESS_PASSWORD>"
 
 # Bearer Header
-curl -H "Authorization: Bearer <OPENAPI_TOKEN>" "https://hehe-app.vercel.app/_scalar"
+curl -H "Authorization: Bearer <SITE_ACCESS_PASSWORD>" "https://hehe-app.vercel.app/_scalar"
 ```
 
 > 开发环境自动放行，无需 Token。
@@ -444,8 +443,7 @@ STRIPE_SECRET_KEY=<stripe_secret>
 STRIPE_WEBHOOK_SECRET=<stripe_webhook>
 
 # ── 安全 ──
-SITE_ACCESS_PASSWORD=<your_password>            # 站点访问密码（生产环境）
-OPENAPI_TOKEN=<your_token>                      # API 文档访问 Token
+SITE_ACCESS_PASSWORD=<your_password>            # 统一访问密码（页面 + API 文档）
 
 # ── 站点 ──
 NUXT_PUBLIC_BASE_URL=https://yourdomain.com     # 站点 URL（可选，自动探测）
