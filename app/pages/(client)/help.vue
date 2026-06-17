@@ -146,11 +146,11 @@ const toggleFaq = (key: string) => {
 
 // ── Navigation ──
 const navSections = computed(() => [
-  { group: 'overview', items: ['s0', 's1', 's2', 's3'] },
-  { group: 'infrastructure', items: ['s4', 's5', 's6', 's7', 's8'] },
-  { group: 'business', items: ['s9', 's10', 's11'] },
-  { group: 'optional', items: ['s12'] },
-  { group: 'faq', items: ['s13', 's14', 's15', 's16'] },
+  { group: 'overview', items: ['s0', 's1', 's2', 's3', 's4'] },
+  { group: 'infrastructure', items: ['s5', 's6', 's7', 's8', 's9'] },
+  { group: 'business', items: ['s10', 's11', 's12'] },
+  { group: 'optional', items: ['s13'] },
+  { group: 'faq', items: ['s14', 's15', 's16', 's17'] },
 ])
 
 const sectionLabelMap: Record<string, string> = {
@@ -158,19 +158,20 @@ const sectionLabelMap: Record<string, string> = {
   's1': '定位与技术栈',
   's2': '目录结构与路由',
   's3': '环境变量',
-  's4': 'Supabase 集成',
-  's5': '数据库迁移',
-  's6': '认证体系',
-  's7': 'Vercel 部署',
-  's8': 'GitHub 集成',
-  's9': '支付系统',
-  's10': '广告变现',
-  's11': '社交分享与反馈',
-  's12': 'Cloudflare 接入',
-  's13': '本地开发',
-  's14': 'API 规范',
-  's15': '国际化配置',
-  's16': '常见问题'
+  's4': '渲染策略对比',
+  's5': 'Supabase 集成',
+  's6': '数据库迁移',
+  's7': '认证体系',
+  's8': 'Vercel 部署',
+  's9': 'GitHub 集成',
+  's10': '支付系统',
+  's11': '广告变现',
+  's12': '社交分享与反馈',
+  's13': 'Cloudflare 接入',
+  's14': '本地开发',
+  's15': 'API 规范',
+  's16': '国际化配置',
+  's17': '常见问题'
 }
 const sectionLabel = (key: string) => sectionLabelMap[key] || key
 const navGroupLabelMap: Record<string, string> = {
@@ -730,7 +731,7 @@ const faqData = [
             <div class="subsection">
               <h3>{{ '文档结构' }}</h3>
               <div class="doc-grid">
-                <div v-for="(doc, idx) in ([{num:'01', title:'定位与技术栈', desc:'平台边界、技术选型、渲染策略、快速启动、前置条件'},{num:'02', title:'目录结构与路由', desc:'目录结构、多域名路由、中间件执行链'},{num:'03', title:'环境变量', desc:'变量清单、安全红线、Mock DB 离线开发'},{num:'04', title:'Supabase 集成', desc:'数据库创建、连接池、Storage、迁移执行、管理员创建'},{num:'05', title:'数据库迁移', desc:'迁移文件清单、种子数据、迁移规范、编写规范'},{num:'06', title:'认证体系', desc:'认证流程、Token 管理、中间件链、OAuth 配置'},{num:'07', title:'Vercel 部署', desc:'环境变量、域名配置、渲染策略、检查清单、预览部署'},{num:'08', title:'GitHub 集成', desc:'分支策略、CI/CD、分支保护、Actions 配置、PR 模板'},{num:'09', title:'支付系统', desc:'Stripe 集成、订单流程、Mock/生产双模式、Webhook'},{num:'10', title:'广告变现', desc:'广告位管理、曝光/点击统计、CSP 配置、收入估算'},{num:'11', title:'社交分享与反馈', desc:'6 大平台分享、用户评价系统、审批工作流'},{num:'12', title:'Cloudflare 接入', desc:'DNS 配置、SSL/TLS、安全功能、缓存规则'},{num:'13', title:'本地开发', desc:'快速开始、本地 Supabase、脚本说明、代码生成器'},{num:'14', title:'API 规范', desc:'统一响应格式、Zod 校验、鉴权声明、OpenAPI 文档'},{num:'15', title:'国际化配置', desc:'i18n 策略、语言检测、翻译文件结构、使用规范'},{num:'16', title:'常见问题', desc:'部署、数据库、认证、支付相关 FAQ'}] as any[])" :key="idx" class="doc-card">
+                <div v-for="(doc, idx) in ([{num:'01', title:'定位与技术栈', desc:'平台边界、技术选型、渲染策略、快速启动、前置条件'},{num:'02', title:'目录结构与路由', desc:'目录结构、多域名路由、中间件执行链'},{num:'03', title:'环境变量', desc:'变量清单、安全红线、Mock DB 离线开发'},{num:'04', title:'渲染策略对比', desc:'SSR/ISR/SWR 全维度对比、选型决策树、性能数字'},{num:'05', title:'Supabase 集成', desc:'数据库创建、连接池、Storage、迁移执行、管理员创建'},{num:'06', title:'数据库迁移', desc:'迁移文件清单、种子数据、迁移规范、编写规范'},{num:'07', title:'认证体系', desc:'认证流程、Token 管理、中间件链、OAuth 配置'},{num:'08', title:'Vercel 部署', desc:'环境变量、域名配置、渲染策略、检查清单、预览部署'},{num:'09', title:'GitHub 集成', desc:'分支策略、CI/CD、分支保护、Actions 配置、PR 模板'},{num:'10', title:'支付系统', desc:'Stripe 集成、订单流程、Mock/生产双模式、Webhook'},{num:'11', title:'广告变现', desc:'广告位管理、曝光/点击统计、CSP 配置、收入估算'},{num:'12', title:'社交分享与反馈', desc:'6 大平台分享、用户评价系统、审批工作流'},{num:'13', title:'Cloudflare 接入', desc:'DNS 配置、SSL/TLS、安全功能、缓存规则'},{num:'14', title:'本地开发', desc:'快速开始、本地 Supabase、脚本说明、代码生成器'},{num:'15', title:'API 规范', desc:'统一响应格式、Zod 校验、鉴权声明、OpenAPI 文档'},{num:'16', title:'国际化配置', desc:'i18n 策略、语言检测、翻译文件结构、使用规范'},{num:'17', title:'常见问题', desc:'部署、数据库、认证、支付相关 FAQ'}] as any[])" :key="idx" class="doc-card">
                   <div class="doc-card-num">{{ doc.num }}</div>
                   <div class="doc-card-body">
                     <h4>{{ doc.title }}</h4>
@@ -947,10 +948,119 @@ const faqData = [
           </div>
         </section>
 
-        <!-- ═══════ S4: Supabase ═══════ -->
+        <!-- ═══════ S4: Rendering Strategies ═══════ -->
         <section id="s4" class="section">
           <div class="section-header">
             <div class="section-num">04</div>
+            <h2>{{ '渲染策略对比' }}</h2>
+          </div>
+          <div class="section-body">
+            <div class="subsection">
+              <h3>{{ '三种渲染模式' }}</h3>
+              <p>{{ 'SSR、ISR、SWR 三种渲染模式是现代全栈框架的核心能力。三者本质上都是「服务端介入渲染」，核心差异在于何时渲染、缓存多久、谁触发更新。选错渲染策略，轻则 LCP 超标，重则服务器在流量峰值下崩溃。' }}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['对比维度', 'SSR', 'ISR', 'SWR'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in ([['渲染时机', '每次请求实时渲染', '首次渲染并缓存，后台定时刷新', '过期后返回旧缓存，后台异步刷新'],['TTFB', '200-800ms（每次）', '~5ms（命中缓存）', '~5ms（命中缓存）'],['数据新鲜度', '100% 实时', '最多延迟 revalidate 秒', '最多延迟 maxAge 秒'],['服务器压力', '高（每请求计算一次）', '极低（缓存期零计算）', '低（过期后异步一次）'],['SEO 友好度', '极佳', '极佳', '极佳'],['适合更新频率', '秒级', '小时/天级', '分钟/小时级'],['Nuxt 4 配置', 'ssr: true', 'isr: 3600', 'swr: 600']] as string[][])" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><strong v-if="j === 0">{{ cell }}</strong><code v-else-if="j >= 3 && row[0] === 'Nuxt 4 配置'">{{ cell }}</code><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="subsection">
+              <h3>{{ '机制原理' }}</h3>
+              <p><strong>SSR：</strong>{{ '每次请求实时计算 — 用户请求 → 服务器查 DB/调 API → 渲染 HTML → 返回。每次都要计算。' }}</p>
+              <p><strong>ISR：</strong>{{ '首次构建 + 后台静默刷新 — 首次请求渲染并写入边缘缓存（TTL=3600s）。缓存期内直接返回（~5ms），过期后先返回旧缓存，后台触发重新计算。用户无感知，永远不等待。' }}</p>
+              <p><strong>SWR：</strong>{{ '过期即用旧缓存 + 后台异步更新 — 首次请求渲染并写入缓存（maxAge=600s）。缓存期内 ~5ms 返回，过期后立即返回旧缓存同时后台异步刷新。与 ISR 行为几乎一致，区别在时间窗口语义。' }}</p>
+              <div class="alert alert-info">
+                <div class="alert-icon">💡</div>
+                <div class="alert-body">
+                  <strong>{{ '关键结论' }}</strong>
+                  <p>{{ 'ISR 和 SWR 在「过期后先返回旧缓存、后台异步刷新」行为上几乎完全一致。核心区别：ISR 适合小时/天级低频更新内容，SWR 适合分钟级中频更新内容。' }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="subsection">
+              <h3>{{ '选型决策树' }}</h3>
+              <p><strong>{{ '维度一：数据更新频率' }}</strong></p>
+              <ul>
+                <li><strong>{{ '秒级变化：' }}</strong>{{ 'SSR（股价、实时弹幕、直播数据）' }}</li>
+                <li><strong>{{ '分钟到小时级：' }}</strong>{{ 'SWR（营销活动、商品库存、新闻）' }}</li>
+                <li><strong>{{ '小时到天级：' }}</strong>{{ 'ISR（官网介绍、博客、定价页）' }}</li>
+              </ul>
+              <p><strong>{{ '维度二：SEO 重要性' }}</strong></p>
+              <ul>
+                <li><strong>{{ '不重要：' }}</strong>{{ 'SPA（管理后台、用户私有页、订单详情）' }}</li>
+                <li><strong>{{ '重要：' }}</strong>{{ '按数据更新频率三选一（ISR / SWR / SSR）' }}</li>
+              </ul>
+            </div>
+            <div class="subsection">
+              <h3>{{ '本项目选型定论' }}</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['页面/场景', '选型', '配置', '理由'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in ([['官网首页', 'ISR', 'isr: 3600', '每日更新一次足够，极致 LCP'],['H5 活动页', 'SWR', 'swr: 600', '活动配置随时可改，容忍 10 分钟延迟'],['管理后台', 'SPA', 'ssr: false', '无 SEO 需求，强权限隔离'],['API 接口', '无渲染', 'no-store', '纯 JSON，绝对禁止缓存']] as string[][])" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><strong v-if="j === 1">{{ cell }}</strong><code v-else-if="j === 2">{{ cell }}</code><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="subsection">
+              <h3>{{ 'routeRules 配置速查' }}</h3>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($el.nextElementSibling as HTMLElement)">{{ '复制代码' }}</button>
+                <pre><code>// nuxt.config.ts
+export default defineNuxtConfig({
+  routeRules: {
+    '/client/**': { isr: 3600 },           // 官网 ISR，1h
+    '/h5/**':    { swr: 600 },             // H5 SWR，10min
+    '/admin/**': { ssr: false },           // 后台 SPA
+    '/api/**':   { cors: true, headers: { 'cache-control': 'no-store' } },
+  }
+})</code></pre>
+              </div>
+            </div>
+            <div class="subsection">
+              <h3>{{ '常见误区' }}</h3>
+              <div class="faq-item" :class="{ expanded: faqExpanded['render-q1'] }">
+                <div class="faq-q" @click="toggleFaq('render-q1')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ 'ISR 缓存过期，用户会看到空白页或等待吗？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['render-q1']">
+                  A: {{ '不会。ISR 过期后第一个请求依然立即拿到旧缓存（用户无感知），服务器后台静默刷新。用户永远不需要等待。' }}
+                </div>
+              </div>
+              <div class="faq-item" :class="{ expanded: faqExpanded['render-q2'] }">
+                <div class="faq-q" @click="toggleFaq('render-q2')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ 'ISR 和 SWR 本质区别是什么？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['render-q2']">
+                  A: {{ '核心差异在语义与时间窗口。ISR 定位于小时/天级低频更新，SWR 定位于分钟级中频更新。机制上两者几乎一致：过期后先返回旧缓存，后台异步刷新。' }}
+                </div>
+              </div>
+              <div class="faq-item" :class="{ expanded: faqExpanded['render-q3'] }">
+                <div class="faq-q" @click="toggleFaq('render-q3')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ 'SSR 在什么情况下是唯一正确选择？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['render-q3']">
+                  A: {{ '三种情况必须用 SSR：1. 页面内容因用户身份不同而完全不同（个人中心、订单）；2. 内容必须是秒级实时数据（行情、竞拍）；3. 页面含高度敏感数据，不允许任何缓存（金融账户）。' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════ S5: Supabase ═══════ -->
+        <section id="s5" class="section">
+          <div class="section-header">
+            <div class="section-num">05</div>
             <h2>{{ 'Supabase 集成' }}</h2>
           </div>
           <div class="section-body">
@@ -1240,9 +1350,9 @@ npm run gen:rls &lt;table&gt; [--admin]</code></pre>
         </section>
 
         <!-- ═══════ S5: Migrations ═══════ -->
-        <section id="s5" class="section">
+        <section id="s6" class="section">
           <div class="section-header">
-            <div class="section-num">05</div>
+            <div class="section-num">06</div>
             <h2>{{ '数据库迁移' }}</h2>
           </div>
           <div class="section-body">
@@ -1303,9 +1413,9 @@ supabase db push</code></pre>
         </section>
 
         <!-- ═══════ S6: Auth ═══════ -->
-        <section id="s6" class="section">
+        <section id="s7" class="section">
           <div class="section-header">
-            <div class="section-num">06</div>
+            <div class="section-num">07</div>
             <h2>{{ '认证体系' }}</h2>
           </div>
           <div class="section-body">
@@ -1476,9 +1586,9 @@ CREATE TRIGGER on_auth_user_created
         </section>
 
         <!-- ═══════ S7: Vercel Deployment ═══════ -->
-        <section id="s7" class="section">
+        <section id="s8" class="section">
           <div class="section-header">
-            <div class="section-num">07</div>
+            <div class="section-num">08</div>
             <h2>{{ 'Vercel 部署' }}</h2>
           </div>
           <div class="section-body">
@@ -1640,9 +1750,9 @@ vercel --prod</code></pre>
         </section>
 
         <!-- ═══════ S8: GitHub ═══════ -->
-        <section id="s8" class="section">
+        <section id="s9" class="section">
           <div class="section-header">
-            <div class="section-num">08</div>
+            <div class="section-num">09</div>
             <h2>{{ 'GitHub 集成' }}</h2>
           </div>
           <div class="section-body">
@@ -1783,9 +1893,9 @@ vercel --prod</code></pre>
         </section>
 
         <!-- ═══════ S9: Stripe Payments ═══════ -->
-        <section id="s9" class="section">
+        <section id="s10" class="section">
           <div class="section-header">
-            <div class="section-num">09</div>
+            <div class="section-num">10</div>
             <h2>{{ '支付系统' }}</h2>
           </div>
           <div class="section-body">
@@ -1949,9 +2059,9 @@ const stripeEvent = stripe.webhooks.constructEvent(
         </section>
 
         <!-- ═══════ S10: Ad Monetization ═══════ -->
-        <section id="s10" class="section">
+        <section id="s11" class="section">
           <div class="section-header">
-            <div class="section-num">10</div>
+            <div class="section-num">11</div>
             <h2>{{ '广告变现' }}</h2>
           </div>
           <div class="section-body">
@@ -2063,9 +2173,9 @@ script-src: [
         </section>
 
         <!-- ═══════ S11: Social Share & Feedback ═══════ -->
-        <section id="s11" class="section">
+        <section id="s12" class="section">
           <div class="section-header">
-            <div class="section-num">11</div>
+            <div class="section-num">12</div>
             <h2>{{ '社交分享与反馈' }}</h2>
           </div>
           <div class="section-body">
@@ -2173,9 +2283,9 @@ script-src: [
         </section>
 
         <!-- ═══════ S12: Cloudflare ═══════ -->
-        <section id="s12" class="section">
+        <section id="s13" class="section">
           <div class="section-header">
-            <div class="section-num">12</div>
+            <div class="section-num">13</div>
             <h2>{{ 'Cloudflare 接入' }}</h2>
           </div>
           <div class="section-body">
@@ -2320,9 +2430,9 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
         </section>
 
         <!-- ═══════ S13: Local Development ═══════ -->
-        <section id="s13" class="section">
+        <section id="s14" class="section">
           <div class="section-header">
-            <div class="section-num">13</div>
+            <div class="section-num">14</div>
             <h2>{{ '本地开发' }}</h2>
           </div>
           <div class="section-body">
@@ -2373,9 +2483,9 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
         </section>
 
         <!-- ═══════ S14: API Response Format ═══════ -->
-        <section id="s14" class="section">
+        <section id="s15" class="section">
           <div class="section-header">
-            <div class="section-num">14</div>
+            <div class="section-num">15</div>
             <h2>{{ 'API 规范' }}</h2>
           </div>
           <div class="section-body">
@@ -2440,9 +2550,9 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
         </section>
 
         <!-- ═══════ S15: i18n Configuration ═══════ -->
-        <section id="s15" class="section">
+        <section id="s16" class="section">
           <div class="section-header">
-            <div class="section-num">15</div>
+            <div class="section-num">16</div>
             <h2>{{ '国际化配置' }}</h2>
           </div>
           <div class="section-body">
@@ -2496,9 +2606,9 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
         </section>
 
         <!-- ═══════ S16: FAQ ═══════ -->
-        <section id="s16" class="section">
+        <section id="s17" class="section">
           <div class="section-header">
-            <div class="section-num">16</div>
+            <div class="section-num">17</div>
             <h2>{{ '常见问题' }}</h2>
           </div>
           <div class="section-body">
