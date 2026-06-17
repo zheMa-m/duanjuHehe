@@ -1,3 +1,5 @@
+
+// @api-auth: public
 import { z } from 'zod'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'

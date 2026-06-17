@@ -8,6 +8,8 @@ const props = defineProps<{
   avatarUrl?: string | null
 }>()
 
+const { user } = useAuth()
+
 const newPassword = ref('')
 const confirmPassword = ref('')
 const profileError = ref('')
@@ -186,12 +188,12 @@ const handleClose = () => {
           </div>
         </div>
 
-        <!-- 账号（只读展示） -->
+        <!-- 账号（只读展示，来自 useAuth） -->
         <div>
           <label class="block text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 pl-1">管理账号</label>
           <input 
             type="text" 
-            value="admin"
+            :value="user?.email || user?.username || '-'"
             disabled
             class="w-full bg-white/[0.02] border border-white/5 rounded-lg px-3.5 py-2.5 text-xs text-white/40 focus:outline-none cursor-not-allowed font-light"
           />

@@ -1,5 +1,6 @@
 import { defineEventHandler, getHeader, parseCookies, setResponseHeader } from 'h3'
 import { getDB } from '~~/server/utils/db'
+import { ensureAdminAuthUser } from '~~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
   // 仅针对 /api/ 接口路径处理鉴权状态，跳过静态页面渲染
@@ -43,6 +44,28 @@ export default defineEventHandler(async (event) => {
 
   // 2. 真实部署环境（Supabase 真实凭据解析）
   try {
+    // ── 内置管理员检测：通过 site-access Cookie 识别 ──
+    const cookies = parseCookies(event)
+    const siteAccessCookie = cookies['site-access']
+    if (siteAccessCookie) {
+      const adminPassword = process.env.SITE_ADMIN_PASSWORD || process.env.SITE_ACCESS_PASSWORD || ''
+      if (adminPassword && siteAccessCookie === adminPassword) {
+        // 确保 Supabase Auth 中存在内置管理员用户（首次自动创建，固定 UUID）
+        // 这样 tasks/activity_logs 等表的 tenant_id/user_id 外键约束才能通过
+        const db = getDB(event)
+        const adminUser = await ensureAdminAuthUser(db)
+        
+        event.context.user = {
+          id: adminUser.id,                                        // ✅ 真实 Supabase Auth UUID
+          username: process.env.SITE_ADMIN_USERNAME || 'admin',
+          role: 'admin',
+          tenantId: adminUser.id,                                  // ✅ 真实 UUID，满足 FK
+          isAnonymous: false,
+        }
+        return
+      }
+    }
+
     // Token 来源优先级：Bearer header > Cookie
     let token: string | null = null
 
@@ -51,7 +74,6 @@ export default defineEventHandler(async (event) => {
       token = authHeader.substring(7)
     } else {
       // 从 Cookie 中提取 access_token
-      const cookies = parseCookies(event)
       token = cookies['sb-access-token'] || null
     }
 

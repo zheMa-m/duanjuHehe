@@ -103,11 +103,14 @@ git push -u origin main
 node_modules/
 .nuxt/
 .output/
+.data/
+.nitro/
+.cache/
 
 # 环境变量（严禁提交密钥）
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
 # 编辑器
 .vscode/
@@ -121,6 +124,9 @@ Thumbs.db
 # 构建产物
 dist/
 build/
+
+# 平台
+.vercel
 ```
 
 > **安全红线**：`.env` 文件包含 Supabase 密钥和 Stripe 密钥，绝对不能提交到 GitHub。如果误提交，需要立即轮换（rotate）所有密钥。
@@ -536,5 +542,5 @@ gh run view <run-id>            # 查看某次运行详情
 
 - 部署配置 → [03-vercel-deployment.md](./03-vercel-deployment.md) 第 2 节（GitHub 仓库准备）、第 11 节（Preview Deployments）
 - 项目基础 → [01-scaffold-basics.md](./01-scaffold-basics.md)（项目结构和环境变量）
-- 数据库集成 → [02-supabase-integration.md](./02-supabase-integration.md)（迁移文件 0001-0005 需提交到 git）
+- 数据库集成 → [02-supabase-integration.md](./02-supabase-integration.md)（迁移文件需提交到 git）
 - Cloudflare（可选） → [09-cloudflare-optional.md](./09-cloudflare-optional.md)（DNS 管理与 CDN 加速）

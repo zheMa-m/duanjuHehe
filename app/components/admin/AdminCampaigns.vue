@@ -13,8 +13,6 @@ const props = defineProps<{
   isLoading: boolean
 }>()
 
-const baseUrl = useRuntimeConfig().public.baseUrl
-
 const emit = defineEmits<{
   refresh: []
   save: [campaign: Campaign]
@@ -137,13 +135,13 @@ defineExpose({ onSaved })
               <td class="px-6 py-3.5 text-white/90 font-medium max-w-[150px] truncate">{{ cam.title }}</td>
               <td class="px-6 py-3.5 text-white/50 max-w-[200px] truncate font-light">{{ cam.subtitle }}</td>
               <td class="px-6 py-3.5 text-right space-x-2">
-                <a 
-                  :href="`${baseUrl}/h5/${cam.subdomain}`"
+                <NuxtLink 
+                  :to="`/h5/${cam.subdomain}`"
                   target="_blank"
-                  class="text-xs bg-white/5 hover:bg-white/10 text-white/80 px-3 py-1.5 rounded-full transition-all inline-block text-[11px] font-medium"
+                  class="text-xs bg-white/5 hover:bg-white/10 text-white/80 px-3 py-1.5 rounded-full transition-all inline-block text-[11px] font-medium no-underline"
                 >
                   📲 预览
-                </a>
+                </NuxtLink>
                 <button 
                   @click="startEditCampaign(cam)"
                   class="text-xs bg-[#007aff]/10 hover:bg-[#007aff]/20 text-[#0a84ff] px-3.5 py-1.5 rounded-full transition-all text-[11px] font-medium"

@@ -175,6 +175,10 @@ const {
 | `/api/v1/ads/*` | 公开（匿名可访问） |
 | `/api/v1/campaigns/*` | 公开 |
 
+### 站点访问密码
+
+`05.access-guard.ts` 中间件在所有鉴权之后执行。当 `SITE_ACCESS_PASSWORD` 配置时，对所有页面和 API 文档路径（`/_swagger`、`/_scalar`、`/_openapi`）进行密码保护。认证相关 API（`/api/v1/auth/*`）和 Stripe Webhook 回调始终放行。本地 `MOCK_DB=true` 模式自动跳过。
+
 ---
 
 ## 9. 匿名→绑定数据迁移策略

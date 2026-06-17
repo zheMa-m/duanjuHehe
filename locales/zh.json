@@ -56,9 +56,9 @@
     "ctaArch": "查看技术架构",
     "ctaH5": "体验营销 H5",
     "navArch": "技术架构",
-    "navTasks": "任务看板",
-    "navH5": "营销 H5",
-    "navAdmin": "管理后台",
+    "navHelp": "帮助文档",
+    "navH5": "营销 H5（示例1）",
+    "navAdmin": "控制台",
     "navGitHub": "GitHub",
     "stackTitle": "技术栈",
     "featuresTitle": "核心模块",
@@ -201,5 +201,334 @@
     "copied": "已复制!",
     "scanQrCode": "扫描二维码分享到微信",
     "close": "关闭"
+  },
+  "help": {
+    "title": "帮助文档",
+    "description": "HeHe App 完整帮助文档 — 从项目搭建到部署上线的全流程指南。",
+    "backHome": "返回首页",
+    "pageTitle": "帮助文档中心",
+    "version": "v1.0",
+    "subtitle": "从零到一的全栈项目实战手册",
+    "lastUpdated": "最后更新",
+    "onThisPage": "本页目录",
+    "prevSection": "上一节",
+    "nextSection": "下一节",
+    "searchPlaceholder": "搜索文档...",
+    "copyCode": "复制代码",
+    "helpCenter": "帮助中心",
+    "backToTop": "返回顶部",
+    "nav": {
+      "overview": "项目概述",
+      "getStarted": "快速开始",
+      "infrastructure": "基础设施",
+      "business": "业务模块",
+      "optional": "可选增强",
+      "faq": "常见问题",
+      "architecture": "技术架构"
+    },
+    "sections": {
+      "s0": "帮助文档概览",
+      "s1": "项目定位与技术栈",
+      "s2": "目录结构与多域名路由",
+      "s3": "环境变量与配置",
+      "s4": "Supabase 数据库集成",
+      "s5": "数据库迁移与种子数据",
+      "s6": "用户认证体系",
+      "s7": "Vercel 部署指南",
+      "s8": "GitHub 集成与 CI/CD",
+      "s9": "Stripe 支付集成",
+      "s10": "广告流量变现",
+      "s11": "社交分享与用户反馈",
+      "s12": "Cloudflare 接入",
+      "s13": "本地开发与调试",
+      "s14": "常见问题汇总"
+    },
+    "hero": {
+      "tagNuxt": "📚 Nuxt 4",
+      "tagSupabase": "🗄️ Supabase",
+      "tagVercel": "▲ Vercel",
+      "tagAuth": "🔐 Auth"
+    },
+    "s0": {
+      "desc": "本帮助文档基于项目 docs/ 目录下的 9 份核心文档整合而成，覆盖从项目搭建、数据库集成、用户认证、支付接入到生产部署的全流程。文档采用左侧导航 + 右侧内容的经典布局，支持中英文双语切换。",
+      "docStructure": "文档结构",
+      "docs": [
+        {
+          "title": "脚手架基础",
+          "desc": "项目定位、技术栈、目录结构、多域名路由、渲染策略、环境变量、Mock DB、中间件链、i18n"
+        },
+        {
+          "title": "Supabase 集成",
+          "desc": "数据库创建、迁移执行、种子数据、管理员创建、OAuth 配置、Connection Pooler、Storage"
+        },
+        {
+          "title": "Vercel 部署",
+          "desc": "项目导入、环境变量、域名配置、ISR/SWR、Stripe Webhook、预览部署"
+        },
+        {
+          "title": "GitHub 集成",
+          "desc": "仓库创建、分支策略、GitHub Actions CI/CD、PR 工作流、安全实践"
+        },
+        {
+          "title": "用户认证",
+          "desc": "Email/Google/Facebook/Apple/Anonymous 五种登录、profiles 表、Token 生命周期"
+        },
+        {
+          "title": "Stripe 支付",
+          "desc": "Checkout Session 流程、双模式、Webhook、金额安全、测试卡号"
+        },
+        {
+          "title": "广告变现",
+          "desc": "ad_slots/ad_events 表、AdSense/Meta/Custom、CSP 配置、收入估算"
+        },
+        {
+          "title": "社交反馈",
+          "desc": "SocialShare 6平台组件、feedbacks 表、星级评分、管理员审批"
+        },
+        {
+          "title": "Cloudflare",
+          "desc": "DNS 管理、DNS-only 模式、SSL/TLS、WAF/Bot 防护、通配符 DNS"
+        }
+      ]
+    },
+    "s1": {
+      "positioning": "项目定位",
+      "positioningDesc": "本项目是单人全栈独立开发者闭环项目脚手架，一人负责开发、维护、上线、测试、运维全流程。不是 SaaS 多租户产品，而是单人全栈项目的基础骨架。",
+      "techStack": "技术栈",
+      "techStackCols": [
+        "层级",
+        "技术选型",
+        "说明"
+      ],
+      "prerequisites": "前置条件",
+      "prereqCols": [
+        "工具",
+        "版本要求",
+        "安装方式"
+      ]
+    },
+    "s2": {
+      "directoryStructure": "目录结构",
+      "multiDomainRouting": "多域名路由设计",
+      "routingCols": [
+        "域名",
+        "路由",
+        "渲染策略",
+        "说明"
+      ],
+      "middlewareChain": "中间件执行链",
+      "middlewareSteps": [
+        "APM 监控",
+        "子域名路由",
+        "JWT 身份解析",
+        "管理员拦截",
+        "权限守卫",
+        "OpenAPI 鉴权",
+        "站点密码"
+      ]
+    },
+    "s3": {
+      "envVars": "环境变量清单",
+      "envCols": [
+        "变量名",
+        "说明",
+        "必需",
+        "备注"
+      ],
+      "securityAlert": "安全红线",
+      "securityAlertDesc": "SUPABASE_SERVICE_ROLE_KEY 和 STRIPE_SECRET_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。这些密钥拥有绕过 RLS 的权限。",
+      "mockDb": "Mock DB 离线开发",
+      "mockDbDesc": "项目内置完整的内存 Mock PostgreSQL 适配器，设置 MOCK_DB=true 即可完全离线开发，无需 Supabase 物理数据库。支持链式查询、聚合统计、CRUD 操作和 Auth 模拟。"
+    },
+    "s4": {
+      "createProject": "创建 Supabase 项目",
+      "createStep1": "中创建新项目",
+      "createStep2": "填写项目名称和数据库密码",
+      "createStep3": "获取项目 URL 和 anon key",
+      "createStep4": "将 URL 和 key 配置到项目 .env 文件",
+      "schemaOverview": "数据库 Schema 概览",
+      "connectionPooler": "Connection Pooler（Serverless 必配）",
+      "connectionPoolerDesc": "Vercel Serverless Functions 每次请求都可能创建新连接，容易打满 Supabase Free 计划的 10 个直连上限。在 Supabase Dashboard → Settings → Database → Connection Pooler 中启用。"
+    },
+    "s5": {
+      "migrationList": "迁移文件清单",
+      "migrationCols": [
+        "文件名",
+        "说明",
+        "类型"
+      ],
+      "executeMigration": "执行迁移",
+      "executeMethod1": "方式一（推荐首次）：在 Supabase Dashboard → SQL Editor 中按顺序执行迁移文件。",
+      "executeMethod2": "方式二（推荐）：使用 Supabase CLI：",
+      "seedData": "种子数据",
+      "seedDataDesc": "迁移只创建表结构，不包含业务数据。H5 页面依赖 campaigns 表，切换真实数据库后必须手动插入种子数据。详见 docs/02-supabase-integration.md 第 5 节。",
+      "createAdmin": "创建管理员",
+      "migrationRules": "迁移编写规范"
+    },
+    "s6": {
+      "loginMethods": "支持的登录方式",
+      "loginCols": [
+        "方式",
+        "方法",
+        "API",
+        "说明"
+      ],
+      "profilesFields": "profiles 表核心字段",
+      "profilesCols": [
+        "字段",
+        "类型",
+        "说明"
+      ],
+      "tokenLifecycle": "Token 生命周期",
+      "tokenCols": [
+        "类型",
+        "格式",
+        "有效期",
+        "传输方式"
+      ],
+      "serverApi": "服务端 API",
+      "apiCols": [
+        "方法",
+        "端点",
+        "说明"
+      ],
+      "cookieSecurity": "Cookie 安全",
+      "cookieSecurityDesc": "Auth Cookie 使用 SameSite=Strict + Secure（HTTPS）策略，最大化 CSRF 防护。服务端中间件使用 getUser()（非 getSession()）验证 JWT，遵循 Supabase 推荐的最佳实践。"
+    },
+    "s7": {
+      "deployFlow": "部署流程",
+      "deployStep1": "将项目代码推送到 GitHub",
+      "deployStep2": "导入 Git 仓库",
+      "deployStep3": "配置生产环境变量（所有 .env 中的变量）",
+      "deployStep4": "设置 Framework Preset 为 Nuxt.js",
+      "deployStep5": "部署完成，自动分配 vercel.app 域名",
+      "renderingStrategy": "渲染策略",
+      "renderingCols": [
+        "路由",
+        "策略",
+        "说明"
+      ],
+      "domainConfig": "域名配置",
+      "domainCols": [
+        "记录类型",
+        "名称",
+        "类型",
+        "值",
+        "说明"
+      ],
+      "deployChecklist": "部署检查清单"
+    },
+    "s8": {
+      "branchStrategy": "分支策略",
+      "branchCols": [
+        "分支",
+        "用途"
+      ],
+      "githubActions": "GitHub Actions CI",
+      "githubActionsDesc": "在 .github/workflows/ci.yml 中配置自动类型检查和构建验证：",
+      "branchProtection": "分支保护建议"
+    },
+    "s9": {
+      "paymentFlow": "支付流程",
+      "flowSteps": [
+        "用户点击支付",
+        "POST /api/v1/payments/create",
+        "Stripe Checkout 页面",
+        "Webhook 回调更新订单"
+      ],
+      "dualMode": "双模式运行",
+      "dualCols": [
+        "模式",
+        "配置",
+        "说明"
+      ],
+      "rlsPolicies": "orders 表 RLS 策略",
+      "amountSafety": "金额安全",
+      "testCards": "测试卡号",
+      "testCardCols": [
+        "卡号",
+        "类型",
+        "结果"
+      ]
+    },
+    "s10": {
+      "optionalModule": "可选模块",
+      "optionalModuleDesc": "本模块为可选功能，项目核心业务不依赖广告模块，可按需开启或完全移除。",
+      "adSlotTypes": "广告位形态",
+      "adSlotCols": [
+        "标识",
+        "名称",
+        "尺寸"
+      ],
+      "adProviders": "广告供应商",
+      "rlsPolicies": "RLS 策略"
+    },
+    "s11": {
+      "socialShare": "社交分享组件",
+      "socialShareDesc": "纯前端实现，零后端依赖，支持 6 大主流社交平台：",
+      "shareCols": [
+        "平台",
+        "协议/方法",
+        "说明"
+      ],
+      "feedbackSystem": "用户反馈系统",
+      "feedbackSystemDesc": "前后端完整实现，支持星级评分（1-5）+ 文字评论 + 管理员回复。",
+      "feedbackCols": [
+        "方法",
+        "端点",
+        "说明"
+      ]
+    },
+    "s12": {
+      "optionalEnhancement": "可选增强方案",
+      "optionalEnhancementDesc": "本项目部署在 Vercel 上。推荐用法：Cloudflare 仅做 DNS 管理（灰色云朵 DNS-only），由 Vercel 处理 CDN 和安全。",
+      "dnsConfig": "DNS 记录配置",
+      "dnsCols": [
+        "类型",
+        "名称",
+        "记录类型",
+        "值",
+        "说明"
+      ],
+      "whyNoProxy": "为什么不使用代理模式",
+      "securityFeatures": "安全功能（Free 计划）"
+    },
+    "s13": {
+      "quickStart": "快速启动",
+      "localSupabase": "本地 Supabase 实例",
+      "availableScripts": "可用脚本",
+      "scriptsCols": [
+        "命令",
+        "说明"
+      ]
+    },
+    "s14": {
+      "deploy": "部署问题",
+      "database": "数据库问题",
+      "auth": "认证问题",
+      "performance": "性能问题",
+      "faqDeployQ1": "部署到 Vercel 后页面 404？",
+      "faqDeployA1": "检查 Vercel 项目设置中的 Framework Preset 是否设为 Nuxt.js，以及 Build Command 是否为 npm run build。",
+      "faqDeployQ2": "自定义域名如何配置？",
+      "faqDeployA2": "在 Vercel Dashboard → Settings → Domains 中添加域名，然后在 DNS 服务商处添加对应的 A 记录或 CNAME 记录。",
+      "faqDeployQ3": "预览部署和正式部署有什么区别？",
+      "faqDeployA3": "预览部署在每次 PR 时自动触发，用于测试；正式部署在合并到 main 分支后自动触发，面向生产环境。",
+      "faqDbQ1": "Supabase 连接池满了怎么办？",
+      "faqDbA1": "启用 Supabase 的 Connection Pooler，使用 Transaction 模式。或者在代码中优化连接管理，减少并发请求。",
+      "faqDbQ2": "如何备份 Supabase 数据库？",
+      "faqDbA2": "Supabase Pro 计划支持自动备份。也可以使用 pg_dump 手动导出，或通过 CLI 运行 supabase db dump。",
+      "faqDbQ3": "迁移文件执行顺序错了怎么办？",
+      "faqDbA3": "迁移文件按数字前缀顺序执行。如果顺序出错，建议创建新的修正迁移文件，不要修改已执行的迁移。",
+      "faqAuthQ1": "如何添加新的 OAuth 提供商？",
+      "faqAuthA1": "在 Supabase Dashboard → Authentication → Providers 中启用对应提供商，填写 Client ID 和 Secret。",
+      "faqAuthQ2": "匿名用户如何升级为注册用户？",
+      "faqAuthA2": "使用 linkIdentity 方法将匿名账户与邮箱或 OAuth 账户绑定，保留原有数据。",
+      "faqAuthQ3": "JWT Token 过期怎么办？",
+      "faqAuthA3": "Access Token 默认 1 小时过期，Supabase 客户端会自动使用 Refresh Token 续期。如果 Refresh Token 也过期了，需要重新登录。",
+      "faqPerfQ1": "首屏加载慢怎么优化？",
+      "faqPerfA1": "1) 使用 ISR 预渲染首页；2) 图片使用 NuxtImg 懒加载；3) 非首屏组件使用 Lazy 前缀动态导入；4) 开启 Vercel 边缘缓存。",
+      "faqPerfQ2": "API 响应慢怎么排查？",
+      "faqPerfA2": "1) 查看 Vercel Function Logs；2) 检查 Supabase 查询是否缺少索引；3) 使用 APM 监控面板查看耗时分布；4) 考虑使用 SWR 缓存减少重复请求。"
+    }
   }
 }

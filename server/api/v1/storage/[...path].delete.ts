@@ -4,6 +4,8 @@
  * 校验路径前缀必须为当前用户 uid（除非管理员操作 campaign-assets）。
  * @api-auth: user
  */
+
+// @api-auth: user
 import { H3Event } from 'h3'
 import { sendSuccess } from '~~/server/utils/response'
 import { throwError } from '~~/server/utils/response'

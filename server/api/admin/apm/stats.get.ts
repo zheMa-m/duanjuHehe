@@ -1,3 +1,5 @@
+
+// @api-auth: admin
 import { defineEventHandler } from 'h3'
 import { assertAdmin } from '~~/server/utils/auth'
 import { getApmStats } from '~~/server/utils/apm'

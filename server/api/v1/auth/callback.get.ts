@@ -4,6 +4,8 @@
  * Supabase OAuth 回调时，URL 中包含 code 或 fragment token。
  * 此端点提取 token 并重定向回前端页面，设置 cookie。
  */
+
+// @api-auth: public
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'
 import { getClientRealIP } from '~~/server/utils/ip'

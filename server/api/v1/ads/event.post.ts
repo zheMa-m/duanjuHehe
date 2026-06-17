@@ -1,3 +1,5 @@
+
+// @api-auth: public
 import { z } from 'zod'
 import { sendSuccess } from '~~/server/utils/response'
 import { recordAdEvent } from '~~/server/utils/ads'

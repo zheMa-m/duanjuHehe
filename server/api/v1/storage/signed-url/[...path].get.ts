@@ -4,6 +4,8 @@
  * 仅允许访问自己的文件（或管理员访问任意文件）。
  * @api-auth: user
  */
+
+// @api-auth: user
 import { H3Event } from 'h3'
 import { sendSuccess } from '~~/server/utils/response'
 import { throwError } from '~~/server/utils/response'

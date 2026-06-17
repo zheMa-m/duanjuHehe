@@ -212,6 +212,7 @@ const {
 |------|------|------|
 | AdminAdSlots | `app/components/admin/AdminAdSlots.vue` | 广告位 CRUD 管理面板 |
 | AdminRevenue | `app/components/admin/AdminRevenue.vue` | 收入分析仪表盘 |
+| AdminToast | `app/components/admin/AdminToast.vue` | 操作反馈 Toast 通知 |
 
 ### 收入分析面板展示
 
@@ -302,5 +303,5 @@ const {
 
 - 数据库配置 → [02-supabase-integration.md](./02-supabase-integration.md) 第 5.3 节（广告位种子数据）
 - 认证体系 → [05-user-auth.md](./05-user-auth.md)（Admin 管理接口依赖管理员身份）
-- 支付模块 → [06-payment-integration.md](./06-payment-integration.md)（收入分析面板汇总支付 + 广告收入）
-- 社交反馈 → [08-social-feedback.md](./08-social-feedback.md)（评价区位于广告位上方）
+- 支付模块 → [06-payment-integration-optional.md](./06-payment-integration-optional.md)（收入分析面板汇总支付 + 广告收入）
+- 社交反馈 → [08-social-feedback-optional.md](./08-social-feedback-optional.md)（评价区位于广告位上方）

@@ -237,6 +237,22 @@ export function useAuth() {
     return res
   }
 
+  // ── 管理后台内置管理员登录 ──────────────────────────────
+  async function signInAsAdmin(username: string, password: string) {
+    const res = await $fetch<{ data: any }>('/api/admin/login', {
+      method: 'POST',
+      body: { username, password }
+    })
+
+    if (res?.data?.user) {
+      user.value = mapProfileToUser(res.data.user)
+      // 同步 cookie（服务端已设置，前端再设一遍确保）
+      setCookie(AUTH_COOKIE_NAME, `admin-${Date.now()}`, 1)
+    }
+
+    return res
+  }
+
   // ── 初始化：从 cookie 恢复会话 ──────────────────────────
   async function initAuth() {
     deviceId.value = generateDeviceId()
@@ -258,6 +274,7 @@ export function useAuth() {
     signInWithEmail,
     signInWithOAuth,
     signInAnonymously,
+    signInAsAdmin,
     linkAnonymousToEmail,
     linkAnonymousToOAuth,
     signOut,

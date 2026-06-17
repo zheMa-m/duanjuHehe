@@ -3,6 +3,8 @@
  *
  * 允许更新：display_name, avatar_url, phone
  */
+
+// @api-auth: public
 import { z } from 'zod'
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'

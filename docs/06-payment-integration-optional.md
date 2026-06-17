@@ -120,7 +120,7 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 - `checkout.session.completed` → 更新订单为 paid
 - `charge.refunded` → 更新订单为 refunded
 
-**Auth 中间件白名单**：`02.auth.ts` 跳过此端点的 JWT 验证（使用 Stripe 签名替代）。
+**Auth 中间件白名单**：`02.auth.ts` 和 `05.access-guard.ts` 均跳过此端点的 JWT 验证（使用 Stripe 签名替代）。
 
 ### 5.4 查询订单
 
@@ -202,7 +202,7 @@ const handlePurchase = async () => {
 |------|------|------|
 | `/api/admin/orders` | GET | 管理员查看所有订单 |
 | `/api/admin/orders/[id]` | PATCH | 管理员更新订单状态 |
-| `/api/admin/revenue` | GET | 收入分析数据 |
+| `/api/admin/revenue` | GET | 收入分析数据（支付 + 广告收入汇总） |
 
 ---
 

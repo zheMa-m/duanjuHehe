@@ -4,6 +4,8 @@
  * 小文件（< 5MB）走服务端中转，大文件应走 /api/v1/storage/signed-url 直传。
  * @api-auth: user
  */
+
+// @api-auth: user
 import { H3Event } from 'h3'
 import { sendSuccess } from '~~/server/utils/response'
 import { throwError } from '~~/server/utils/response'

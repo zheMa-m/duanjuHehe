@@ -1,3 +1,5 @@
+
+// @api-auth: user
 import { getDB } from '~~/server/utils/db'
 import { assertUser } from '~~/server/utils/auth'
 import { sendSuccess } from '~~/server/utils/response'

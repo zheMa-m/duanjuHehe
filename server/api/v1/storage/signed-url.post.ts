@@ -4,6 +4,8 @@
  * 大文件（>= 5MB）场景由客户端主动调用，获取 signedUrl 后直接 PUT 上传。
  * @api-auth: user
  */
+
+// @api-auth: user
 import { z } from 'zod'
 import { H3Event } from 'h3'
 import { sendSuccess } from '~~/server/utils/response'

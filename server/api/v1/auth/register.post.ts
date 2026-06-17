@@ -3,6 +3,8 @@
  *
  * 调用 Supabase Auth signUp，自动创建 profiles 记录（由 DB 触发器处理）。
  */
+
+// @api-auth: public
 import { z } from 'zod'
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'

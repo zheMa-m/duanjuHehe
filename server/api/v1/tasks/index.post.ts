@@ -1,3 +1,5 @@
+
+// @api-auth: user
 import { z } from 'zod'
 import { getDB } from '~~/server/utils/db'
 import { assertUser } from '~~/server/utils/auth'

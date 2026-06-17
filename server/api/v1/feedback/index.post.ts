@@ -4,6 +4,8 @@
  * 需要已登录（非匿名）用户
  * // @api-auth: user
  */
+
+// @api-auth: user
 import { z } from 'zod'
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'

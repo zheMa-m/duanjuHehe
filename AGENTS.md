@@ -1,6 +1,8 @@
 # AGENTS.md
 
 > Solo full-stack scaffold — Nuxt 4 + Supabase + Vercel. One developer owns the entire lifecycle.
+>
+> **Version**: 1.0.0 | **Last Updated**: 2026-06-17
 
 ## Project
 
@@ -33,7 +35,7 @@ app/
   composables/   # Vue composables — auto-imported (useAuth, usePayment, useAdSlot, useAppSEO, useLocaleDetect)
   pages/
     (admin)/     # Admin dashboard (SPA, ssr: false)
-    (client)/    # Public site: homepage + /architecture whitepaper + /tasks (ISR 3600s)
+    (client)/    # Public site: homepage + /architecture whitepaper + /help docs (ISR 3600s)
     (h5)/        # Campaign landing pages (SWR 600s)
   plugins/       # Nuxt plugins (supabase-auth.client.ts)
   utils/         # Client-side utilities (supabase-client.ts)
@@ -61,7 +63,7 @@ scripts/         # CLI generators and test probes (shared via _shared.mjs)
 
 | Route | Strategy | Rationale |
 |-------|----------|-----------|
-| `/` `/architecture` `/tasks` | ISR 3600s | SEO-friendly, incremental regeneration |
+| `/` `/architecture` `/help` | ISR 3600s | SEO-friendly, incremental regeneration |
 | `/h5/**` | SWR 600s | Campaign pages update fast from admin |
 | `/admin/**` | SPA (ssr: false) | No SSR leak, pure client |
 | `/api/**` | no-store | Real-time, zero cache |
@@ -82,6 +84,7 @@ scripts/         # CLI generators and test probes (shared via _shared.mjs)
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
 - `SITE_ACCESS_PASSWORD` — 生产环境统一访问密码，由 `05.access-guard` 中间件校验（页面 + API 文档）
+- `SITE_ADMIN_USERNAME` / `SITE_ADMIN_PASSWORD` — 管理后台内置管理员账号（脚手架默认能力，不依赖邮箱/Supabase Auth）
 
 **Authentication:**
 - Frontend Supabase client uses anon key only (`NUXT_PUBLIC_SUPABASE_ANON_KEY`)
@@ -110,10 +113,10 @@ scripts/         # CLI generators and test probes (shared via _shared.mjs)
 
 ## i18n (Internationalization)
 
-Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashboard is Chinese-only.
+Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashboard and help docs page are Chinese-only.
 
 - **Module config** in `nuxt.config.ts` — strategy `prefix_except_default`, default locale `zh`
-- **Translation files**: `locales/zh.json`, `locales/en.json`
+- **Translation files**: `locales/zh.json`, `locales/en.json` — sections: common, nav, header, home, architecture, hero, tasks, h5, userBar, login, review, share
 - **Language detection**: URL path > Cookie (`i18n_locale`) > browser language > timezone > fallback `zh`
 - **Composable**: `useLocaleDetect()` wraps detection logic and toggle
 - **UI component**: `<LanguageSwitcher />` in shared components
@@ -122,7 +125,7 @@ Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashb
 1. Extract all user-facing text to `locales/*.json` with namespaced keys (e.g. `tasks.title`)
 2. Use `const { t } = useI18n()` in `<script setup>` then `t('key')` in template
 3. Use `() => t('key')` for `useSeoMeta` title/description (reactive)
-4. Admin pages (`(admin)/`) — keep hardcoded Chinese, no i18n needed
+4. Admin pages (`(admin)/`) and help docs (`/help`) — keep hardcoded Chinese, no i18n needed
 
 ## Platform Rules
 
@@ -149,12 +152,12 @@ Nitro's built-in OpenAPI 3.1.0 support is enabled for **both dev and production*
 - `/_swagger` — Swagger UI
 
 **Authentication (production only):**
-- Dev mode: auto-allow, no auth needed
-- Production: requires `OPENAPI_TOKEN` env var (set in `.env` + Vercel)
-- Access via: `?token=<OPENAPI_TOKEN>`, `Authorization: Bearer <OPENAPI_TOKEN>`, or cookie `openapi_token`
-- Without token: 401 Unauthorized
+- Dev mode (`MOCK_DB=true`): auto-allow, no auth needed
+- Production: requires `SITE_ACCESS_PASSWORD` env var (set in `.env` + Vercel), enforced by `05.access-guard.ts`
+- Access via: `?token=<password>`, `?password=<password>`, `Authorization: Bearer <password>`, or cookie `site-access`
+- Without password: 401 Unauthorized
 
-**Example:** `https://hehe-app-tau.vercel.app/_swagger?token=<OPENAPI_TOKEN>`
+**Example:** `https://hehe-app-tau.vercel.app/_swagger?token=hehe2024`
 
 **Tag groups:** Auth, Products, Tasks, Payments, Orders, Ads, Campaigns, Feedback, User, Admin Tasks, Admin Orders, Admin Campaigns, Admin Ad Slots, Admin APM, Admin Audit, Admin Revenue, Admin Profile
 

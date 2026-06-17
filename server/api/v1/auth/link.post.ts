@@ -4,6 +4,8 @@
  * 将当前匿名用户的 identity 绑定到真实邮箱，
  * 绑定后 is_anonymous 更新为 false，auth_provider 更新为 email。
  */
+
+// @api-auth: public
 import { z } from 'zod'
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'

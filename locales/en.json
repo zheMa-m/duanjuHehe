@@ -56,9 +56,9 @@
     "ctaArch": "View Architecture",
     "ctaH5": "Try Marketing H5",
     "navArch": "Architecture",
-    "navTasks": "Tasks",
-    "navH5": "Marketing H5",
-    "navAdmin": "Admin",
+    "navHelp": "Docs",
+    "navH5": "Marketing H5 (Demo 1)",
+    "navAdmin": "Console",
     "navGitHub": "GitHub",
     "stackTitle": "Tech Stack",
     "featuresTitle": "Core Modules",
@@ -201,5 +201,334 @@
     "copied": "Copied!",
     "scanQrCode": "Scan QR code to share on WeChat",
     "close": "Close"
+  },
+  "help": {
+    "title": "Documentation",
+    "description": "HeHe App complete documentation — a full guide from project setup to production deployment.",
+    "backHome": "Back to Home",
+    "pageTitle": "Help Center",
+    "version": "v1.0",
+    "subtitle": "A practical full-stack project handbook from zero to one",
+    "lastUpdated": "Last Updated",
+    "onThisPage": "On This Page",
+    "prevSection": "Previous",
+    "nextSection": "Next",
+    "searchPlaceholder": "Search docs...",
+    "copyCode": "Copy Code",
+    "helpCenter": "Help Center",
+    "backToTop": "Back to Top",
+    "nav": {
+      "overview": "Overview",
+      "getStarted": "Getting Started",
+      "infrastructure": "Infrastructure",
+      "business": "Business Modules",
+      "optional": "Optional Enhancements",
+      "faq": "FAQ",
+      "architecture": "Architecture"
+    },
+    "sections": {
+      "s0": "Documentation Overview",
+      "s1": "Project Positioning & Tech Stack",
+      "s2": "Directory Structure & Multi-domain Routing",
+      "s3": "Environment Variables & Configuration",
+      "s4": "Supabase Database Integration",
+      "s5": "Database Migrations & Seed Data",
+      "s6": "User Authentication System",
+      "s7": "Vercel Deployment Guide",
+      "s8": "GitHub Integration & CI/CD",
+      "s9": "Stripe Payment Integration",
+      "s10": "Ad Monetization",
+      "s11": "Social Sharing & User Feedback",
+      "s12": "Cloudflare Integration",
+      "s13": "Local Development & Debugging",
+      "s14": "Frequently Asked Questions"
+    },
+    "hero": {
+      "tagNuxt": "📚 Nuxt 4",
+      "tagSupabase": "🗄️ Supabase",
+      "tagVercel": "▲ Vercel",
+      "tagAuth": "🔐 Auth"
+    },
+    "s0": {
+      "desc": "This documentation consolidates 9 core documents from the project docs/ directory, covering the full workflow from project setup, database integration, user authentication, payment integration to production deployment.",
+      "docStructure": "Document Structure",
+      "docs": [
+        {
+          "title": "Scaffold Basics",
+          "desc": "Project positioning, tech stack, directory structure, multi-domain routing, rendering strategy, env vars, Mock DB, middleware chain, i18n"
+        },
+        {
+          "title": "Supabase Integration",
+          "desc": "Database creation, migration execution, seed data, admin creation, OAuth config, Connection Pooler, Storage"
+        },
+        {
+          "title": "Vercel Deployment",
+          "desc": "Project import, environment variables, domain config, ISR/SWR, Stripe Webhook, preview deployments"
+        },
+        {
+          "title": "GitHub Integration",
+          "desc": "Repository creation, branch strategy, GitHub Actions CI/CD, PR workflow, security practices"
+        },
+        {
+          "title": "User Authentication",
+          "desc": "Email/Google/Facebook/Apple/Anonymous login, profiles table, Token lifecycle"
+        },
+        {
+          "title": "Stripe Payments",
+          "desc": "Checkout Session flow, dual mode, Webhook, amount safety, test card numbers"
+        },
+        {
+          "title": "Ad Monetization",
+          "desc": "ad_slots/ad_events tables, AdSense/Meta/Custom, CSP config, revenue estimation"
+        },
+        {
+          "title": "Social & Feedback",
+          "desc": "SocialShare 6-platform component, feedbacks table, star ratings, admin approval"
+        },
+        {
+          "title": "Cloudflare",
+          "desc": "DNS management, DNS-only mode, SSL/TLS, WAF/Bot protection, wildcard DNS"
+        }
+      ]
+    },
+    "s1": {
+      "positioning": "Project Positioning",
+      "positioningDesc": "This project is a solo full-stack independent developer closed-loop scaffold. One person handles development, maintenance, deployment, testing, and operations.",
+      "techStack": "Tech Stack",
+      "techStackCols": [
+        "Layer",
+        "Technology",
+        "Description"
+      ],
+      "prerequisites": "Prerequisites",
+      "prereqCols": [
+        "Tool",
+        "Version",
+        "Installation"
+      ]
+    },
+    "s2": {
+      "directoryStructure": "Directory Structure",
+      "multiDomainRouting": "Multi-domain Routing Design",
+      "routingCols": [
+        "Domain",
+        "Route",
+        "Strategy",
+        "Description"
+      ],
+      "middlewareChain": "Middleware Execution Chain",
+      "middlewareSteps": [
+        "APM Monitoring",
+        "Subdomain Routing",
+        "JWT Identity Parsing",
+        "Admin Interception",
+        "Permission Guard",
+        "OpenAPI Auth",
+        "Site Password"
+      ]
+    },
+    "s3": {
+      "envVars": "Environment Variables",
+      "envCols": [
+        "Variable",
+        "Description",
+        "Required",
+        "Notes"
+      ],
+      "securityAlert": "Security Red Line",
+      "securityAlertDesc": "SUPABASE_SERVICE_ROLE_KEY and STRIPE_SECRET_KEY must never have the NUXT_PUBLIC_ prefix.",
+      "mockDb": "Mock DB Offline Development",
+      "mockDbDesc": "The project includes a complete in-memory Mock PostgreSQL adapter. Set MOCK_DB=true for fully offline development without a physical Supabase database."
+    },
+    "s4": {
+      "createProject": "Create a Supabase Project",
+      "createStep1": "create a new project",
+      "createStep2": "set project name and database password",
+      "createStep3": "get project URL and anon key",
+      "createStep4": "configure URL and key in project .env file",
+      "schemaOverview": "Database Schema Overview",
+      "connectionPooler": "Connection Pooler (Required for Serverless)",
+      "connectionPoolerDesc": "Vercel Serverless Functions may create new connections per request. Enable it in Supabase Dashboard → Settings → Database → Connection Pooler."
+    },
+    "s5": {
+      "migrationList": "Migration Files",
+      "migrationCols": [
+        "File",
+        "Description",
+        "Type"
+      ],
+      "executeMigration": "Execute Migrations",
+      "executeMethod1": "Method 1: Execute migration files in order via Supabase Dashboard → SQL Editor.",
+      "executeMethod2": "Method 2: Use Supabase CLI:",
+      "seedData": "Seed Data",
+      "seedDataDesc": "Migrations only create table structures. H5 pages depend on the campaigns table. See docs/02-supabase-integration.md section 5.",
+      "createAdmin": "Create Admin",
+      "migrationRules": "Migration Standards"
+    },
+    "s6": {
+      "loginMethods": "Supported Login Methods",
+      "loginCols": [
+        "Method",
+        "Function",
+        "API",
+        "Description"
+      ],
+      "profilesFields": "Core profiles Table Fields",
+      "profilesCols": [
+        "Field",
+        "Type",
+        "Description"
+      ],
+      "tokenLifecycle": "Token Lifecycle",
+      "tokenCols": [
+        "Type",
+        "Format",
+        "Validity",
+        "Transport"
+      ],
+      "serverApi": "Server-side APIs",
+      "apiCols": [
+        "Method",
+        "Endpoint",
+        "Description"
+      ],
+      "cookieSecurity": "Cookie Security",
+      "cookieSecurityDesc": "Auth cookies use SameSite=Strict + Secure (HTTPS) policy for maximum CSRF protection."
+    },
+    "s7": {
+      "deployFlow": "Deployment Flow",
+      "deployStep1": "Push project code to GitHub",
+      "deployStep2": "Import Git repository",
+      "deployStep3": "Configure production environment variables",
+      "deployStep4": "Set Framework Preset to Nuxt.js",
+      "deployStep5": "Deploy complete, auto-assigned vercel.app domain",
+      "renderingStrategy": "Rendering Strategy",
+      "renderingCols": [
+        "Route",
+        "Strategy",
+        "Description"
+      ],
+      "domainConfig": "Domain Configuration",
+      "domainCols": [
+        "Record",
+        "Name",
+        "Type",
+        "Value",
+        "Description"
+      ],
+      "deployChecklist": "Deployment Checklist"
+    },
+    "s8": {
+      "branchStrategy": "Branch Strategy",
+      "branchCols": [
+        "Branch",
+        "Purpose"
+      ],
+      "githubActions": "GitHub Actions CI",
+      "githubActionsDesc": "Configure automatic type checking and build validation in .github/workflows/ci.yml:",
+      "branchProtection": "Branch Protection Tips"
+    },
+    "s9": {
+      "paymentFlow": "Payment Flow",
+      "flowSteps": [
+        "User clicks pay",
+        "POST /api/v1/payments/create",
+        "Stripe Checkout page",
+        "Webhook callback updates order"
+      ],
+      "dualMode": "Dual Mode Operation",
+      "dualCols": [
+        "Mode",
+        "Config",
+        "Description"
+      ],
+      "rlsPolicies": "orders Table RLS Policies",
+      "amountSafety": "Amount Safety",
+      "testCards": "Test Card Numbers",
+      "testCardCols": [
+        "Number",
+        "Type",
+        "Result"
+      ]
+    },
+    "s10": {
+      "optionalModule": "Optional Module",
+      "optionalModuleDesc": "This is an optional module. The core project does not depend on the advertising module.",
+      "adSlotTypes": "Ad Slot Types",
+      "adSlotCols": [
+        "Key",
+        "Name",
+        "Size"
+      ],
+      "adProviders": "Ad Providers",
+      "rlsPolicies": "RLS Policies"
+    },
+    "s11": {
+      "socialShare": "Social Sharing Component",
+      "socialShareDesc": "Pure frontend implementation with zero backend dependencies, supporting 6 major social platforms.",
+      "shareCols": [
+        "Platform",
+        "Protocol/Method",
+        "Description"
+      ],
+      "feedbackSystem": "User Feedback System",
+      "feedbackSystemDesc": "Complete frontend + backend implementation with star ratings (1-5), text reviews, and admin replies.",
+      "feedbackCols": [
+        "Method",
+        "Endpoint",
+        "Description"
+      ]
+    },
+    "s12": {
+      "optionalEnhancement": "Optional Enhancement",
+      "optionalEnhancementDesc": "This project is deployed on Vercel. Cloudflare handles DNS only (DNS-only), with Vercel handling CDN and security.",
+      "dnsConfig": "DNS Record Configuration",
+      "dnsCols": [
+        "Type",
+        "Name",
+        "Record Type",
+        "Value",
+        "Description"
+      ],
+      "whyNoProxy": "Why Not Proxy Mode",
+      "securityFeatures": "Security Features (Free Plan)"
+    },
+    "s13": {
+      "quickStart": "Quick Start",
+      "localSupabase": "Local Supabase Instance",
+      "availableScripts": "Available Scripts",
+      "scriptsCols": [
+        "Command",
+        "Description"
+      ]
+    },
+    "s14": {
+      "deploy": "Deployment Issues",
+      "database": "Database Issues",
+      "auth": "Authentication Issues",
+      "performance": "Performance Issues",
+      "faqDeployQ1": "Getting 404 after deploying to Vercel?",
+      "faqDeployA1": "Check that Framework Preset is set to Nuxt.js in Vercel project settings.",
+      "faqDeployQ2": "How to configure a custom domain?",
+      "faqDeployA2": "Add the domain in Vercel Dashboard → Settings → Domains, then add DNS records.",
+      "faqDeployQ3": "Difference between preview and production deployments?",
+      "faqDeployA3": "Preview deploys trigger on each PR; production deploys on merge to main.",
+      "faqDbQ1": "What if the Supabase connection pool is exhausted?",
+      "faqDbA1": "Enable Supabase Connection Pooler in Transaction mode.",
+      "faqDbQ2": "How to backup the Supabase database?",
+      "faqDbA2": "Supabase Pro includes automatic backups. Use pg_dump or supabase db dump via CLI.",
+      "faqDbQ3": "What if migration files are executed in the wrong order?",
+      "faqDbA3": "Create a new corrective migration rather than modifying already executed ones.",
+      "faqAuthQ1": "How to add a new OAuth provider?",
+      "faqAuthA1": "Enable the provider in Supabase Dashboard → Authentication → Providers.",
+      "faqAuthQ2": "How to upgrade an anonymous user to a registered user?",
+      "faqAuthA2": "Use linkIdentity to bind the anonymous account with an email or OAuth account.",
+      "faqAuthQ3": "What to do when JWT token expires?",
+      "faqAuthA3": "The Supabase client auto-refreshes using the refresh token. If both expire, re-login.",
+      "faqPerfQ1": "How to optimize slow first-screen loading?",
+      "faqPerfA1": "Use ISR pre-rendering, NuxtImg lazy loading, Lazy component imports, Vercel edge caching.",
+      "faqPerfQ2": "How to troubleshoot slow API responses?",
+      "faqPerfA2": "Check Vercel Function Logs, Supabase query indexes, APM dashboard, use SWR caching."
+    }
   }
 }

@@ -50,9 +50,11 @@ export default defineNuxtConfig({
     '/admin/**': { ssr: false },
     // 营销 H5 页面走 ISR 短间隔，后台修改配置后前端秒级热更新
     '/h5/**': { isr: 600 },
-    // 官网首页与任务看板走 ISR（(client) route group 不出现在 URL 中）
+    // ── 客户端页面：ISR 3600s（(client) route group 不出现在 URL 中）──
+    // 新增客户端页面时需同步注册到此列表
     '/': { isr: 3600 },
     '/architecture': { isr: 3600 },
+    '/help': { isr: 3600 },
     '/tasks': { isr: 3600 },
     // API 接口绝对禁止缓存，确保每次请求实时响应
     '/api/**': { cors: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
@@ -73,7 +75,9 @@ export default defineNuxtConfig({
       openAPI: true,
     },
     openAPI: {
-      production: 'runtime', // 生产环境也注册 _openapi.json / _swagger / _scalar 路由（由 05.access-guard 中间件保护）
+      // 'prerender' 模式：spec 在构建/启动时预生成静态 JSON，后续请求零扫描开销
+      // 'runtime' 模式：每次请求实时扫描所有 API 路由生成 spec，49 个路由下非常慢
+      production: 'prerender',
       meta: {
         title: 'HeHe App API',
         description: '单人全栈脚手架 API — Nuxt 4 + Supabase + Stripe，包含认证、支付、广告、营销活动、评价及管理端接口。',

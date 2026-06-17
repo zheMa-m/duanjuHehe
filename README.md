@@ -464,9 +464,11 @@ ROOT_DOMAIN=yourdomain.com                      # 根域名（子域名路由用
 | `npm run dev` | 启动开发服务（Mock DB） |
 | `npm run dev:all` | 开发服务 + Supabase 本地实例 |
 | `npm run build` | 构建生产包 |
+| `npm run generate` | 静态预渲染全站（Nitro 爬虫） |
 | `npm run preview` | 本地预览构建产物 |
 | `npm run check` | TypeScript + Vue SFC 类型检查 |
 | `npm run gen:types` | 生成 Supabase TypeScript 类型 |
+| `npm run apm:monitor` | APM 系统健康监控（依赖真实 Supabase） |
 
 ### 代码规范
 

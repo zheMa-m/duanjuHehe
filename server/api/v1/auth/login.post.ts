@@ -6,6 +6,8 @@
  * 2. 社交 OAuth 跳转 (provider: google/facebook/apple)
  * 3. 匿名用户登录 (anonymous: true + device_id)
  */
+
+// @api-auth: public
 import { z } from 'zod'
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'

@@ -194,29 +194,71 @@ function getLocalMockDB() {
         },
         error: null
       }),
-      signUp: async ({ email, password, options }: { email: string; password: string; options?: any }) => ({
-        data: {
-          user: { id: `mock-${Date.now()}`, email, user_metadata: options?.data || {} },
-          session: { access_token: `mock-access-${Date.now()}`, refresh_token: `mock-refresh-${Date.now()}`, expires_at: Date.now() + 3600000 }
-        },
-        error: null
-      }),
-      signOut: async () => ({ error: null }),
-      signInAnonymously: async (opts?: { options?: { data?: any } }) => ({
-        data: {
-          user: {
-            id: `anon-${Date.now().toString(36)}`,
-            email: null,
-            user_metadata: opts?.options?.data || { provider: 'anonymous', is_anonymous: true }
+      signUp: async ({ email, password, options }: { email: string; password: string; options?: any }) => {
+        const userId = `mock-${Date.now()}`
+        const meta = options?.data || {}
+        // 模拟 DB 触发器 handle_new_user：注册时自动创建 profiles 记录
+        const newProfile = {
+          id: userId,
+          email,
+          username: meta.username || email.split('@')[0],
+          display_name: meta.display_name || meta.username || email.split('@')[0],
+          role: 'user',
+          plan_status: 'free',
+          avatar_url: null,
+          auth_provider: meta.provider || 'email',
+          provider_id: null,
+          device_id: meta.device_id || null,
+          is_anonymous: meta.is_anonymous || false,
+          email_verified: false,
+          phone: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+        mockProfilesTable.push(newProfile)
+        return {
+          data: {
+            user: { id: userId, email, user_metadata: meta },
+            session: { access_token: `mock-access-${Date.now()}`, refresh_token: `mock-refresh-${Date.now()}`, expires_at: Date.now() + 3600000 }
           },
-          session: {
-            access_token: `mock-anon-access-${Date.now()}`,
-            refresh_token: `mock-anon-refresh-${Date.now()}`,
-            expires_at: Date.now() + 86400000,
-          }
-        },
-        error: null
-      }),
+          error: null
+        }
+      },
+      signOut: async () => ({ error: null }),
+      signInAnonymously: async (opts?: { options?: { data?: any } }) => {
+        const userId = `anon-${Date.now().toString(36)}`
+        const meta = opts?.options?.data || { provider: 'anonymous', is_anonymous: true }
+        // 模拟 DB 触发器：匿名登录时创建 profiles 记录
+        const newProfile = {
+          id: userId,
+          email: null,
+          username: `anon_${Date.now().toString(36)}`,
+          display_name: 'Anonymous',
+          role: 'user',
+          plan_status: 'free',
+          avatar_url: null,
+          auth_provider: 'anonymous',
+          provider_id: null,
+          device_id: meta.device_id || null,
+          is_anonymous: true,
+          email_verified: false,
+          phone: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+        mockProfilesTable.push(newProfile)
+        return {
+          data: {
+            user: { id: userId, email: null, user_metadata: meta },
+            session: {
+              access_token: `mock-anon-access-${Date.now()}`,
+              refresh_token: `mock-anon-refresh-${Date.now()}`,
+              expires_at: Date.now() + 86400000,
+            }
+          },
+          error: null
+        }
+      },
       signInWithOAuth: async ({ provider, options }: { provider: string; options?: any }) => ({
         data: {
           // redirectTo 已包含完整回调路径，直接拼接 query 参数即可

@@ -26,11 +26,13 @@ interface TasksResponse {
   data: Task[]
 }
 
-// 1. 在 Nuxt 4 中，useFetch 默认在服务端和客户端同构运行，支持极致的 SEO。
-// 2. data 变量是强类型的。通过传入泛型 useFetch<TasksResponse>，
-//    我们在前端输入 `response.data` 时，IDE 将会提供 100% 完美的代码补全。
-// 3. refresh 函数用于在执行写入、更新、删除操作后，瞬间触发数据重载，视图无缝同步。
-const { data: response, refresh, pending } = await useFetch<TasksResponse>('/api/v1/tasks')
+// 任务数据为用户私有数据，无需 SEO，在客户端直接请求 API 避免 SSR 阻塞。
+// 使用 server: false 跳过服务端 useRequestFetch（内部 HTTP 往返），
+// 客户端 hydration 后直接发起请求，页面秒开，loading 状态由 pending 驱动。
+const { data: response, refresh, pending } = await useFetch<TasksResponse>('/api/v1/tasks', {
+  server: false,
+  lazy: true,
+})
 
 const formData = ref({ title: '' })
 const isAdding = ref(false)

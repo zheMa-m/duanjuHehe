@@ -1,3 +1,5 @@
+
+// @api-auth: admin
 import { z } from 'zod'
 import { getDB } from '~~/server/utils/db'
 import { assertAdmin } from '~~/server/utils/auth'

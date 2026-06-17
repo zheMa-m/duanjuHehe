@@ -1,3 +1,5 @@
+
+// @api-auth: public
 import { sendSuccess } from '~~/server/utils/response'
 import { getActiveAdSlots } from '~~/server/utils/ads'
 

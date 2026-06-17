@@ -4,6 +4,8 @@
  * 从 event.context.user 读取已鉴权的用户信息，
  * 再从 profiles 表获取完整档案。
  */
+
+// @api-auth: public
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'

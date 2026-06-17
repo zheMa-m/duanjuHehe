@@ -5,8 +5,13 @@ import AdminOrders from '~/components/admin/AdminOrders.vue'
 import AdminAdSlots from '~/components/admin/AdminAdSlots.vue'
 import AdminRevenue from '~/components/admin/AdminRevenue.vue'
 
+const { user, isAdmin, signInAsAdmin, signOut, refreshUser } = useAuth()
+
 useSeoMeta({ title: '项目管理后台 - Project Admin Portal' })
-const baseUrl = useRuntimeConfig().public.baseUrl
+
+// ── Toast 通知 ─────────────────────────────────────────────────
+const toastRef = ref<InstanceType<typeof AdminToast> | null>(null)
+const toast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => toastRef.value?.show(msg, type)
 
 // ── 类型定义 ──────────────────────────────────────────────────
 interface ActivityLog { id: number; category: string; user_id: string | null; action: string; ip: string | null; metadata: Record<string, any>; created_at: string }
@@ -25,27 +30,22 @@ const isLoading = ref(false)
 const activeTab = ref('overview')
 const showProfileModal = ref(false)
 
-// ── 登录鉴权 ───────────────────────────────────────────────────
-const isLoggedIn = ref(false)
-if (typeof window !== 'undefined') {
-  isLoggedIn.value = localStorage.getItem('admin_logged_in') === 'true'
-}
-
+// ── 登录鉴权：使用 useAuth() 服务端认证 ────────────────────────
 const loginCardRef = ref<InstanceType<typeof AdminLoginCard> | null>(null)
 
-const headers = computed<Record<string, string>>(() => {
-  if (!isLoggedIn.value) return { 'x-mock-unauthorized': 'true' }
-  return {} as Record<string, string>
-})
+// 已登录状态 = 有真实用户 且 是管理员
+const isLoggedIn = computed(() => !!user.value && isAdmin.value)
 
-// ── 数据拉取 ───────────────────────────────────────────────────
-const { data: logRes, refresh: refreshLogs } = await useFetch<LogsResponse>('/api/admin/audit-logs', { headers })
-const { data: tasksRes, refresh: refreshTasks } = await useFetch<TasksResponse>('/api/admin/tasks', { headers })
-const { data: campaignsRes, refresh: refreshCampaigns } = await useFetch<CampaignsResponse>('/api/admin/campaigns', { headers })
-const { data: apmRes, refresh: refreshApm } = await useFetch<any>('/api/admin/apm/stats', { headers })
-const { data: ordersRes, refresh: refreshOrders } = await useFetch<OrdersResponse>('/api/admin/orders', { headers })
-const { data: adSlotsRes, refresh: refreshAdSlots } = await useFetch<AdSlotsResponse>('/api/admin/ad-slots', { headers })
-const { data: revenueRes, refresh: refreshRevenue } = await useFetch<RevenueResponse>('/api/admin/revenue', { headers })
+// ── 数据拉取（仅在已登录时触发） ──────────────────────────────
+const fetchOpts = computed(() => (isLoggedIn.value ? {} : { immediate: false }))
+
+const { data: logRes, refresh: refreshLogs } = await useFetch<LogsResponse>('/api/admin/audit-logs', fetchOpts.value)
+const { data: tasksRes, refresh: refreshTasks } = await useFetch<TasksResponse>('/api/admin/tasks', fetchOpts.value)
+const { data: campaignsRes, refresh: refreshCampaigns } = await useFetch<CampaignsResponse>('/api/admin/campaigns', fetchOpts.value)
+const { data: apmRes, refresh: refreshApm } = await useFetch<any>('/api/admin/apm/stats', fetchOpts.value)
+const { data: ordersRes, refresh: refreshOrders } = await useFetch<OrdersResponse>('/api/admin/orders', fetchOpts.value)
+const { data: adSlotsRes, refresh: refreshAdSlots } = await useFetch<AdSlotsResponse>('/api/admin/ad-slots', fetchOpts.value)
+const { data: revenueRes, refresh: refreshRevenue } = await useFetch<RevenueResponse>('/api/admin/revenue', fetchOpts.value)
 
 // ── APM 轮询 ───────────────────────────────────────────────────
 let apmTimer: ReturnType<typeof setInterval> | null = null
@@ -62,27 +62,23 @@ watch(activeTab, (newTab) => {
 
 onUnmounted(() => { if (apmTimer) clearInterval(apmTimer) })
 
-// ── 登录 / 登出 ────────────────────────────────────────────────
+// ── 登录：内置管理员账号（用户名+密码）→ /api/admin/login ────────
 const handleLogin = async (username: string, password: string) => {
-  // 默认密码校验逻辑（Mock 模式）。真实生产应改为向后端 POST /api/admin/login 验证
-  const expectedPassword = typeof window !== 'undefined'
-    ? (localStorage.getItem('admin_session_pwd_hash') || 'admin888')
-    : 'admin888'
+  try {
+    await signInAsAdmin(username, password)
 
-  if (username === 'admin' && password === expectedPassword) {
-    isLoggedIn.value = true
-    if (typeof window !== 'undefined') localStorage.setItem('admin_logged_in', 'true')
+    // 登录成功 → 刷新所有数据
     try {
       await Promise.all([refreshLogs(), refreshTasks(), refreshCampaigns(), refreshApm(), refreshOrders(), refreshAdSlots(), refreshRevenue()])
     } catch (e) { console.error('登录后初始化数据失败:', e) }
-  } else {
-    loginCardRef.value?.showError('用户名或密码错误')
+  } catch (e: any) {
+    loginCardRef.value?.showError(e.data?.statusMessage || '用户名或密码错误')
   }
 }
 
-const handleLogout = () => {
-  isLoggedIn.value = false
-  if (typeof window !== 'undefined') localStorage.removeItem('admin_logged_in')
+// ── 登出 ───────────────────────────────────────────────────────
+const handleLogout = async () => {
+  await signOut()
   if (apmTimer) { clearInterval(apmTimer); apmTimer = null }
   showProfileModal.value = false
 }
@@ -102,7 +98,7 @@ const handleRefresh = async () => {
     }
     await refreshMap[activeTab.value]?.()
   } catch (err: any) {
-    alert('数据同步失败: ' + err.message)
+    toast('数据同步失败: ' + (err.message || '未知错误'), 'error')
   } finally {
     setTimeout(() => { isLoading.value = false }, 450)
   }
@@ -113,14 +109,24 @@ const toggleAdminTask = async (task: Task) => {
   try {
     await $fetch(`/api/admin/tasks/${task.id}`, { method: 'PATCH', body: { completed: !task.completed } })
     await Promise.all([refreshTasks(), refreshLogs()])
-  } catch (e: any) { alert('修改状态失败: ' + e.message) }
+    toast('任务状态已更新', 'success')
+  } catch (e: any) { toast('修改状态失败: ' + (e.message || '未知错误'), 'error') }
+}
+
+const createAdminTask = async (title: string) => {
+  try {
+    await $fetch('/api/admin/tasks', { method: 'POST', body: { title } })
+    await Promise.all([refreshTasks(), refreshLogs()])
+    toast('任务创建成功', 'success')
+  } catch (e: any) { toast('创建任务失败: ' + (e.data?.statusMessage || e.message || '未知错误'), 'error') }
 }
 
 const deleteAdminTask = async (id: string) => {
   try {
     await $fetch(`/api/admin/tasks/${id}`, { method: 'DELETE' })
     await Promise.all([refreshTasks(), refreshLogs()])
-  } catch (e: any) { alert('删除任务失败: ' + e.message) }
+    toast('任务已删除', 'success')
+  } catch (e: any) { toast('删除任务失败: ' + (e.message || '未知错误'), 'error') }
 }
 
 // ── 营销活动操作 ───────────────────────────────────────────────
@@ -134,7 +140,7 @@ const saveCampaignConfig = async (campaign: Campaign) => {
     })
     campaignsRef.value?.onSaved()
     await Promise.all([refreshCampaigns(), refreshLogs()])
-  } catch (e: any) { alert('营销活动配置更新失败: ' + e.message) }
+  } catch (e: any) { toast('营销活动配置更新失败: ' + (e.message || '未知错误'), 'error') }
 }
 
 // ── APM 模拟告警 ───────────────────────────────────────────────
@@ -144,7 +150,8 @@ const handleSimulateAlert = async (level: 'warning' | 'critical', message: strin
   try {
     await $fetch('/api/admin/apm/simulate', { method: 'POST', body: { level, message } })
     await refreshApm()
-  } catch (e: any) { alert('触发模拟警报失败: ' + e.message) } finally { isSimulating.value = false }
+    toast('模拟警报已触发', 'info')
+  } catch (e: any) { toast('触发模拟警报失败: ' + (e.message || '未知错误'), 'error') } finally { isSimulating.value = false }
 }
 
 // ── 密码更新后刷新审计日志 ────────────────────────────────────
@@ -155,7 +162,8 @@ const handleOrderStatusUpdate = async (id: string, status: string) => {
   try {
     await $fetch(`/api/admin/orders/${id}`, { method: 'PATCH', body: { status } })
     await Promise.all([refreshOrders(), refreshLogs(), refreshRevenue()])
-  } catch (e: any) { alert('Order update failed: ' + e.message) }
+    toast('订单状态已更新', 'success')
+  } catch (e: any) { toast('Order update failed: ' + (e.message || 'unknown'), 'error') }
 }
 
 // ── 广告位操作 ─────────────────────────────────────────
@@ -163,21 +171,24 @@ const handleAdSlotCreate = async (data: any) => {
   try {
     await $fetch('/api/admin/ad-slots', { method: 'POST', body: data })
     await Promise.all([refreshAdSlots(), refreshLogs()])
-  } catch (e: any) { alert('Ad slot create failed: ' + e.message) }
+    toast('广告位创建成功', 'success')
+  } catch (e: any) { toast('Ad slot create failed: ' + (e.message || 'unknown'), 'error') }
 }
 
 const handleAdSlotUpdate = async (id: string, data: any) => {
   try {
     await $fetch(`/api/admin/ad-slots/${id}`, { method: 'PATCH', body: data })
     await Promise.all([refreshAdSlots(), refreshLogs()])
-  } catch (e: any) { alert('Ad slot update failed: ' + e.message) }
+    toast('广告位已更新', 'success')
+  } catch (e: any) { toast('Ad slot update failed: ' + (e.message || 'unknown'), 'error') }
 }
 
 const handleAdSlotDelete = async (id: string) => {
   try {
     await $fetch(`/api/admin/ad-slots/${id}`, { method: 'DELETE' })
     await Promise.all([refreshAdSlots(), refreshLogs()])
-  } catch (e: any) { alert('Ad slot delete failed: ' + e.message) }
+    toast('广告位已删除', 'success')
+  } catch (e: any) { toast('Ad slot delete failed: ' + (e.message || 'unknown'), 'error') }
 }
 </script>
 
@@ -186,6 +197,9 @@ const handleAdSlotDelete = async (id: string) => {
     
     <!-- 顶部漫反射背景光 -->
     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[60vw] h-[25vh] rounded-full bg-white/[0.02] blur-[100px] pointer-events-none"></div>
+
+    <!-- ── Toast 通知 ──────────────────────────────────────────── -->
+    <AdminToast ref="toastRef" />
 
     <!-- ── 登录态 ─────────────────────────────────────────────── -->
     <AdminLoginCard
@@ -235,20 +249,26 @@ const handleAdSlotDelete = async (id: string) => {
           <div class="flex items-center gap-2">
             <span class="text-[10px] uppercase tracking-wider text-white/40">Environment:</span>
             <span class="text-[10px] px-2 py-0.5 bg-white/5 text-white/70 border border-white/10 rounded-full flex items-center gap-1.5 font-normal">
-              <span class="w-1 h-1 rounded-full bg-[#30d158]"></span>
-              MOCK_DB
+              <span class="w-1 h-1 rounded-full" :class="isLoggedIn ? 'bg-[#30d158]' : 'bg-[#ff9f0a]'"></span>
+              {{ isLoggedIn ? 'LIVE' : 'AUTH' }}
             </span>
           </div>
           <div class="flex items-center gap-5">
-            <a :href="`${baseUrl}`" class="text-xs text-white/60 hover:text-white transition-all">主站官网</a>
+            <NuxtLink to="/" class="text-xs text-white/60 hover:text-white transition-all no-underline">主站官网</NuxtLink>
             <div class="h-3 w-px bg-white/10"></div>
             <div 
               @click="showProfileModal = true"
               class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
               title="个人安全设置"
             >
-              <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white/80">👤</div>
-              <span class="text-xs font-medium text-white/80 select-none">solo_hacker</span>
+              <img
+                v-if="user?.avatarUrl"
+                :src="user.avatarUrl"
+                class="w-5 h-5 rounded-full object-cover"
+                alt="avatar"
+              />
+              <div v-else class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white/80">👤</div>
+              <span class="text-xs font-medium text-white/80 select-none">{{ user?.displayName || user?.username || user?.email || 'Admin' }}</span>
             </div>
             <div class="h-3 w-px bg-white/10"></div>
             <button 
@@ -265,6 +285,7 @@ const handleAdSlotDelete = async (id: string) => {
           <AdminOverview
             v-if="activeTab === 'overview'"
             :logs="logRes?.data ?? null"
+            :revenue="revenueRes?.data ?? null"
             :is-loading="isLoading"
             @refresh="handleRefresh"
           />
@@ -273,6 +294,7 @@ const handleAdSlotDelete = async (id: string) => {
             :tasks="tasksRes?.data ?? null"
             :is-loading="isLoading"
             @refresh="handleRefresh"
+            @create="createAdminTask"
             @toggle="toggleAdminTask"
             @delete="deleteAdminTask"
           />
@@ -321,6 +343,7 @@ const handleAdSlotDelete = async (id: string) => {
       <!-- 个人设置 Modal -->
       <AdminProfileModal
         v-if="showProfileModal"
+        :avatar-url="user?.avatarUrl"
         @close="showProfileModal = false"
         @saved="handleProfileSaved"
       />

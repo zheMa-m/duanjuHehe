@@ -349,3 +349,30 @@ CREATE POLICY "uploads_restrict_anon" ON storage.objects
   TO anon
   USING (bucket_id != 'uploads')
   WITH CHECK (bucket_id != 'uploads');
+
+
+-- ╔════════════════════════════════════════════════════════════════╗
+-- ║  5. Seed: 内置管理员 profiles 记录                            ║
+-- ║  Auth 用户由服务端 ensureAdminAuthUser() 在首次请求时创建     ║
+-- ║  固定 UUID: 9e638ba2-41aa-4434-a68b-6bd9f7ed0963             ║
+-- ║  此处预置 profiles 记录，确保 role='admin'（handle_new_user  ║
+-- ║  触发器默认 role='user'，需手动覆盖）                        ║
+-- ╚════════════════════════════════════════════════════════════════╝
+
+-- 注意：auth.users 记录由服务端通过 Supabase Admin API 创建，
+-- 不在此 migration 中直接 INSERT INTO auth.users（auth schema 权限受限）。
+-- 此 INSERT 仅在 auth.users 中已存在该 UUID 时才成功（FK 约束）。
+INSERT INTO public.profiles (id, username, display_name, role, plan_status, auth_provider, is_anonymous, email_verified)
+VALUES (
+  '9e638ba2-41aa-4434-a68b-6bd9f7ed0963'::uuid,
+  'admin',
+  'Administrator',
+  'admin',
+  'pro',
+  'email',
+  false,
+  true
+) ON CONFLICT (id) DO UPDATE SET
+  role = 'admin',
+  plan_status = 'pro',
+  updated_at = NOW();

@@ -1,3 +1,5 @@
+
+// @api-auth: admin
 import { defineEventHandler, readBody } from 'h3'
 import { assertAdmin } from '~~/server/utils/auth'
 import { triggerAlert } from '~~/server/utils/apm'

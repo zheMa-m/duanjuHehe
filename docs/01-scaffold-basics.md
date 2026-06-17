@@ -30,6 +30,7 @@
 | 样式方案 | **UnoCSS** | 原子化 CSS，按需生成 |
 | 图片优化 | **@nuxt/image** | 自动压缩、格式转换、懒加载 |
 | 国际化 | **@nuxtjs/i18n** | 中英文双语，prefix_except_default 策略 |
+| PWA | **@vite-pwa/nuxt** | 管理后台渐进式 Web 应用支持 |
 | 数据库 | **Supabase PostgreSQL** | RLS 行级安全策略 |
 | 用户认证 | **Supabase Auth** | Email/OAuth/Anonymous |
 | 部署平台 | **Vercel** | 边缘缓存、Serverless Functions |
@@ -50,7 +51,7 @@ hehe-app/
 │   ├── composables/       # Vue Composables（自动导入，含 useLocaleDetect）
 │   ├── pages/
 │   │   ├── (admin)/admin/ # 管理后台页面（SPA）
-│   │   ├── (client)/      # 官网首页 + /architecture 白皮书 + /tasks 看板（ISR）
+│   │   ├── (client)/      # 官网首页 + /architecture 白皮书 + /help 帮助文档（ISR）
 │   │   └── (h5)/h5/       # 营销 H5 页面（SWR）
 │   ├── plugins/           # Nuxt 插件
 │   ├── utils/             # 前端工具函数
@@ -65,7 +66,8 @@ hehe-app/
 │   │   ├── 01.subdomain-rewrite.ts  # 子域名路由重写
 │   │   ├── 02.auth.ts     # JWT 身份解析（Cookie + Bearer）
 │   │   ├── 03.admin.ts    # 管理员权限拦截
-│   │   └── 04.auth-guard.ts  # 请求级权限守卫
+│   │   ├── 04.auth-guard.ts  # 请求级权限守卫
+│   │   └── 05.access-guard.ts  # 站点访问密码保护
 │   └── utils/             # 服务端工具（db/auth/payments/ads/ip/logger）
 ├── supabase/
 │   └── migrations/        # SQL 迁移文件（版本号递增）
@@ -94,7 +96,7 @@ hehe-app/
 
 | 路由 | 策略 | 说明 |
 |------|------|------|
-| `/` `/architecture` `/tasks` | ISR 3600s | 官网首页 + 技术架构白皮书 + 任务看板，定时增量再生 |
+| `/` `/architecture` `/help` | ISR 3600s | 官网首页 + 技术架构白皮书 + 帮助文档，定时增量再生 |
 | `/h5/**` | SWR 600s | 营销 H5，后台修改秒级热更新 |
 | `/admin/**` | SPA (ssr: false) | 管理后台，完全客户端渲染 |
 | `/api/**` | no-store | API 接口，绝对禁止缓存 |
@@ -119,6 +121,9 @@ NUXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 STRIPE_PUBLIC_KEY=pk_test_xxx
+
+# 站点访问密码（生产环境可选，保护页面 + API 文档）
+SITE_ACCESS_PASSWORD=hehe2024
 ```
 
 > **安全原则**：`SUPABASE_SERVICE_ROLE_KEY` 和 `STRIPE_SECRET_KEY` 严禁出现在前端代码中（禁止 `NUXT_PUBLIC_` 前缀）。
@@ -154,6 +159,7 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
   → 02.auth.ts       JWT 身份解析（Bearer > Cookie > 匿名）
   → 03.admin.ts      /api/admin/* 管理员强拦截
   → 04.auth-guard.ts  请求级权限守卫（支付/订单需登录）
+  → 05.access-guard.ts  站点访问密码保护（SITE_ACCESS_PASSWORD）
   → API 处理函数
 ```
 
@@ -221,7 +227,7 @@ npm run check
 
 ## 13. 多语言国际化 (i18n)
 
-基于 `@nuxtjs/i18n` 模块实现中英文双语支持，仅覆盖主站官网和 H5 营销页，管理后台保持纯中文。
+基于 `@nuxtjs/i18n` 模块实现中英文双语支持，覆盖主站官网和 H5 营销页，管理后台和帮助文档页面保持纯中文。
 
 ### 配置
 
@@ -248,8 +254,9 @@ i18n: {
 
 | 路由 | 语言 | 说明 |
 |------|------|------|
-| `/` `/tasks` | 中文 | 默认语言无前缀 |
-| `/en` `/en/tasks` | 英文 | `/en` 前缀 |
+| `/` `/architecture` | 中文 | 默认语言无前缀 |
+| `/en` `/en/architecture` | 英文 | `/en` 前缀 |
+| `/help` | 仅中文 | 帮助文档为纯中文页面，不参与 i18n 路由 |
 | `/h5/promo` | 中/英 | 内部状态切换，URL 不变 |
 
 ### 语言检测优先级
@@ -261,7 +268,9 @@ URL 路径 > Cookie (`i18n_locale`) > 浏览器语言 > 时区推断 > 默认中
 - `locales/zh.json` — 中文翻译
 - `locales/en.json` — 英文翻译
 
-分组：common / nav / header / hero / tasks / h5 / userBar / login / review / share
+分组：common / nav / header / home / architecture / hero / tasks / h5 / userBar / login / review / share
+
+> **注意**：帮助文档模块 (`/help`) 使用硬编码中文，不依赖 i18n key。locale 文件中不包含 help 相关条目。
 
 ### 使用方式
 
@@ -285,9 +294,9 @@ const { t } = useI18n()
 | [03-vercel-deployment.md](./03-vercel-deployment.md) | Vercel 部署与域名配置 | 基础设施② |
 | [04-github-integration.md](./04-github-integration.md) | GitHub 代码托管与 CI/CD | 基础设施③ |
 | [05-user-auth.md](./05-user-auth.md) | 用户认证体系 | 业务模块① |
-| [06-payment-integration.md](./06-payment-integration.md) | Stripe 支付集成 | 业务模块② |
+| [06-payment-integration-optional.md](./06-payment-integration-optional.md) | Stripe 支付集成 | 业务模块② |
 | [07-ad-monetization-optional.md](./07-ad-monetization-optional.md) | 广告流量变现（可选） | 业务模块③ |
-| [08-social-feedback.md](./08-social-feedback.md) | 社交分享与用户反馈 | 业务模块④ |
+| [08-social-feedback-optional.md](./08-social-feedback-optional.md) | 社交分享与用户反馈 | 业务模块④ |
 | [09-cloudflare-optional.md](./09-cloudflare-optional.md) | Cloudflare DNS 与安全（可选） | 可选增强 |
 
 ---

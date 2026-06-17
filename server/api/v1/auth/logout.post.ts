@@ -3,6 +3,8 @@
  *
  * 调用 Supabase signOut 使 session 失效，清理客户端 cookie。
  */
+
+// @api-auth: public
 import { H3Event } from 'h3'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'

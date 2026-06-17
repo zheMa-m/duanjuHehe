@@ -117,7 +117,7 @@ vercel --prod
 | `STRIPE_SECRET_KEY` | `sk_test_...` | Stripe 密钥（测试阶段可用测试 key） |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Stripe Webhook 签名密钥 |
 | `STRIPE_PUBLIC_KEY` | `pk_test_...` | Stripe 公钥 |
-| `SITE_ACCESS_PASSWORD` | `hehe2024` | 统一访问密码（保护页面 + API 文档，留空则不启用） |
+| `SITE_ACCESS_PASSWORD` | `hehe2024` | 统一访问密码（保护全站页面 + API 文档，留空不启用） |
 
 ### 4.2 操作步骤
 
@@ -139,6 +139,8 @@ Nuxt 在 Vercel 上构建时，只有以下变量会暴露给浏览器端代码�
 浏览器可见: NUXT_PUBLIC_SUPABASE_URL, NUXT_PUBLIC_SUPABASE_ANON_KEY
 仅服务端:   SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SITE_ACCESS_PASSWORD
 ```
+
+`SITE_ACCESS_PASSWORD` 由 `05.access-guard.ts` 中间件读取，保护全站页面和 OpenAPI 文档（`/_swagger`、`/_scalar`）。本地开发 `MOCK_DB=true` 时自动跳过密码保护。
 
 > **安全红线**：`SUPABASE_SERVICE_ROLE_KEY` 和 `STRIPE_SECRET_KEY` 绝对不能加 `NUXT_PUBLIC_` 前缀。
 
@@ -265,7 +267,7 @@ NUXT_PUBLIC_BASE_URL=https://yourdomain.com
 
 | 路由 | routeRules | Vercel 行为 |
 |------|-----------|-------------|
-| `/` `/architecture` `/tasks` | `isr: 3600` | ISR — Vercel 边缘缓存 1 小时，过期后后台再生 |
+| `/` `/architecture` `/help` | `isr: 3600` | ISR — Vercel 边缘缓存 1 小时，过期后后台再生 |
 | `/h5/**` | `swr: 600` | SWR — 10 分钟缓存，过期后首次请求触发重验证 |
 | `/admin/**` | `ssr: false` | SPA — Vercel 返回静态 HTML，客户端 hydration |
 | `/api/**` | `no-store` | Serverless — 每次请求实时执行，零缓存 |
@@ -354,7 +356,8 @@ stripe listen --forward-to http://localhost:3000/api/v1/payments/webhook
 
 | 检查项 | 操作 | 预期 |
 |--------|------|------|
-| 主站首页 | 访问 `https://yourdomain.com` | 正常显示白皮书页面 |
+| 主站首页 | 访问 `https://yourdomain.com` | 正常显示首页 |
+| 帮助文档 | 访问 `https://yourdomain.com/help` | 正常显示帮助文档中心 |
 | 管理后台 | 访问 `https://admin.yourdomain.com` | 正常显示登录页 |
 | API 接口 | 访问 `https://yourdomain.com/api/v1/campaigns/promo` | 返回 JSON 数据 |
 | H5 营销页 | 访问 `https://ai.yourdomain.com` | 正常渲染营销页 |
@@ -364,8 +367,9 @@ stripe listen --forward-to http://localhost:3000/api/v1/payments/webhook
 
 | 检查项 | 操作 | 预期 |
 |--------|------|------|
-| 数据库连接 | 在 `/tasks` 创建一条任务 | 持久化到 Supabase |
+| 数据库连接 | 管理员登录 `/admin` 后在任务管理中创建任务 | 持久化到 Supabase |
 | 管理员登录 | `/admin` 用 admin 账号登录 | 进入后台 |
+| 帮助文档 | 访问 `/help` 页面 | 各章节正常渲染，搜索和导航正常 |
 | H5 表单提交 | 在 H5 页面填写手机号和邮箱提交 | 数据写入 campaigns |
 | 多语言切换 | 主站点击语言切换按钮 | 中英文正常切换 |
 | ISR 缓存 | 首次访问 `/` 较慢，第二次秒开 | ISR 缓存生效 |
@@ -595,5 +599,6 @@ git push origin feature/xxx     # 自动生成预览环境
 - [ ] 自定义域名及通配符 `*.yourdomain.com` 已添加到 Vercel（使用 Vercel Nameservers）
 - [ ] Stripe Webhook 已配置指向 `https://yourdomain.com/api/v1/payments/webhook`
 - [ ] Supabase OAuth 回调 URL 已更新为生产地址
+- [ ] 访问密码 `SITE_ACCESS_PASSWORD` 已配置（生产环境保护站点 + API 文档）
 - [ ] `npm run check` 类型检查通过
 - [ ] `npm run build` 本地构建通过

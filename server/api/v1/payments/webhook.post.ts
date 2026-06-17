@@ -1,3 +1,5 @@
+
+// @api-auth: public
 import { getHeader, readRawBody } from 'h3'
 import { getDB } from '~~/server/utils/db'
 import { verifyWebhookSignature } from '~~/server/utils/payments'
