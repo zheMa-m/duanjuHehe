@@ -38,6 +38,9 @@ export default defineEventHandler((event) => {
   // Mock DB 离线沙盒模式自动跳过（方便本地无密码调试）
   if (process.env.MOCK_DB === 'true') return
 
+  // Prerender 阶段跳过密码保护（构建时由 Nitro 内部发起请求，无法传密码）
+  if (import.meta.prerender) return
+
   const path = event.path
 
   // ── 静态资源和内部路由跳过保护 ──

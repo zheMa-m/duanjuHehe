@@ -1527,9 +1527,37 @@ CREATE TRIGGER on_auth_user_created
                 <li>{{ '将项目代码推送到 GitHub' }}</li>
                 <li><a href="https://vercel.com/dashboard" target="_blank">Vercel Dashboard</a> → {{ '导入 Git 仓库' }}</li>
                 <li>{{ '配置生产环境变量（所有 .env 中的变量）' }}</li>
-                <li>{{ '设置 Framework Preset 为 Nuxt.js' }}</li>
+                <li>{{ '设置 Framework Preset 为 Nuxt.js，Node.js Version ≥ 20.x' }}</li>
                 <li>{{ '部署完成，自动分配 vercel.app 域名' }}</li>
               </ol>
+            </div>
+            <div class="subsection">
+              <h3>{{ '生产环境变量配置' }}</h3>
+              <p>{{ '在 Vercel Dashboard → 你的项目 → Settings → Environment Variables 中逐项配置：' }}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['变量名', '说明', '是否必须'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in ([['MOCK_DB', '关闭 Mock 沙盒，设为 false', '必须'],['SUPABASE_URL', 'Supabase 项目 URL（服务端）', '必须'],['SUPABASE_SERVICE_ROLE_KEY', 'Supabase 服务端密钥（禁止加 NUXT_PUBLIC_ 前缀）', '必须'],['NUXT_PUBLIC_SUPABASE_URL', 'Supabase URL（前端公开）', '必须'],['NUXT_PUBLIC_SUPABASE_ANON_KEY', 'Supabase anon 公钥（前端公开）', '必须'],['STRIPE_SECRET_KEY', 'Stripe 密钥（服务端）', '可选'],['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 签名密钥', '可选'],['STRIPE_PUBLIC_KEY', 'Stripe 公钥', '可选'],['SITE_ACCESS_PASSWORD', '统一访问密码，留空不启用，保护全站页面 + API 文档', '可选']] as string[][])" :key="i">
+                      <td><code>{{ row[0] }}</code></td>
+                      <td>{{ row[1] }}</td>
+                      <td><span :class="row[2] === '必须' ? 'badge badge-purple' : 'badge badge-cyan'">{{ row[2] }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="alert alert-warn">
+                <div class="alert-icon">🔒</div>
+                <div class="alert-body">
+                  <strong>{{ '安全红线' }}</strong>
+                  <p>{{ 'SUPABASE_SERVICE_ROLE_KEY 和 STRIPE_SECRET_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。只有 NUXT_PUBLIC_ 前缀的变量才会暴露给浏览器端。' }}</p>
+                </div>
+              </div>
+              <p>{{ '⚠️ 环境变量修改后需重新部署才能生效。可推送一个空 commit 触发：' }}</p>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <pre><code>git commit --allow-empty -m "chore: redeploy for env update" && git push</code></pre>
+              </div>
             </div>
             <div class="subsection">
               <h3>{{ '渲染策略' }}</h3>
