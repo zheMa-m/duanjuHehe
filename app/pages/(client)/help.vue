@@ -3350,7 +3350,33 @@ tr:last-child td { border-bottom: none; }
 }
 
 /* ── LIGHT THEME (manual toggle via data-theme) ── */
-.theme-light,
+.theme-light {
+  .app-help-root {
+    --bg-primary: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f5f9;
+    --bg-sidebar: #f1f5f9;
+    --border: #e2e8f0;
+    --border-light: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #94a3b8;
+  }
+  .app-help-root .top-header {
+    background: rgba(248, 250, 252, 0.85);
+  }
+  .app-help-root .hero-title {
+    background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .app-help-root .code-block pre { background: #f1f5f9; }
+  .app-help-root th { background: #f1f5f9; }
+  .app-help-root .menu-btn { background: #ffffff; border-color: #e2e8f0; }
+  .app-help-root .menu-btn:hover { background: #f1f5f9; }
+}
+
 @media (prefers-color-scheme: light) {
   .app-help-root:not(.theme-dark) {
     --bg-primary: #f8fafc;
