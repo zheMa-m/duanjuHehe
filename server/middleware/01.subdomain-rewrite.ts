@@ -1,3 +1,5 @@
+import { defineEventHandler, getHeader, createError } from 'h3'
+
 export default defineEventHandler((event) => {
   const hostWithPort = getHeader(event, 'host') || ''
   const host = hostWithPort.split(':')[0] || ''

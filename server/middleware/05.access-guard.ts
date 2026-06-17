@@ -1,8 +1,8 @@
 /**
  * 站点访问密码守卫（统一页面 + OpenAPI 文档保护）
  *
- * 仅在 SITE_ACCESS_PASSWORD 配置且非本地开发环境时激活。
- * 本地开发（MOCK_DB=true 或 NODE_ENV=development）自动跳过。
+ * 仅在 SITE_ACCESS_PASSWORD 配置时激活。
+ * 本地开发 MOCK_DB=true 时自动跳过（方便离线沙盒调试）。
  *
  * 认证方式：
  *   页面访问 → ?password=<密码> → 设置 Cookie → 30 天免登
@@ -35,8 +35,8 @@ export default defineEventHandler((event) => {
   // 未配置密码 → 不启用保护
   if (!password) return
 
-  // 本地开发环境自动跳过
-  if (process.env.NODE_ENV === 'development' || process.env.MOCK_DB === 'true') return
+  // Mock DB 离线沙盒模式自动跳过（方便本地无密码调试）
+  if (process.env.MOCK_DB === 'true') return
 
   const path = event.path
 
