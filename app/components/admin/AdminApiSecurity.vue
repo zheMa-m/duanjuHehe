@@ -21,6 +21,11 @@ interface SecurityLog {
   id: number; action: string; ip: string | null; metadata: Record<string, any>; created_at: string
 }
 
+interface LogsResponse {
+  items: SecurityLog[]
+  pagination: { page: number; pageSize: number; total: number }
+}
+
 const emit = defineEmits<{ toast: [msg: string, type: 'success' | 'error' | 'info'] }>()
 
 // ── 子 tab ──────────────────────────────────────────────────
@@ -37,9 +42,81 @@ const subTabs = [
 // ── 数据状态 ──────────────────────────────────────────────────
 const policy = ref<Policy | null>(null)
 const keys = ref<ApiKey[]>([])
+
+// API Key 分页 + 搜索
+const keysPage = ref(1)
+const keysPageSize = ref(50)
+const keysTotal = ref(0)
+const keysSearch = ref('')
+
+const keysTotalPages = computed(() => Math.max(1, Math.ceil(keysTotal.value / keysPageSize.value)))
 const logs = ref<SecurityLog[]>([])
 const isLoading = ref(false)
 const isSaving = ref(false)
+
+// 安全日志分页 + 筛选
+const logsPage = ref(1)
+const logsPageSize = ref(30)
+const logsTotal = ref(0)
+const logEventFilter = ref('')
+const logDateFrom = ref('')
+const logDateTo = ref('')
+
+const logTotalPages = computed(() => Math.max(1, Math.ceil(logsTotal.value / logsPageSize.value)))
+
+// 安全事件类型选项
+const eventTypeOptions = [
+  { value: '', label: '全部类型' },
+  { value: 'IP_BLOCKED', label: 'IP 封禁' },
+  { value: 'IP_NOT_ALLOWED', label: 'IP 白名单拒绝' },
+  { value: 'COUNTRY_BLOCKED', label: '国家封禁' },
+  { value: 'COUNTRY_NOT_ALLOWED', label: '国家白名单拒绝' },
+  { value: 'INVALID_API_KEY', label: '无效 API Key' },
+  { value: 'ENDPOINT_NOT_ALLOWED', label: '端点无权限' },
+  { value: 'ENDPOINT_DISABLED', label: '端点已禁用' },
+  { value: 'SIGNATURE_MISSING', label: '签名缺失' },
+  { value: 'INVALID_SIGNATURE', label: '签名无效' },
+  { value: 'RATE_LIMITED', label: '速率限制' },
+]
+
+const handleLogsPageChange = (page: number) => {
+  if (page < 1 || page > logTotalPages.value) return
+  logsPage.value = page
+  loadLogs()
+}
+
+const applyLogFilters = () => {
+  logsPage.value = 1
+  loadLogs()
+}
+
+const resetLogFilters = () => {
+  logEventFilter.value = ''
+  logDateFrom.value = ''
+  logDateTo.value = ''
+  logsPage.value = 1
+  loadLogs()
+}
+
+// ── 限流统计（基于当前日志数据聚合） ──────────────────────────
+const rateLimitStats = computed(() => {
+  const rateEvents = logs.value.filter(l => l.action.includes('rate_limited'))
+  const byIp = new Map<string, number>()
+  const byKey = new Map<string, number>()
+  rateEvents.forEach(e => {
+    const ip = e.ip || 'unknown'
+    byIp.set(ip, (byIp.get(ip) || 0) + 1)
+    if (e.metadata?.keyPrefix) {
+      const kp = e.metadata.keyPrefix
+      byKey.set(kp, (byKey.get(kp) || 0) + 1)
+    }
+  })
+  return {
+    total: rateEvents.length,
+    topIps: [...byIp.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
+    topKeys: [...byKey.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
+  }
+})
 
 // ── 加载数据 ──────────────────────────────────────────────────
 const loadPolicy = async () => {
@@ -51,15 +128,38 @@ const loadPolicy = async () => {
 
 const loadKeys = async () => {
   try {
-    const res = await $fetch<{ success: boolean; data: ApiKey[] }>('/api/admin/security/keys')
-    keys.value = res.data || []
+    const params = new URLSearchParams()
+    params.set('page', String(keysPage.value))
+    params.set('pageSize', String(keysPageSize.value))
+    if (keysSearch.value) params.set('search', keysSearch.value)
+    const res = await $fetch<{ success: boolean; data: { items: ApiKey[]; pagination: { page: number; pageSize: number; total: number } } }>(`/api/admin/security/keys?${params}`)
+    keys.value = res.data.items || []
+    keysTotal.value = res.data.pagination?.total ?? 0
   } catch (e: any) { emit('toast', '加载 API Key 列表失败', 'error') }
+}
+
+const handleKeysPageChange = (page: number) => {
+  if (page < 1 || page > keysTotalPages.value) return
+  keysPage.value = page
+  loadKeys()
+}
+
+const searchKeys = () => {
+  keysPage.value = 1
+  loadKeys()
 }
 
 const loadLogs = async () => {
   try {
-    const res = await $fetch<{ success: boolean; data: SecurityLog[] }>('/api/admin/security/logs')
-    logs.value = res.data || []
+    const params = new URLSearchParams()
+    params.set('page', String(logsPage.value))
+    params.set('pageSize', String(logsPageSize.value))
+    if (logEventFilter.value) params.set('eventType', logEventFilter.value)
+    if (logDateFrom.value) params.set('from', new Date(logDateFrom.value).toISOString())
+    if (logDateTo.value) params.set('to', new Date(logDateTo.value).toISOString())
+    const res = await $fetch<{ success: boolean; data: LogsResponse }>(`/api/admin/security/logs?${params}`)
+    logs.value = res.data.items || []
+    logsTotal.value = res.data.pagination?.total ?? 0
   } catch (e: any) { emit('toast', '加载安全日志失败', 'error') }
 }
 
@@ -194,8 +294,8 @@ const refreshAll = async () => {
     <!-- 标题栏 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-[28px] font-bold text-white tracking-tight">API 安全策略</h1>
-        <p class="text-white/40 text-sm mt-1">动态管理 REST API 安全配置：速率限制、IP/国家控制、API Key、请求验签</p>
+        <h1 class="text-[28px] font-bold text-white tracking-tight">安全策略</h1>
+        <p class="text-white/40 text-sm mt-1">动态管理 API 安全配置：速率限制、IP/国家控制、API Key 管理、请求验签、安全日志</p>
       </div>
       <button @click="refreshAll"
         :disabled="isLoading"
@@ -337,9 +437,19 @@ const refreshAll = async () => {
         </label>
       </div>
 
-      <!-- Key 列表 -->
-      <div class="flex justify-between items-center">
-        <h2 class="text-sm font-semibold text-white">API Key 列表</h2>
+      <!-- Key 搜索 + 创建 -->
+      <div class="flex gap-3 items-center">
+        <div class="relative flex-1 max-w-xs">
+          <input v-model="keysSearch" @keyup.enter="searchKeys" placeholder="搜索 Key 名称..."
+            class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" />
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-xs">🔍</span>
+        </div>
+        <button @click="searchKeys"
+          class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-xl transition-all cursor-pointer">
+          搜索
+        </button>
+        <div class="flex-1"></div>
+        <span v-if="keysTotal > 0" class="text-[11px] text-white/30 font-mono">{{ keysTotal }} 个 Key</span>
         <button @click="showCreateKeyModal = true"
           class="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white px-4 py-2 rounded-full transition-all active:scale-[0.97] cursor-pointer">
           + 创建 Key
@@ -392,6 +502,17 @@ const refreshAll = async () => {
             </tbody>
           </table>
         </div>
+
+        <!-- Key 分页 -->
+        <div v-if="keysTotal > 0" class="flex items-center justify-between px-5 py-3 border-t border-white/[0.04] bg-white/[0.01]">
+          <div class="text-[11px] text-white/30 font-mono">共 {{ keysTotal }} 个 · 第 {{ keysPage }}/{{ keysTotalPages }} 页</div>
+          <div class="flex items-center gap-2">
+            <button @click="handleKeysPageChange(keysPage - 1)" :disabled="keysPage <= 1"
+              class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none">上一页</button>
+            <button @click="handleKeysPageChange(keysPage + 1)" :disabled="keysPage >= keysTotalPages"
+              class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none">下一页</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -437,6 +558,73 @@ const refreshAll = async () => {
 
     <!-- ═══ 安全日志 ═══ -->
     <div v-if="subTab === 'logs'" class="space-y-6">
+      <!-- 筛选栏 -->
+      <div class="bg-white/[0.04] rounded-2xl p-5 space-y-4 shadow-lg shadow-black/20">
+        <h2 class="text-sm font-semibold text-white">筛选条件</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label class="block text-[10px] text-white/40 uppercase tracking-widest font-mono mb-1">事件类型</label>
+            <select v-model="logEventFilter"
+              class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all">
+              <option v-for="opt in eventTypeOptions" :key="opt.value" :value="opt.value" class="bg-[#12121a] text-white">{{ opt.label }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] text-white/40 uppercase tracking-widest font-mono mb-1">起始时间</label>
+            <input type="datetime-local" v-model="logDateFrom"
+              class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" />
+          </div>
+          <div>
+            <label class="block text-[10px] text-white/40 uppercase tracking-widest font-mono mb-1">结束时间</label>
+            <input type="datetime-local" v-model="logDateTo"
+              class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" />
+          </div>
+          <div class="flex items-end gap-2">
+            <button @click="applyLogFilters"
+              class="text-xs font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white px-4 py-2 rounded-xl transition-all active:scale-[0.97] cursor-pointer">
+              筛选
+            </button>
+            <button @click="resetLogFilters"
+              class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/60 px-4 py-2 rounded-xl transition-all cursor-pointer">
+              重置
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 限流统计面板 -->
+      <div v-if="rateLimitStats.total > 0" class="bg-white/[0.04] rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20 border-l-2 border-[#ff9f0a]/30">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold text-white">⚡ 限流统计</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#ff9f0a]/10 text-[#ff9f0a] border border-[#ff9f0a]/20">当前页 {{ rateLimitStats.total }} 次</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mb-1.5">Top IP（被限流次数）</div>
+            <div class="space-y-1">
+              <div v-for="([ip, count], idx) in rateLimitStats.topIps" :key="ip"
+                class="flex justify-between items-center text-xs bg-white/[0.02] rounded-lg px-3 py-1.5">
+                <span class="font-mono text-white/70">{{ ip }}</span>
+                <span class="font-mono text-[#ff9f0a]">{{ count }} 次</span>
+              </div>
+              <div v-if="rateLimitStats.topIps.length === 0" class="text-xs text-white/20 py-1">-</div>
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mb-1.5">Top API Key（被限流次数）</div>
+            <div class="space-y-1">
+              <div v-for="([kp, count], idx) in rateLimitStats.topKeys" :key="kp"
+                class="flex justify-between items-center text-xs bg-white/[0.02] rounded-lg px-3 py-1.5">
+                <span class="font-mono text-white/70">{{ kp }}...</span>
+                <span class="font-mono text-[#ff9f0a]">{{ count }} 次</span>
+              </div>
+              <div v-if="rateLimitStats.topKeys.length === 0" class="text-xs text-white/20 py-1">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 日志表格 -->
       <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm border-collapse">
@@ -464,6 +652,17 @@ const refreshAll = async () => {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- 分页控制栏 -->
+        <div v-if="logsTotal > 0" class="flex items-center justify-between px-5 py-3 border-t border-white/[0.04] bg-white/[0.01]">
+          <div class="text-[11px] text-white/30 font-mono">共 {{ logsTotal }} 条 · 第 {{ logsPage }}/{{ logTotalPages }} 页</div>
+          <div class="flex items-center gap-2">
+            <button @click="handleLogsPageChange(logsPage - 1)" :disabled="logsPage <= 1"
+              class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none">上一页</button>
+            <button @click="handleLogsPageChange(logsPage + 1)" :disabled="logsPage >= logTotalPages"
+              class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none">下一页</button>
+          </div>
         </div>
       </div>
     </div>

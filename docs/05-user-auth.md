@@ -245,15 +245,9 @@ https://<your-project-id>.supabase.co/auth/v1/callback
 
 ## 12. 测试指引
 
-### Mock 模式测试（无需真实账号）
+### Mock 模式测试
 
-`MOCK_DB=true` 时，所有认证操作走内存 Mock：
-
-```bash
-# 启动后直接访问，默认已登录为 admin
-npm run dev
-# 访问 http://localhost:3000/admin → 直接进入后台
-```
+`MOCK_DB=true` 时，所有认证操作走内存 Mock，可用于前端 UI 开发调试。Mock 模式下不提供默认管理员登录，需通过 Mock 的邮箱登录接口注册并手动设置 role。
 
 ### 真实数据库测试
 
@@ -267,6 +261,15 @@ npm run dev
 #    - 访问 /api/v1/auth/me → 返回当前用户 profile
 #    - 登出 → Cookie 已清理
 ```
+
+### 管理后台登录测试
+
+管理后台已完全切换到 Supabase Auth 认证，不再使用 `.env` 中的 SITE_ADMIN_USERNAME/SITE_ADMIN_PASSWORD：
+
+1. 通过 Supabase Dashboard → Authentication → Users → Add User 创建一个用户，勾选 Auto Confirm User
+2. 在 Table Editor → profiles 中，将该用户的 `role` 字段改为 `admin`
+3. 访问 `/admin`，使用该邮箱和密码登录
+4. 也可通过 CLI 脚本 `node temp-create-admin.mjs` 快速创建内置管理员
 
 ### OAuth 测试
 

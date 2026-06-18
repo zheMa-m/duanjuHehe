@@ -271,8 +271,6 @@ const envRows = [
   ['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 密钥', '否', '仅支付模块'],
   ['STRIPE_PUBLIC_KEY', 'Stripe 公钥', '否', '仅支付模块'],
   ['MOCK_DB', 'Mock 数据库开关', '是', '本地开发 true，生产 false'],
-  ['SITE_ADMIN_USERNAME', '内置管理员用户名', '否', '默认 admin，管理后台登录'],
-  ['SITE_ADMIN_PASSWORD', '内置管理员密码', '否', '管理后台登录，不设置则无法使用管理后台'],
 ]
 
 const migrationRows = [
@@ -285,16 +283,12 @@ const migrationRows = [
   ['0012_archive_audit_logs.sql', '审计日志冷热归档（pg_cron定时任务 + audit-archives 存储桶）', '可选'],
 ]
 
-const adminSql = `-- 方式一：通过邮箱设置管理员（在 SQL Editor 中执行）
+const adminSql = `-- 通过邮箱设置管理员（在 SQL Editor 中执行）
 UPDATE profiles
 SET role = 'admin'
 WHERE id = (
   SELECT id FROM auth.users WHERE email = 'your-email@example.com'
-);
-
--- 方式二：使用内置管理员账号（推荐）
--- 在 .env 中设置 SITE_ADMIN_USERNAME=admin 和 SITE_ADMIN_PASSWORD=your_password
--- 0001_core.sql 迁移会自动 seed 固定 UUID 的管理员用户`
+);`
 
 const seedSql = `-- 插入营销活动种子数据（H5 页面依赖 campaigns 表，迁移后必须执行）
 -- 来源：supabase/migrations/0002_campaign.sql
@@ -370,7 +364,7 @@ const checklistItems = [
   '所有 .env 变量已在 Vercel Dashboard → Environment Variables 中配置',
   'Supabase 项目 URL + anon key + service_role key 已填入',
   'MOCK_DB 设置为 false',
-  'SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD 已配置（管理后台登录）',
+  '管理员账号已通过 Supabase Dashboard 或 temp-create-admin.mjs 脚本创建',
   'Stripe 密钥已配置（如需支付功能）',
   'npm run gen:types 已执行',
   'supabase db push 已执行（所有迁移已应用）',
@@ -602,7 +596,7 @@ const faqData = [
   {
     cat: 'deploy',
     items: [
-      { q: '如何部署到 Vercel？', a: '将项目推送到 GitHub，在 Vercel 中导入仓库即可自动部署。确保 .env 中的环境变量已在 Vercel Dashboard → Environment Variables 中配置，尤其是 MOCK_DB=false 和 SITE_ADMIN_USERNAME/SITE_ADMIN_PASSWORD。' },
+      { q: '如何部署到 Vercel？', a: '将项目推送到 GitHub，在 Vercel 中导入仓库即可自动部署。确保 .env 中的环境变量已在 Vercel Dashboard → Environment Variables 中配置，尤其是 MOCK_DB=false 和 Supabase 相关密钥。管理员账号通过 Supabase Dashboard 创建。' },
       { q: '为什么 H5 页面没有内容？', a: 'H5 页面依赖 campaigns 表的数据。切换到真实 Supabase 数据库后，需要执行迁移并插入种子数据。详见本文 Supabase 集成章节。' },
       { q: '如何配置自定义域名？', a: '在 Vercel Dashboard → Settings → Domains 中添加主域名和通配符域名（*.domain.com），然后在 DNS 提供商处添加对应的 A/CNAME 记录。' },
       { q: 'i18n 构建报错 "Cannot read properties of undefined"？', a: '检查所有 t() 调用是否使用了正确的 key 路径。确保 locales/zh.json 和 locales/en.json 的 key 结构完全一致。使用 npm run check 进行类型检查。' },
@@ -624,8 +618,8 @@ const faqData = [
     items: [
       { q: '支持哪些登录方式？', a: '支持邮箱密码登录、Google OAuth、GitHub OAuth 和匿名登录。OAuth 需要在 Supabase Dashboard → Authentication → Providers 中配置对应的 Client ID 和 Secret。' },
       { q: 'Token 过期了怎么办？', a: 'Access Token (JWT) 有效期 1 小时，Refresh Token 有效期 30 天。前端 supabase-auth 插件会自动使用 Refresh Token 刷新 Access Token，无需手动处理。' },
-      { q: '如何添加管理员？', a: '推荐方式：在 .env 中设置 SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD，迁移自动 seed 管理员。备选方式：在 Supabase SQL Editor 中执行 UPDATE profiles SET role = \'admin\' WHERE email = \'xxx\'。' },
-      { q: '管理后台如何登录？', a: '访问 /admin，使用 .env 中配置的 SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD 登录。内置管理员不依赖邮箱验证，开箱即用。' },
+      { q: '如何添加管理员？', a: '通过 Supabase Dashboard → Authentication → Users → Add User 创建用户并勾选 Auto Confirm User，然后在 Table Editor → profiles 中将该用户的 role 字段改为 admin。也可通过 CLI 脚本 node temp-create-admin.mjs 快速创建。' },
+      { q: '管理后台如何登录？', a: '访问 /admin，使用 Supabase Auth 注册的管理员邮箱和密码登录。登录后会校验用户 role 是否为 admin，非管理员账号将被拒绝。' },
     ],
   },
   {
@@ -1190,25 +1184,22 @@ supabase db push</code></pre>
             </div>
             <div class="subsection">
               <h3>{{ '创建管理员账号' }}</h3>
-              <p>{{ '数据库迁移完成后，需要配置管理员账号。' }}</p>
-              <p><strong>{{ '方式一：内置管理员（推荐，开箱即用）' }}</strong></p>
-              <p>{{ '在 .env 中设置 ' }}<code>SITE_ADMIN_USERNAME</code> {{ '和' }} <code>SITE_ADMIN_PASSWORD</code>{{ '，0001_core.sql 迁移会自动 seed 固定 UUID 的管理员用户。登录管理后台（/admin）直接使用此账号即可。' }}</p>
-              <p><strong>{{ '方式二：通过 Dashboard 创建' }}</strong></p>
+              <p>{{ '数据库迁移完成后，需要配置管理员账号。管理后台已完全切换到 Supabase Auth 认证，管理员通过 Supabase 邮箱登录。' }}</p>
+              <p><strong>{{ '方式一：通过 Dashboard 创建（推荐）' }}</strong></p>
               <ol>
                 <li>{{ '进入 Authentication → Users → Add User，填写邮箱和密码，勾选 Auto Confirm User' }}</li>
                 <li>{{ '进入 Table Editor → profiles，找到刚创建的用户行，将 role 字段改为 admin' }}</li>
               </ol>
-              <p><strong>{{ '方式三：通过 SQL 快速设置' }}</strong></p>
+              <p><strong>{{ '方式二：通过 SQL 快速设置' }}</strong></p>
               <div class="code-block">
                 <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ adminSql }}</code></pre>
               </div>
-              <p><strong>{{ '方式四：通过 CLI 脚本创建/更新' }}</strong></p>
+              <p><strong>{{ '方式三：通过 CLI 脚本创建/更新' }}</strong></p>
               <p>{{ '项目提供 ' }}<code>temp-create-admin.mjs</code> {{ '脚本，可通过 CLI 快速创建或更新内置管理员账号：' }}</p>
               <div class="code-block">
                 <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
-                <pre><code># 使用 .env 中配置的 SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD
-node temp-create-admin.mjs</code></pre>
+                <pre><code>node temp-create-admin.mjs</code></pre>
               </div>
             </div>
             <div class="subsection">
@@ -2322,8 +2313,7 @@ const stripeEvent = stripe.webhooks.constructEvent(
           <div class="section-body">
             <div class="subsection">
               <h3>{{ '登录方式' }}</h3>
-              <p>{{ '管理后台通过 ' }}<code>/admin</code> {{ '路径访问（SPA 模式，纯客户端渲染）。使用 .env 中配置的 ' }}<code>SITE_ADMIN_USERNAME</code> {{ '和 ' }}<code>SITE_ADMIN_PASSWORD</code> {{ '登录，不依赖 Supabase Auth 邮箱验证。' }}</p>
-              <p>{{ '内置管理员 UUID 为 ' }}<code>9e638ba2-41aa-4434-a68b-6bd9f7ed0963</code>{{ '，由 0001_core.sql 迁移自动 seed。' }}</p>
+              <p>{{ '管理后台通过 ' }}<code>/admin</code> {{ '路径访问（SPA 模式，纯客户端渲染）。使用 Supabase Auth 邮箱密码登录，登录后会校验用户 ' }}<code>role</code> {{ ' 是否为 ' }}<code>admin</code>{{ '，非管理员账号将被拒绝访问。管理员账号通过 Supabase Dashboard 或 ' }}<code>temp-create-admin.mjs</code> {{ '脚本创建。' }}</p>
             </div>
             <div class="subsection">
               <h3>{{ '三种导航模式' }}</h3>

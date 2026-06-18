@@ -41,12 +41,28 @@ const emit = defineEmits<{
   close: []
 }>()
 
+// ── Toast 通知 ────────────────────────────────────────────────
+interface Toast { id: number; message: string; type: 'success' | 'error' | 'info' }
+const toasts = ref<Toast[]>([])
+let toastId = 0
+
+function showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
+  const id = ++toastId
+  toasts.value.push({ id, message, type })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+  }, 3500)
+}
+
 // ── 状态 ─────────────────────────────────────────────────────
 const activeBucket = ref<string>('campaign-assets')
 const activeView = ref<'files' | 'trash'>('files')
 const viewMode = ref<'grid' | 'list'>('grid')
 const searchQuery = ref('')
 const kindFilter = ref('')
+const dateFrom = ref('')
+const dateTo = ref('')
+const uploaderFilter = ref('')
 const sortField = ref<'updated_at' | 'created_at' | 'name'>('updated_at')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const prefix = ref('')
@@ -68,6 +84,28 @@ function isSelected(path: string): boolean {
 }
 
 const selectedCount = computed(() => Object.keys(selectedMap.value).filter(k => selectedMap.value[k]).length)
+
+// ── 前端二次过滤（日期范围 + 上传者）───────────────────────────
+const filteredFiles = computed(() => {
+  let result = files.value
+  // 日期范围筛选（使用 createdAt 字段）
+  if (dateFrom.value) {
+    const from = new Date(dateFrom.value).getTime()
+    result = result.filter(f => new Date(f.createdAt).getTime() >= from)
+  }
+  if (dateTo.value) {
+    const to = new Date(dateTo.value + 'T23:59:59').getTime()
+    result = result.filter(f => new Date(f.createdAt).getTime() <= to)
+  }
+  // 上传者筛选
+  if (uploaderFilter.value) {
+    const kw = uploaderFilter.value.toLowerCase()
+    result = result.filter(f => (f.uploadedBy || '').toLowerCase().includes(kw))
+  }
+  return result
+})
+
+const filteredCount = computed(() => filteredFiles.value.length)
 
 // 详情侧栏
 const selectedFile = ref<FileInfo | null>(null)
@@ -143,7 +181,7 @@ async function handleDeleteBucket(name: string) {
       activeBucket.value = 'campaign-assets'
     }
   } catch (e: any) {
-    alert(e?.data?.statusMessage || e?.message || '删除失败')
+    showToast(e?.data?.statusMessage || e?.message || '删除失败', 'error')
   }
 }
 
@@ -179,9 +217,9 @@ async function handleRename() {
   } catch (e: any) {
     const status = e?.response?.status || e?.status || e?.statusCode
     if (status === 409) {
-      alert('目标位置已存在同名文件，请更换名称')
+      showToast('目标位置已存在同名文件，请更换名称', 'error')
     } else {
-      alert(e?.data?.statusMessage || e?.message || '重命名失败')
+      showToast(e?.data?.statusMessage || e?.message || '重命名失败', 'error')
     }
   }
 }
@@ -207,9 +245,9 @@ async function handleMove() {
   } catch (e: any) {
     const status = e?.response?.status || e?.status || e?.statusCode
     if (status === 409) {
-      alert('目标位置已存在同名文件，请更换名称或路径')
+      showToast('目标位置已存在同名文件，请更换名称或路径', 'error')
     } else {
-      alert(e?.data?.statusMessage || e?.message || '移动失败')
+      showToast(e?.data?.statusMessage || e?.message || '移动失败', 'error')
     }
   }
 }
@@ -229,6 +267,8 @@ interface TrashItem {
 const trashItems = ref<TrashItem[]>([])
 const trashTotal = ref(0)
 const trashFetching = ref(false)
+const trashOffset = ref(0)
+const trashLimit = 50
 
 // 回收站批量选择
 const trashSelectedMap = ref<Record<string, boolean>>({})
@@ -257,11 +297,12 @@ async function handleBatchRestore() {
       method: 'POST', body: { ids },
     })
     trashSelectedMap.value = {}
-    alert(`已还原 ${res.data.restored} 个文件${res.data.errors.length ? `，${res.data.errors.length} 个失败` : ''}`)
+    const hasErrors = res.data.errors.length > 0
+    showToast(`已还原 ${res.data.restored} 个文件${hasErrors ? `，${res.data.errors.length} 个失败` : ''}`, hasErrors ? 'info' : 'success')
     fetchTrash()
     if (activeView.value === 'files') fetchFiles()
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '批量还原失败')
+    showToast(e?.data?.statusMessage || '批量还原失败', 'error')
   }
 }
 
@@ -274,10 +315,11 @@ async function handleBatchPermanentDelete() {
       method: 'POST', body: { ids },
     })
     trashSelectedMap.value = {}
-    alert(`已永久删除 ${res.data.deleted} 个文件${res.data.errors.length ? `，${res.data.errors.length} 个失败` : ''}`)
+    const hasErrors = res.data.errors.length > 0
+    showToast(`已永久删除 ${res.data.deleted} 个文件${hasErrors ? `，${res.data.errors.length} 个失败` : ''}`, hasErrors ? 'info' : 'success')
     fetchTrash()
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '批量删除失败')
+    showToast(e?.data?.statusMessage || '批量删除失败', 'error')
   }
 }
 
@@ -285,18 +327,20 @@ async function handleEmptyTrash() {
   if (!confirm('确定要清空回收站全部文件吗？此操作不可撤销。')) return
   try {
     const res = await $fetch<{ success: boolean; data: { deleted: number } }>('/api/admin/storage/trash/empty', { method: 'POST' })
-    alert(`已清空 ${res.data.deleted} 个文件`)
+    showToast(`已清空 ${res.data.deleted} 个文件`, 'success')
     trashSelectedMap.value = {}
     fetchTrash()
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '清空失败')
+    showToast(e?.data?.statusMessage || '清空失败', 'error')
   }
 }
 
 async function fetchTrash() {
   trashFetching.value = true
   try {
-    const res = await $fetch<{ success: boolean; data: { items: TrashItem[]; total: number } }>('/api/admin/storage/trash')
+    const res = await $fetch<{ success: boolean; data: { items: TrashItem[]; total: number } }>('/api/admin/storage/trash', {
+      params: { limit: trashLimit, offset: trashOffset.value },
+    })
     trashItems.value = res.data.items
     trashTotal.value = res.data.total
   } catch (e) {
@@ -306,13 +350,20 @@ async function fetchTrash() {
   }
 }
 
+// 回收站分页
+const trashHasPrev = computed(() => trashOffset.value > 0)
+const trashHasNext = computed(() => trashOffset.value + trashLimit < trashTotal.value)
+function trashPrevPage() { trashOffset.value = Math.max(0, trashOffset.value - trashLimit); fetchTrash() }
+function trashNextPage() { trashOffset.value += trashLimit; fetchTrash() }
+
 async function handleRestore(trashId: string) {
   try {
     await $fetch(`/api/admin/storage/trash/${trashId}/restore`, { method: 'POST' })
+    showToast('文件已还原', 'success')
     fetchTrash()
     if (activeView.value === 'files') fetchFiles()
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '还原失败')
+    showToast(e?.data?.statusMessage || '还原失败', 'error')
   }
 }
 
@@ -320,9 +371,10 @@ async function handlePermanentDelete(item: TrashItem) {
   if (!confirm(`确定要永久删除「${item.file_name}」吗？此操作不可撤销。`)) return
   try {
     await $fetch(`/api/admin/storage/trash/${item.id}`, { method: 'DELETE' })
+    showToast('已永久删除', 'success')
     fetchTrash()
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '删除失败')
+    showToast(e?.data?.statusMessage || '删除失败', 'error')
   }
 }
 
@@ -330,16 +382,17 @@ async function handleCleanupExpired() {
   if (!confirm('确定要清理所有已过期的回收站文件吗？')) return
   try {
     const res = await $fetch<{ success: boolean; data: { cleaned: number } }>('/api/admin/storage/trash/cleanup', { method: 'POST' })
-    alert(`已清理 ${res.data.cleaned} 个文件`)
+    showToast(`已清理 ${res.data.cleaned} 个文件`, 'success')
     fetchTrash()
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '清理失败')
+    showToast(e?.data?.statusMessage || '清理失败', 'error')
   }
 }
 
 // ── 视图切换 ──────────────────────────────────────────────
 watch(activeView, () => {
   if (activeView.value === 'trash') {
+    trashOffset.value = 0
     fetchTrash()
   } else {
     fetchFiles()
@@ -467,17 +520,38 @@ function toggleSelect(path: string) {
 }
 
 function toggleSelectAll() {
-  if (selectedCount.value === files.value.length) {
+  const displayFiles = filteredFiles.value
+  if (selectedCount.value === displayFiles.length) {
     selectedMap.value = {}
   } else {
     const m: Record<string, boolean> = {}
-    files.value.forEach(f => { m[f.path] = true })
+    displayFiles.forEach(f => { m[f.path] = true })
     selectedMap.value = m
   }
 }
 
 function getSelectedPaths(): string[] {
   return Object.keys(selectedMap.value).filter(k => selectedMap.value[k])
+}
+
+// ── Lightbox 图片预览 ──────────────────────────────────────────
+const lightboxFile = ref<FileInfo | null>(null)
+function openLightbox(file: FileInfo) {
+  if (file.isImage) {
+    lightboxFile.value = file
+  }
+}
+function closeLightbox() { lightboxFile.value = null }
+
+// 键盘导航 Lightbox
+function onLightboxKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') { closeLightbox(); return }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    const images = filteredFiles.value.filter(f => f.isImage)
+    const idx = images.findIndex(f => f.path === lightboxFile.value?.path)
+    if (e.key === 'ArrowLeft' && idx > 0) lightboxFile.value = images[idx - 1]
+    if (e.key === 'ArrowRight' && idx < images.length - 1) lightboxFile.value = images[idx + 1]
+  }
 }
 
 // ── 文件点击 ─────────────────────────────────────────────────
@@ -490,6 +564,11 @@ function handleFileClick(file: FileInfo) {
     emit('selected', { url: file.publicUrl, path: file.path })
     return
   }
+  // 图片文件双击 → Lightbox 预览；其他文件 → 详情侧栏
+  if (file.isImage) {
+    openLightbox(file)
+    return
+  }
   selectedFile.value = file
 }
 
@@ -500,13 +579,11 @@ async function handleBatchDelete() {
   if (!confirm(`确定要将 ${paths.length} 个文件移入回收站吗？`)) return
 
   try {
-    // 逐个软删除到回收站
-    for (const path of paths) {
-      await $fetch('/api/admin/storage/trash', {
-        method: 'POST',
-        body: { bucket: activeBucket.value, path },
-      })
-    }
+    // 批量软删除到回收站
+    await $fetch('/api/admin/storage/trash', {
+      method: 'POST',
+      body: { bucket: activeBucket.value, paths },
+    })
     selectedMap.value = {}
     selecting.value = false
     fetchFiles()
@@ -520,7 +597,7 @@ async function handleDeleteFile(file: FileInfo) {
   try {
     await $fetch('/api/admin/storage/trash', {
       method: 'POST',
-      body: { bucket: activeBucket.value, path: file.path },
+      body: { bucket: activeBucket.value, paths: [file.path] },
     })
     selectedFile.value = null
     fetchFiles()
@@ -598,22 +675,60 @@ async function handleFileChange(e: Event) {
 async function uploadFiles(fileList: File[], customPrefix?: string) {
   isUploading.value = true
   uploadProgress.value = 0
-  let uploaded = 0
   const targetPrefix = customPrefix || prefix.value
-  for (const file of fileList) {
+  const total = fileList.length
+  let uploaded = 0
+  let failed = 0
+  const failedNames: string[] = []
+
+  // 并发上传（最多 3 个并发），每个文件独立进度
+  const CONCURRENCY = 3
+  const queue = [...fileList]
+  const progressPerFile = new Map<File, number>()
+
+  async function processNext(): Promise<void> {
+    const file = queue.shift()
+    if (!file) return
+
     try {
+      progressPerFile.set(file, 0)
       await upload(file, activeBucket.value, {
         path: targetPrefix ? `${targetPrefix}/${file.name}` : file.name,
-        onProgress: (p) => { uploadProgress.value = Math.round(((uploaded + p / 100) / fileList.length) * 100) },
+        onProgress: (p) => {
+          progressPerFile.set(file, p)
+          // 汇总进度：已完成文件数 * 100% + 进行中文件的部分进度
+          const completedProgress = uploaded * 100
+          const inProgressSum = Array.from(progressPerFile.values()).reduce((a, b) => a + b, 0)
+          uploadProgress.value = Math.round((completedProgress + inProgressSum) / total)
+        },
       })
       uploaded++
     } catch (e) {
+      failed++
+      failedNames.push(file.name)
       console.error(`Failed to upload ${file.name}:`, e)
     }
+
+    await processNext() // 继续处理下一个
   }
+
+  // 启动并发 worker
+  const workers = Array.from({ length: Math.min(CONCURRENCY, total) }, () => processNext())
+  await Promise.all(workers)
+
   isUploading.value = false
   uploadProgress.value = 100
   fetchFiles()
+
+  // 失败提示
+  if (failed > 0) {
+    const msg = failed === total
+      ? `全部 ${total} 个文件上传失败，请检查网络或文件格式`
+      : `${uploaded} 个成功，${failed} 个失败（${failedNames.slice(0, 3).join(', ')}${failedNames.length > 3 ? '...' : ''}）`
+    showToast(msg, failed === total ? 'error' : 'info')
+  } else if (uploaded > 0) {
+    showToast(`成功上传 ${uploaded} 个文件`, 'success')
+  }
 }
 
 // ── 复制 URL ─────────────────────────────────────────────────
@@ -659,6 +774,26 @@ defineExpose({ refresh: fetchFiles })
 </script>
 
 <template>
+  <!-- ── Toast 通知 ──────────────────────────────────────────── -->
+  <Teleport to="body">
+    <div class="fixed top-6 right-6 z-[200] flex flex-col gap-2 pointer-events-none">
+      <TransitionGroup name="toast">
+        <div
+          v-for="t in toasts"
+          :key="t.id"
+          class="pointer-events-auto px-4 py-3 rounded-xl text-sm font-medium shadow-2xl backdrop-blur-md border max-w-sm"
+          :class="{
+            'bg-[#30d158]/10 border-[#30d158]/25 text-[#30d158]': t.type === 'success',
+            'bg-[#ff453a]/10 border-[#ff453a]/25 text-[#ff453a]': t.type === 'error',
+            'bg-indigo-500/10 border-indigo-500/25 text-indigo-400': t.type === 'info',
+          }"
+        >
+          {{ t.message }}
+        </div>
+      </TransitionGroup>
+    </div>
+  </Teleport>
+
   <div
     class="space-y-6 animate-fade-in text-white relative"
     @dragenter="handleDragEnter"
@@ -673,7 +808,7 @@ defineExpose({ refresh: fetchFiles })
         @drop="handleDrop"
       >
         <div class="text-center space-y-3">
-          <div class="text-5xl">📂</div>
+          <div class="text-4xl text-indigo-400 i-lucide-upload mx-auto" />
           <p class="text-lg font-medium text-indigo-400">松开以上传文件至 <span class="font-mono">{{ activeBucket }}</span></p>
           <p class="text-xs text-white/40">支持图片和视频文件，大小限制按 Bucket 配置</p>
         </div>
@@ -692,14 +827,14 @@ defineExpose({ refresh: fetchFiles })
         <button
           v-if="pickerMode"
           @click="$emit('close')"
-          class="text-xs bg-white/5 hover:bg-white/10 text-white/70 font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer"
-        >✕ 取消</button>
+          class="text-xs bg-white/5 hover:bg-white/10 text-white/70 font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1"
+        ><span class="i-lucide-x text-[13px]" /> 取消</button>
         <button
           @click="handleRefresh"
           :disabled="isFetching"
           class="text-sm bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
         >
-          <span :class="{'animate-spin': isFetching}">🔄</span>
+          <span class="i-lucide-refresh-cw text-[14px]" :class="{'animate-spin': isFetching}" />
           刷新
         </button>
       </div>
@@ -717,7 +852,7 @@ defineExpose({ refresh: fetchFiles })
           ? 'text-indigo-400 bg-white/[0.03] border-white/[0.08] border-b-transparent'
           : 'text-white/60 border-transparent hover:text-white/90 hover:bg-white/[0.02]'"
       >
-        🔒 {{ b.name }}
+        <span class="i-lucide-lock text-[11px] opacity-50 mr-0.5" /> {{ b.name }}
       </button>
       <!-- 自定义桶 -->
       <button
@@ -729,6 +864,7 @@ defineExpose({ refresh: fetchFiles })
           ? 'text-indigo-400 bg-white/[0.03] border-white/[0.08] border-b-transparent'
           : 'text-white/60 border-transparent hover:text-white/90 hover:bg-white/[0.02]'"
       >
+        <span :class="b.public ? 'i-lucide-globe' : 'i-lucide-lock'" class="text-[10px] opacity-40 mr-0.5" :title="b.public ? '公开桶' : '私有桶'" />
         {{ b.name }}
         <span
           @click.stop="handleDeleteBucket(b.name)"
@@ -748,7 +884,7 @@ defineExpose({ refresh: fetchFiles })
           ? 'text-[#ff9f0a] bg-white/[0.03] border-white/[0.08] border-b-transparent'
           : 'bg-transparent text-white/40 border-transparent hover:text-white/80 hover:bg-white/[0.02]'"
       >
-        🗑️ 回收站
+        <span class="i-lucide-trash-2 text-[13px]" /> 回收站
         <span v-if="trashTotal > 0" class="ml-1 text-[10px] bg-[#ff9f0a]/20 text-[#ff9f0a] px-1.5 py-0.5 rounded-full">{{ trashTotal }}</span>
       </button>
     </div>
@@ -763,7 +899,7 @@ defineExpose({ refresh: fetchFiles })
           placeholder="搜索文件名..."
           class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl pl-9 pr-8 py-2.5 text-sm text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
         />
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-white/30 pointer-events-none">🔍</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 i-lucide-search text-[13px] text-white/30 pointer-events-none" />
         <button
           v-if="searchQuery"
           @click="searchQuery = ''"
@@ -796,25 +932,63 @@ defineExpose({ refresh: fetchFiles })
         </select>
         <button
           @click="sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'"
-          class="bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] rounded-full px-2.5 py-2.5 text-xs text-white/70 hover:text-white transition-all cursor-pointer"
+          class="relative bg-white/[0.03] hover:bg-white/[0.08] border rounded-full w-9 h-9 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer"
+          :class="sortOrder === 'asc' ? 'border-indigo-500/30 text-indigo-400' : 'border-white/[0.08]'"
           :title="sortOrder === 'desc' ? '降序' : '升序'"
         >
-          {{ sortOrder === 'desc' ? '↓' : '↑' }}
+          <span :class="sortOrder === 'desc' ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up'" class="text-[14px]" />
         </button>
       </div>
 
+      <!-- 日期范围 -->
+      <div class="flex items-center gap-1">
+        <input
+          v-model="dateFrom"
+          type="date"
+          class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2.5 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all cursor-pointer [color-scheme:dark] w-[120px]"
+          title="起始日期"
+        />
+        <span class="text-white/20 text-xs">-</span>
+        <input
+          v-model="dateTo"
+          type="date"
+          class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2.5 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all cursor-pointer [color-scheme:dark] w-[120px]"
+          title="结束日期"
+        />
+        <button
+          v-if="dateFrom || dateTo"
+          @click="dateFrom = ''; dateTo = ''"
+          class="text-[10px] text-white/30 hover:text-white/60 cursor-pointer"
+        >✕</button>
+      </div>
+
+      <!-- 上传者筛选 -->
+      <div class="relative" v-if="filteredFiles.some(f => f.uploadedBy)">
+        <input
+          v-model="uploaderFilter"
+          type="text"
+          placeholder="上传者..."
+          class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2.5 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all w-[100px]"
+        />
+        <button
+          v-if="uploaderFilter"
+          @click="uploaderFilter = ''"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/30 hover:text-white/60 cursor-pointer"
+        >✕</button>
+      </div>
+
       <!-- 视图切换 -->
-      <div class="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-full overflow-hidden">
+      <div class="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-lg overflow-hidden divide-x divide-white/[0.06]">
         <button
           @click="viewMode = 'grid'"
-          class="px-3 py-2 text-xs transition-all cursor-pointer bg-transparent"
-          :class="viewMode === 'grid' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/50 hover:text-white/80'"
-        >▦</button>
+          class="flex items-center justify-center w-9 h-9 transition-all cursor-pointer"
+          :class="viewMode === 'grid' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/40 hover:text-white/70 bg-transparent'"
+        ><span class="i-lucide-layout-grid text-[15px]" /></button>
         <button
           @click="viewMode = 'list'"
-          class="px-3 py-2 text-xs transition-all cursor-pointer bg-transparent"
-          :class="viewMode === 'list' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/50 hover:text-white/80'"
-        >☰</button>
+          class="flex items-center justify-center w-9 h-9 transition-all cursor-pointer"
+          :class="viewMode === 'list' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/40 hover:text-white/70 bg-transparent'"
+        ><span class="i-lucide-list text-[15px]" /></button>
       </div>
 
       <!-- 批量选择 -->
@@ -843,11 +1017,16 @@ defineExpose({ refresh: fetchFiles })
         上传文件
       </button>
       <input ref="fileInputRef" type="file" multiple class="hidden" @change="handleFileChange" />
+
+      <!-- 筛选计数 -->
+      <span v-if="(dateFrom || dateTo || uploaderFilter) && filteredCount !== files.length" class="text-[11px] text-white/30 ml-1">
+        显示 {{ filteredCount }}/{{ files.length }}
+      </span>
     </div>
 
     <!-- ── 面包屑导航 ─────────────────────────────────────────── -->
     <div v-if="activeView === 'files' && breadcrumbs.length > 0" class="flex items-center gap-1.5 text-xs text-white/50">
-      <button @click="clearPrefix" class="hover:text-indigo-400 transition-colors cursor-pointer">📁 根目录</button>
+      <button @click="clearPrefix" class="hover:text-indigo-400 transition-colors cursor-pointer flex items-center gap-1"><span class="i-lucide-folder text-[13px]" /> 根目录</button>
       <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path">
         <span class="text-white/20">/</span>
         <button
@@ -931,6 +1110,22 @@ defineExpose({ refresh: fetchFiles })
           </tbody>
         </table>
       </div>
+      <!-- 回收站分页 -->
+      <div v-if="trashTotal > trashLimit" class="flex items-center justify-between text-xs text-white/40">
+        <span>共 {{ trashTotal }} 项，第 {{ Math.floor(trashOffset / trashLimit) + 1 }} / {{ Math.ceil(trashTotal / trashLimit) }} 页</span>
+        <div class="flex gap-2">
+          <button
+            :disabled="!trashHasPrev"
+            @click="trashPrevPage"
+            class="bg-white/[0.05] hover:bg-white/[0.10] disabled:opacity-50 border border-white/[0.08] text-white/80 disabled:text-white/30 rounded-full px-4 py-2 transition-all cursor-pointer"
+          >上一页</button>
+          <button
+            :disabled="!trashHasNext"
+            @click="trashNextPage"
+            class="bg-white/[0.05] hover:bg-white/[0.10] disabled:opacity-50 border border-white/[0.08] text-white/80 disabled:text-white/30 rounded-full px-4 py-2 transition-all cursor-pointer"
+          >下一页</button>
+        </div>
+      </div>
     </div>
 
     <!-- ── 上传进度 ───────────────────────────────────────────── -->
@@ -950,9 +1145,11 @@ defineExpose({ refresh: fetchFiles })
     </div>
 
     <!-- ── 空状态 ─────────────────────────────────────────────── -->
-    <div v-else-if="activeView === 'files' && !isFetching && files.length === 0" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
-      <div class="text-5xl opacity-30">{{ searchQuery ? '🔍' : '📭' }}</div>
-      <p v-if="searchQuery" class="text-white/40 text-sm">未找到匹配「{{ searchQuery }}」的文件</p>
+    <div v-else-if="activeView === 'files' && !isFetching && filteredFiles.length === 0" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
+      <div class="text-5xl opacity-30">{{ (searchQuery || dateFrom || dateTo || uploaderFilter) ? '🔍' : '📭' }}</div>
+      <p v-if="searchQuery || dateFrom || dateTo || uploaderFilter" class="text-white/40 text-sm">
+        未找到匹配的文件<span v-if="files.length > 0" class="text-white/20">（共 {{ files.length }} 个文件被筛选）</span>
+      </p>
       <template v-else>
         <p class="text-white/40 text-sm">此 Bucket 暂无文件</p>
         <p class="text-white/25 text-xs">拖拽文件到页面任意位置，或点击「上传文件」按钮开始</p>
@@ -978,7 +1175,7 @@ defineExpose({ refresh: fetchFiles })
           @drop="handleFolderDrop($event, folder)"
           class="flex items-center gap-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-xl px-4 py-3 text-xs text-white/70 transition-all cursor-pointer"
         >
-          <span>📁</span>
+          <span class="i-lucide-folder text-[14px] text-indigo-400/70" />
           <span class="font-mono">{{ folder }}</span>
         </button>
       </div>
@@ -986,7 +1183,7 @@ defineExpose({ refresh: fetchFiles })
       <!-- 文件网格 -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <div
-          v-for="file in files"
+          v-for="file in filteredFiles"
           :key="file.path"
           @click="handleFileClick(file)"
           class="group relative aspect-square rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
@@ -1053,7 +1250,7 @@ defineExpose({ refresh: fetchFiles })
           @click="navigateFolder(folder)"
           class="flex items-center gap-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-xl px-4 py-3 text-xs text-white/70 transition-all cursor-pointer"
         >
-          <span>📁</span>
+          <span class="i-lucide-folder text-[14px] text-indigo-400/70" />
           <span class="font-mono">{{ folder }}</span>
         </button>
       </div>
@@ -1064,7 +1261,7 @@ defineExpose({ refresh: fetchFiles })
             <thead>
               <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-white/[0.005]">
                 <th v-if="selecting" class="px-4 py-4 w-10 font-semibold">
-                  <input type="checkbox" :checked="selectedCount === files.length && files.length > 0" @change="toggleSelectAll" class="cursor-pointer" />
+                  <input type="checkbox" :checked="selectedCount === filteredFiles.length && filteredFiles.length > 0" @change="toggleSelectAll" class="cursor-pointer" />
                 </th>
                 <th class="px-6 py-4 font-semibold font-mono">文件</th>
                 <th class="px-6 py-4 font-semibold font-mono">类型</th>
@@ -1075,7 +1272,7 @@ defineExpose({ refresh: fetchFiles })
             </thead>
             <tbody class="divide-y divide-white/[0.04]">
               <tr
-                v-for="file in files"
+                v-for="file in filteredFiles"
                 :key="file.path"
                 @click="handleFileClick(file)"
                 class="hover:bg-white/[0.02] transition-colors duration-200 cursor-pointer"
@@ -1221,12 +1418,66 @@ defineExpose({ refresh: fetchFiles })
         </div>
       </div>
     </Transition>
+
+    <!-- ════════════════════ Lightbox 图片预览 ════════════════════ -->
+    <Teleport to="body">
+      <Transition name="lightbox">
+        <div
+          v-if="lightboxFile"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+          @click.self="closeLightbox"
+          @keydown="onLightboxKeydown"
+          tabindex="0"
+        >
+          <!-- 关闭按钮 -->
+          <button @click="closeLightbox" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-lg transition-all z-10 cursor-pointer">✕</button>
+
+          <!-- 上一张 -->
+          <button
+            @click.stop="onLightboxKeydown({ key: 'ArrowLeft' } as KeyboardEvent)"
+            class="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-xl transition-all z-10 cursor-pointer"
+          >‹</button>
+
+          <!-- 下一张 -->
+          <button
+            @click.stop="onLightboxKeydown({ key: 'ArrowRight' } as KeyboardEvent)"
+            class="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-xl transition-all z-10 cursor-pointer"
+          >›</button>
+
+          <!-- 图片容器 -->
+          <div class="max-w-[90vw] max-h-[90vh] flex flex-col items-center gap-4">
+            <img
+              :src="lightboxFile.publicUrl || undefined"
+              :alt="lightboxFile.name"
+              class="max-w-full max-h-[82vh] object-contain rounded-lg shadow-2xl"
+            />
+            <!-- 底部信息 -->
+            <div class="flex items-center gap-6 text-sm text-white/60">
+              <span class="font-mono text-white/80">{{ lightboxFile.name }}</span>
+              <span>{{ lightboxFile.sizeFormatted }}</span>
+              <span v-if="lightboxFile.width && lightboxFile.height" class="text-white/40">{{ lightboxFile.width }}×{{ lightboxFile.height }}</span>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.toast-enter-active { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.toast-leave-active { transition: all 0.2s ease-in; }
+.toast-enter-from { opacity: 0; transform: translateX(40px); }
+.toast-leave-to { opacity: 0; transform: translateX(40px); }
+
+.lightbox-enter-active, .lightbox-leave-active { transition: opacity 0.25s ease; }
+.lightbox-enter-from, .lightbox-leave-to { opacity: 0; }
+.lightbox-enter-active img, .lightbox-leave-active img { transition: transform 0.25s ease; }
+.lightbox-enter-from img { transform: scale(0.95); }
+.lightbox-leave-to img { transform: scale(0.95); }
 
 .slide-right-enter-active, .slide-right-leave-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);

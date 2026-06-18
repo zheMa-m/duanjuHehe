@@ -85,7 +85,16 @@ const runCronJob = async (job: CronJob) => {
   try {
     const res = await $fetch<any>(job.targetUrl, { method: 'POST' })
     if (res.success) {
-      emit('toast', `🎉 任务运行成功！归档日志: ${res.data.archivedCount} 条`, 'success')
+      // 根据任务类型动态生成成功提示
+      let detail = ''
+      if (job.id === 'cron_archive_audit_logs') {
+        detail = `归档日志: ${res.data?.archivedCount ?? 0} 条`
+      } else if (job.id === 'cron_trash_cleanup') {
+        detail = `清理文件: ${res.data?.cleaned ?? 0} 个`
+      } else {
+        detail = '操作完成'
+      }
+      emit('toast', `🎉 任务运行成功！${detail}`, 'success')
       await fetchCronJobs()
     } else {
       emit('toast', '任务执行异常: ' + (res.message || '未知错误'), 'error')

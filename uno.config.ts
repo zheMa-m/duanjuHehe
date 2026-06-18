@@ -59,6 +59,7 @@ export default defineConfig({
     'i-lucide-shopping-bag',
     'i-lucide-clipboard-list',
     'i-lucide-receipt',
+    'i-lucide-refresh-cw',
     'i-lucide-trending-up',
     'i-lucide-megaphone',
     'i-lucide-message-square',
@@ -75,5 +76,8 @@ export default defineConfig({
     'i-lucide-sun',
     'i-lucide-contrast',
     'i-lucide-monitor',
+    // 媒体库工具栏图标（排序方向动态绑定）
+    'i-lucide-arrow-down',
+    'i-lucide-arrow-up',
   ]
 })
