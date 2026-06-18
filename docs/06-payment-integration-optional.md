@@ -54,7 +54,7 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 
 ---
 
-## 4. 数据库表 — ⚠️ 可选模块（0005_payment_optional.sql）
+## 4. 数据库表 — 可选模块（0004_payment.sql）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|

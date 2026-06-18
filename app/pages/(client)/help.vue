@@ -249,7 +249,7 @@ const routingRows = [
 
 const middlewareSteps = [
   '00.apm', '01.subdomain', '02.auth', '03.admin',
-  '04.auth-guard', '05.access-guard',
+  '04.auth-guard', '06.api-security',
 ]
 
 const envRows = [
@@ -258,9 +258,6 @@ const envRows = [
   ['SUPABASE_SERVICE_ROLE_KEY', 'Supabase service_role key', '是', '仅服务端'],
   ['STRIPE_SECRET_KEY', 'Stripe 密钥', '否', '仅支付模块'],
   ['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 密钥', '否', '仅支付模块'],
-  ['SITE_ACCESS_PASSWORD', '网站统一访问密码', '是', '05.access-guard 校验'],
-  ['SITE_ADMIN_USERNAME', '内置管理员用户名', '是', '内置后台账号'],
-  ['SITE_ADMIN_PASSWORD', '内置管理员密码', '是', '内置后台账号'],
   ['MOCK_DB', 'Mock 数据库开关', '是', '本地开发 true，生产 false'],
 ]
 
@@ -343,8 +340,6 @@ const checklistItems = [
   '所有 .env 变量已在 Vercel 中配置',
   'Supabase 项目 URL + anon key + service_role key 已填入',
   'Stripe 密钥已配置（如需支付功能）',
-  'SITE_ACCESS_PASSWORD 已设置',
-  'SITE_ADMIN_USERNAME / SITE_ADMIN_PASSWORD 已设置',
   'npm run gen:types 已执行',
   'supabase db push 已执行',
   'npm run check 通过',
@@ -713,7 +708,7 @@ const faqData = [
       <div class="doc-content">
 
         <!-- ═══════ S0: Overview ═══════ -->
-        <section id="s0" class="section">
+        <section id="s0" class="section" v-once>
           <div class="section-header">
             <div class="section-num">00</div>
             <h2>{{ '文档概览' }}</h2>
@@ -736,7 +731,7 @@ const faqData = [
         </section>
 
         <!-- ═══════ S1: Positioning & Tech Stack ═══════ -->
-        <section id="s1" class="section">
+        <section id="s1" class="section" v-once>
           <div class="section-header">
             <div class="section-num">01</div>
             <h2>{{ '定位与技术栈' }}</h2>
@@ -825,7 +820,7 @@ const faqData = [
         </section>
 
         <!-- ═══════ S2: Directory Structure & Routing ═══════ -->
-        <section id="s2" class="section">
+        <section id="s2" class="section" v-once>
           <div class="section-header">
             <div class="section-num">02</div>
             <h2>{{ '目录结构与路由' }}</h2>
@@ -900,7 +895,7 @@ const faqData = [
         </section>
 
         <!-- ═══════ S3: Env Vars ═══════ -->
-        <section id="s3" class="section">
+        <section id="s3" class="section" v-once>
           <div class="section-header">
             <div class="section-num">03</div>
             <h2>{{ '环境变量' }}</h2>
@@ -941,7 +936,7 @@ const faqData = [
         </section>
 
         <!-- ═══════ S4: Rendering Strategies ═══════ -->
-        <section id="s4" class="section">
+        <section id="s4" class="section" v-once>
           <div class="section-header">
             <div class="section-num">04</div>
             <h2>{{ '渲染策略对比' }}</h2>
@@ -1050,7 +1045,7 @@ export default defineNuxtConfig({
         </section>
 
         <!-- ═══════ S5: Supabase ═══════ -->
-        <section id="s5" class="section">
+        <section id="s5" class="section" v-once>
           <div class="section-header">
             <div class="section-num">05</div>
             <h2>{{ 'Supabase 集成与数据库迁移' }}</h2>
@@ -1120,6 +1115,15 @@ export default defineNuxtConfig({
                 <pre><code>supabase login
 supabase link --project-ref &lt;your-project-ref&gt;
 supabase db push</code></pre>
+              </div>
+            </div>
+            <div class="subsection">
+              <h3>{{ '填充初始数据（种子数据）' }}</h3>
+              <p>{{ '数据库迁移仅创建表结构，不包含业务数据。如果切换为物理数据库而未填充初始数据，H5 页面会因为 campaigns 表为空而白屏。' }}</p>
+              <p>{{ '在 Supabase Dashboard → SQL Editor 中运行以下 SQL 以插入营销活动及商品初始数据：' }}</p>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <pre><code>{{ seedSql }}</code></pre>
               </div>
             </div>
             <div class="subsection">
@@ -1342,7 +1346,7 @@ npm run gen:rls &lt;table&gt; [--admin]</code></pre>
 
         <!-- ═══════ S5: Migrations ═══════ -->
         <!-- ═══════ S6: Auth ═══════ -->
-        <section id="s7" class="section">
+        <section id="s7" class="section" v-once>
           <div class="section-header">
             <div class="section-num">06</div>
             <h2>{{ 'Supabase OAuth 体系' }}</h2>
@@ -1472,9 +1476,8 @@ CREATE TRIGGER on_auth_user_created
                 <li><strong>02.auth：</strong>{{ '解析用户身份（Bearer Header → Cookie → 匿名 device-id）' }}</li>
                 <li><strong>03.admin：</strong>{{ '验证管理员角色，非 admin 返回 403' }}</li>
                 <li><strong>04.auth-guard：</strong>{{ '要求登录用户，匿名用户访问 payments/orders 返回 403' }}</li>
-                <li><strong>05.access-guard：</strong>{{ '站点访问密码保护（SITE_ACCESS_PASSWORD），生产环境全站校验' }}</li>
+                <li><strong>06.api-security：</strong>{{ 'API 安全防护，防 CSRF 及暴力破解' }}</li>
                 <li>{{ '公开接口（campaigns 等）跳过 04.auth-guard，无需登录' }}</li>
-                <li>{{ '认证相关 API 和 Stripe Webhook 绕过 05.access-guard' }}</li>
               </ul>
             </div>
             <div class="subsection">
@@ -1511,11 +1514,50 @@ CREATE TRIGGER on_auth_user_created
                 <li>{{ '两个组件均支持 i18n 中英文双语，通过 t() 函数切换语言' }}</li>
               </ul>
             </div>
+            <div class="subsection">
+              <h3>{{ '常见认证问题' }}</h3>
+              <div class="faq-item" :class="{ expanded: faqExpanded['auth-trouble-0'] }">
+                <div class="faq-q" @click="toggleFaq('auth-trouble-0')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ '邮箱注册后用户无法登录？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['auth-trouble-0']">
+                  A: {{ '检查 Supabase Dashboard → Authentication → Settings → Email Auth。如果开启了 Confirm email，用户必须点击确认邮件中的链接激活后才能登录。开发测试阶段可先关闭此选项。' }}
+                </div>
+              </div>
+              <div class="faq-item" :class="{ expanded: faqExpanded['auth-trouble-1'] }">
+                <div class="faq-q" @click="toggleFaq('auth-trouble-1')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ 'OAuth 回调报错 Invalid redirect URL？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['auth-trouble-1']">
+                  A: {{ '需在 Supabase Dashboard → Authentication → URL Configuration → Redirect URLs 中添加对应的域名（如本地开发填 http://localhost:3000/api/v1/auth/callback，生产环境填线上真实域名回调）。' }}
+                </div>
+              </div>
+              <div class="faq-item" :class="{ expanded: faqExpanded['auth-trouble-2'] }">
+                <div class="faq-q" @click="toggleFaq('auth-trouble-2')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ 'Token 过期后接口返回 401 报错？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['auth-trouble-2']">
+                  A: {{ '检查 Cookie 中 sb-refresh-token 是否存在。正常情况下客户端 supabase-auth 插件会自动监听并刷新 token。如仍 401，请检查 Supabase 控制台中 JWT Expiry 设置（推荐为 3600s）。' }}
+                </div>
+              </div>
+              <div class="faq-item" :class="{ expanded: faqExpanded['auth-trouble-3'] }">
+                <div class="faq-q" @click="toggleFaq('auth-trouble-3')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ '设备绑定邮箱后匿名历史数据会丢失吗？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['auth-trouble-3']">
+                  A: {{ '历史行为与广告事件主要绑定在 device_id 上，绑定后新业务数据走正式的 user_id。历史的匿名记录可通过关联的 device-id header 进行合并与追溯。' }}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         <!-- ═══════ S7: Vercel Deployment ═══════ -->
-        <section id="s8" class="section">
+        <section id="s8" class="section" v-once>
           <div class="section-header">
             <div class="section-num">08</div>
             <h2>{{ 'Vercel 部署' }}</h2>
@@ -1538,7 +1580,7 @@ CREATE TRIGGER on_auth_user_created
                 <table>
                   <thead><tr><th v-for="col in (['变量名', '说明', '是否必须'] as string[])" :key="col">{{ col }}</th></tr></thead>
                   <tbody>
-                    <tr v-for="(row, i) in ([['MOCK_DB', '关闭 Mock 沙盒，设为 false', '必须'],['SUPABASE_URL', 'Supabase 项目 URL（服务端）', '必须'],['SUPABASE_SERVICE_ROLE_KEY', 'Supabase 服务端密钥（禁止加 NUXT_PUBLIC_ 前缀）', '必须'],['NUXT_PUBLIC_SUPABASE_URL', 'Supabase URL（前端公开）', '必须'],['NUXT_PUBLIC_SUPABASE_ANON_KEY', 'Supabase anon 公钥（前端公开）', '必须'],['STRIPE_SECRET_KEY', 'Stripe 密钥（服务端）', '可选'],['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 签名密钥', '可选'],['STRIPE_PUBLIC_KEY', 'Stripe 公钥', '可选'],['SITE_ACCESS_PASSWORD', '统一访问密码，留空不启用，保护全站页面 + API 文档', '可选']] as string[][])" :key="i">
+                    <tr v-for="(row, i) in ([['MOCK_DB', '关闭 Mock 沙盒，设为 false', '必须'],['SUPABASE_URL', 'Supabase 项目 URL（服务端）', '必须'],['SUPABASE_SERVICE_ROLE_KEY', 'Supabase 服务端密钥（禁止加 NUXT_PUBLIC_ 前缀）', '必须'],['NUXT_PUBLIC_SUPABASE_URL', 'Supabase URL（前端公开）', '必须'],['NUXT_PUBLIC_SUPABASE_ANON_KEY', 'Supabase anon 公钥（前端公开）', '必须'],['STRIPE_SECRET_KEY', 'Stripe 密钥（服务端）', '可选'],['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 签名密钥', '可选'],['STRIPE_PUBLIC_KEY', 'Stripe 公钥', '可选']] as string[][])" :key="i">
                       <td><code>{{ row[0] }}</code></td>
                       <td>{{ row[1] }}</td>
                       <td><span :class="row[2] === '必须' ? 'badge badge-purple' : 'badge badge-cyan'">{{ row[2] }}</span></td>
@@ -1606,6 +1648,26 @@ CREATE TRIGGER on_auth_user_created
               </div>
             </div>
             <div class="subsection">
+              <h3>{{ '站点 URL 与子域名路由' }}</h3>
+              <p>{{ '项目采用零配置方案，站点 URL 自动适配不同环境：' }}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['环境', 'URL 来源', '示例'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in ([['本地开发', '默认值', 'http://localhost:3000'],['Vercel Preview', 'VERCEL_URL（自动注入）', 'https://hehe-app-git-main.vercel.app'],['Vercel Production', 'VERCEL_URL（绑定域名后自动）', 'https://yourdomain.com']] as string[][])" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><code v-if="j === 1">{{ cell }}</code><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>{{ '子域名路由中间件自动派生逻辑：' }}</p>
+              <ul>
+                <li>{{ 'server/middleware/01.subdomain-rewrite.ts 自动从运行环境中提取根域名，在 Vercel 绑定自定义域名后自动激活通配符 H5 子域名，无需手动设置。' }}</li>
+                <li>{{ '本地开发子域名需要配置 ROOT_DOMAIN=yourdomain.localhost 环境变量，并配合本地 host 映射。' }}</li>
+                <li>{{ '可配置最高优先级的 NUXT_PUBLIC_BASE_URL 环境变量，显式覆盖站点根路径。' }}</li>
+              </ul>
+            </div>
+            <div class="subsection">
               <h3>{{ '部署检查清单' }}</h3>
               <ul class="checklist">
                 <li v-for="(item, i) in checklistItems" :key="i">✅ {{ item }}</li>
@@ -1613,11 +1675,36 @@ CREATE TRIGGER on_auth_user_created
             </div>
             <div class="subsection">
               <h3>{{ 'Vercel Analytics & Speed Insights' }}</h3>
-              <p>{{ 'Vercel 提供内置的性能监控工具：' }}</p>
+              <p>{{ 'Vercel 提供内置的性能监控与流量分析工具：' }}</p>
+              <p>{{ '安装统计与监控依赖：' }}</p>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <pre><code># 安装 Vercel 性能分析与监控包
+npm i @vercel/analytics @vercel/speed-insights</code></pre>
+              </div>
+              <p>{{ '在 app.vue 中引入并挂载（Nuxt 4 集成方式）：' }}</p>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <pre><code>&lt;script setup lang="ts"&gt;
+import { Analytics } from '@vercel/analytics/nuxt'
+import { SpeedInsights } from '@vercel/speed-insights/nuxt'
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;NuxtLayout&gt;
+      &lt;NuxtPage /&gt;
+    &lt;/NuxtLayout&gt;
+    &lt;!-- 挂载监控组件 --&gt;
+    &lt;Analytics /&gt;
+    &lt;SpeedInsights /&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+              </div>
               <ul>
-                <li><strong>Analytics：</strong>{{ '在 Vercel Dashboard → Analytics 中启用，自动收集页面浏览量、访问来源、设备信息等' }}</li>
-                <li><strong>Speed Insights：</strong>{{ '监控 Core Web Vitals（LCP、FID、CLS），提供性能优化建议' }}</li>
-                <li>{{ 'Hobby 计划包含基础分析，Pro 计划提供更详细的数据和更长的保留期' }}</li>
+                <li><strong>Analytics：</strong>{{ '在 Vercel Dashboard → Analytics 中一键启用，自动收集 PV、UV、访问来源及设备类型。' }}</li>
+                <li><strong>Speed Insights：</strong>{{ '监控 Core Web Vitals 指标（如 LCP、CLS、INP），为产品性能优化提供高价值建议。' }}</li>
+                <li>{{ 'Hobby 计划包含基础的分析数据，Pro 计划提供更长的历史保留期及多维度高级数据。' }}</li>
               </ul>
             </div>
             <div class="subsection">
@@ -1648,8 +1735,27 @@ vercel --prod</code></pre>
               </div>
             </div>
             <div class="subsection">
-              <h3>{{ 'Preview Deployments' }}</h3>
-              <p>{{ '每个 PR 和分支推送都会自动创建预览部署，URL 格式为 ' }}<code>https://{project}-git-{branch}-{user}.vercel.app</code>。{{ '预览环境使用与生产环境相同的环境变量配置，可以在合并前验证所有功能。' }}</p>
+              <h3>{{ 'Preview Deployments（预览部署）' }}</h3>
+              <p>{{ '每次推送代码到非 main 分支或创建 Pull Request 时，Vercel 都会自动创建一个独立的预览部署。' }}</p>
+              <p>{{ '预览部署的典型开发流程示例：' }}</p>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <pre><code># 1. 检出新功能分支
+git checkout -b feature/new-campaign
+
+# 2. 开发完毕后提交并推送到 GitHub
+git add .
+git commit -m "feat: design new H5 campaign page"
+git push origin feature/new-campaign
+
+# → Vercel 会自动监听该推送，并生成带有该分支名称的预览 URL</code></pre>
+              </div>
+              <p>{{ '预览环境特点及数据库隔离：' }}</p>
+              <ul>
+                <li>{{ 'PR 关联：Vercel 会自动在 GitHub 的 PR 评论中提供该环境的预览链接。' }}</li>
+                <li>{{ '独立配置：预览环境默认复用生产环境变量。如需测试数据库隔离，可在 Vercel 后台为 Preview 环境配置专门的测试数据库 API 凭证，或在 Pro 团队计划中使用 Supabase Branching。' }}</li>
+                <li>{{ '合并上线：预览环境验证通过后，将 PR 合并到 main 分支，即会自动触发生产环境的增量更新。' }}</li>
+              </ul>
             </div>
             <div class="subsection">
               <h3>{{ 'Vercel 计划选择' }}</h3>
@@ -1669,37 +1775,55 @@ vercel --prod</code></pre>
               <div class="faq-item" :class="{ expanded: faqExpanded['deploy-trouble-0'] }">
                 <div class="faq-q" @click="toggleFaq('deploy-trouble-0')">
                   <span class="faq-chevron">▸</span>
-                  Q: {{ '部署后页面白屏？' }}
+                  Q: {{ '部署后页面白屏 / 500 错误？' }}
                 </div>
                 <div class="faq-a" v-show="faqExpanded['deploy-trouble-0']">
-                  A: {{ '检查 Vercel 环境变量是否全部配置（尤其是 NUXT_PUBLIC_SUPABASE_URL 和 NUXT_PUBLIC_SUPABASE_ANON_KEY）。打开浏览器控制台查看 Network 请求是否有 500 错误。' }}
+                  A: {{ '检查 Vercel 环境变量是否全部配置（尤其是 NUXT_PUBLIC_SUPABASE_URL 和 NUXT_PUBLIC_SUPABASE_ANON_KEY，以及 MOCK_DB 设为 false）。打开浏览器控制台查看 Network 请求，或在 Vercel Dashboard → Deployments → Functions 日志中排查具体运行时报错。' }}
                 </div>
               </div>
               <div class="faq-item" :class="{ expanded: faqExpanded['deploy-trouble-1'] }">
                 <div class="faq-q" @click="toggleFaq('deploy-trouble-1')">
                   <span class="faq-chevron">▸</span>
-                  Q: {{ '子域名路由不生效？' }}
+                  Q: {{ 'API 路由返回 404？' }}
                 </div>
                 <div class="faq-a" v-show="faqExpanded['deploy-trouble-1']">
-                  A: {{ '确认 DNS 中通配符记录（*.example.com）已正确配置并指向 Vercel。确认 Vercel Dashboard → Domains 中已添加通配符域名。检查 01.subdomain-rewrite 中间件逻辑。' }}
+                  A: {{ '确认 API 路由格式正确（如 /api/v1/xxx）。检查子域名重写中间件（01.subdomain-rewrite）是否正确识别了请求，在 Vercel Functions 日志中检查 event.path 路径重写结果。' }}
                 </div>
               </div>
               <div class="faq-item" :class="{ expanded: faqExpanded['deploy-trouble-2'] }">
                 <div class="faq-q" @click="toggleFaq('deploy-trouble-2')">
                   <span class="faq-chevron">▸</span>
-                  Q: {{ 'ISR 缓存不生效？' }}
+                  Q: {{ '子域名不生效？' }}
                 </div>
                 <div class="faq-a" v-show="faqExpanded['deploy-trouble-2']">
-                  A: {{ '确认路由配置中已设置正确的 cache-control header。Vercel Hobby 计划 ISR 缓存时间限制为 3600 秒。使用 curl -I 检查响应头中的 x-vercel-cache 状态。' }}
+                  A: {{ '确认 DNS 中通配符记录（*.example.com）已正确配置并指向 Vercel。对于通配符域名，必须使用 Vercel Nameservers。确认 Vercel Dashboard → Domains 中已添加了通配符域名。' }}
                 </div>
               </div>
               <div class="faq-item" :class="{ expanded: faqExpanded['deploy-trouble-3'] }">
                 <div class="faq-q" @click="toggleFaq('deploy-trouble-3')">
                   <span class="faq-chevron">▸</span>
-                  Q: {{ '构建超时？' }}
+                  Q: {{ '环境变量修改后不生效？' }}
                 </div>
                 <div class="faq-a" v-show="faqExpanded['deploy-trouble-3']">
-                  A: {{ 'Hobby 计划构建超时限制为 45 分钟。如超时，检查是否有循环依赖或过大的静态资源。可以升级到 Pro 计划获得更长的构建时间。' }}
+                  A: {{ 'Vercel 的环境变量在构建时注入。修改环境变量后需要进行 Redeploy。可以通过 Vercel 后台点击 Redeploy，或推送一个空 commit 触发自动重新部署：git commit --allow-empty -m "chore: redeploy for env update" && git push。' }}
+                </div>
+              </div>
+              <div class="faq-item" :class="{ expanded: faqExpanded['deploy-trouble-4'] }">
+                <div class="faq-q" @click="toggleFaq('deploy-trouble-4')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ 'ISR/SWR 缓存不更新？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['deploy-trouble-4']">
+                  A: {{ 'Vercel 的缓存根据 routeRules 中的时间自动过期。如需强制清除，可在 Vercel Dashboard → Deployments 中点击 Purge Cache，或者推送新代码部署（新部署会自动清除缓存）。' }}
+                </div>
+              </div>
+              <div class="faq-item" :class="{ expanded: faqExpanded['deploy-trouble-5'] }">
+                <div class="faq-q" @click="toggleFaq('deploy-trouble-5')">
+                  <span class="faq-chevron">▸</span>
+                  Q: {{ '构建超时或内存不足？' }}
+                </div>
+                <div class="faq-a" v-show="faqExpanded['deploy-trouble-5']">
+                  A: {{ 'Hobby 计划构建超时上限为 45 分钟，内存约 3GB。如果构建失败，检查是否引入了过大依赖（如 puppeteer）。若确实需要，可以在 vercel.json 中为特定函数增加内存限制，或升级到 Pro 计划。' }}
                 </div>
               </div>
             </div>
@@ -1707,12 +1831,82 @@ vercel --prod</code></pre>
         </section>
 
         <!-- ═══════ S8: GitHub ═══════ -->
-        <section id="s9" class="section">
+        <section id="s9" class="section" v-once>
           <div class="section-header">
             <div class="section-num">09</div>
             <h2>{{ 'GitHub 集成' }}</h2>
           </div>
           <div class="section-body">
+            <div class="subsection">
+              <h3>{{ '前置准备' }}</h3>
+              <p>{{ '使用 GitHub 进行代码托管与 CI/CD 流程：' }}</p>
+              <ol>
+                <li>{{ '注册 GitHub 账号，并推荐在本地配置 Git 身份信息：' }}</li>
+                <div class="code-block">
+                  <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                  <pre><code>git config --global user.name "Your Name"
+git config --global user.email "your-email@example.com"</code></pre>
+                </div>
+                <li>{{ '安装 GitHub CLI（推荐），方便通过命令行管理 PR 与仓库：' }}</li>
+                <div class="code-block">
+                  <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                  <pre><code>brew install gh
+gh auth login</code></pre>
+                </div>
+              </ol>
+            </div>
+            <div class="subsection">
+              <h3>{{ '创建与推送仓库' }}</h3>
+              <p>{{ '将本地项目关联并推送到 GitHub 远程私有仓库：' }}</p>
+              <ol>
+                <li>{{ '在 GitHub 上创建一个名为 ' }}<code>hehe-app</code>{{ ' 的私有仓库（Private）。' }}</li>
+                <li>{{ '在本地项目根目录下，运行以下命令进行关联并推送：' }}</li>
+                <div class="code-block">
+                  <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                  <pre><code># 初始化 git 并设置默认分支为 main
+git init
+git branch -M main
+
+# 关联远程仓库
+git remote add origin https://github.com/your-username/hehe-app.git
+
+# 首次推送代码
+git add .
+git commit -m "Initial commit: Nuxt 4 + Supabase + Vercel"
+git push -u origin main</code></pre>
+                </div>
+              </ol>
+            </div>
+            <div class="subsection">
+              <h3>{{ '.gitignore 配置' }}</h3>
+              <p>{{ '确保敏感和不必要的构建文件不被提交。项目根目录下应包含完整的 .gitignore：' }}</p>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <pre><code># 依赖与临时文件
+node_modules/
+.nuxt/
+.output/
+.data/
+.nitro/
+.cache/
+
+# 环境变量 (严禁提交敏感密钥)
+.env
+.env.*
+!.env.example
+
+# 构建产物与平台临时目录
+dist/
+.vercel/</code></pre>
+              </div>
+              <div class="alert alert-warn">
+                <div class="alert-icon">🔒</div>
+                <div class="alert-body">
+                  <strong>{{ '安全红线' }}</strong>
+                  <p>{{ '.env 文件包含 Supabase 和 Stripe 密钥，绝对不能提交到 GitHub。如果误提交，需要立即在服务商后台重置/轮换所有密钥，并使用 git-filter-repo 彻底清理 Git 历史。' }}</p>
+                </div>
+              </div>
+            </div>
             <div class="subsection">
               <h3>{{ '分支策略' }}</h3>
               <div class="table-wrap">
@@ -1796,6 +1990,22 @@ vercel --prod</code></pre>
               </div>
             </div>
             <div class="subsection">
+              <h3>{{ 'Pull Request 工作流与合并' }}</h3>
+              <p>{{ 'PR 是单仓或多团队协作中保证主干代码质量的核心工作流：' }}</p>
+              <ol>
+                <li><strong>{{ '创建 PR：' }}</strong>{{ '在 GitHub 推送 feature 分支后，点击仓库顶部的 Compare & pull request，根据模板填写 Title 和 Description。' }}</li>
+                <li><strong>{{ '状态检查：' }}</strong>{{ '等待 GitHub Actions 自动运行，确认编译与类型检查（Status checks）全部变为绿色通过状态。' }}</li>
+                <li><strong>{{ '选择合并方式：' }}</strong>
+                  <ul>
+                    <li><strong>Merge commit</strong>：{{ '保留所有细分 commit 提交记录及分支线（推荐，最完整）。' }}</li>
+                    <li><strong>Squash and merge</strong>：{{ '将分支上的所有提交压缩合并为一个 clean commit 写入主干（适合碎片化小功能）。' }}</li>
+                    <li><strong>Rebase and merge</strong>：{{ '采用变基的形式保持一条线性的主干提交历史。' }}</li>
+                  </ul>
+                </li>
+                <li><strong>{{ '触发上线：' }}</strong>{{ '点击 Confirm merge 合并后，Vercel 将自动接管并将代码部署上线至生产环境。' }}</li>
+              </ol>
+            </div>
+            <div class="subsection">
               <h3>{{ '安全实践' }}</h3>
               <div class="alert alert-warn">
                 <div class="alert-icon">⚠️</div>
@@ -1850,7 +2060,7 @@ vercel --prod</code></pre>
         </section>
 
         <!-- ═══════ S9: Stripe Payments ═══════ -->
-        <section id="s10" class="section">
+        <section id="s10" class="section" v-once>
           <div class="section-header">
             <div class="section-num">10</div>
             <h2>{{ '支付系统' }}</h2>
@@ -2016,7 +2226,7 @@ const stripeEvent = stripe.webhooks.constructEvent(
         </section>
 
         <!-- ═══════ S11: Social Share & Feedback ═══════ -->
-        <section id="s12" class="section">
+        <section id="s12" class="section" v-once>
           <div class="section-header">
             <div class="section-num">12</div>
             <h2>{{ '社交分享与反馈' }}</h2>
@@ -2125,7 +2335,7 @@ const stripeEvent = stripe.webhooks.constructEvent(
         </section>
 
         <!-- ═══════ S12: Cloudflare ═══════ -->
-        <section id="s13" class="section">
+        <section id="s13" class="section" v-once>
           <div class="section-header">
             <div class="section-num">13</div>
             <h2>{{ 'Cloudflare 接入' }}</h2>
@@ -2272,7 +2482,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
         </section>
 
         <!-- ═══════ S13: Local Development ═══════ -->
-        <section id="s14" class="section">
+        <section id="s14" class="section" v-once>
           <div class="section-header">
             <div class="section-num">14</div>
             <h2>{{ '本地开发' }}</h2>
@@ -2325,7 +2535,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
         </section>
 
         <!-- ═══════ S14: API Response Format ═══════ -->
-        <section id="s15" class="section">
+        <section id="s15" class="section" v-once>
           <div class="section-header">
             <div class="section-num">15</div>
             <h2>{{ 'API 规范' }}</h2>
@@ -2381,7 +2591,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
                 <table>
                   <thead><tr><th v-for="col in (['端点', '说明', '访问方式'] as string[])" :key="col">{{ col }}</th></tr></thead>
                   <tbody>
-                    <tr v-for="(row, i) in ([['/_openapi.json', 'OpenAPI 3.1.0 原始 JSON', '开发环境直接访问，生产需 SITE_ACCESS_PASSWORD'],['/_scalar', 'Scalar 交互式文档（紫色主题）', '开发环境直接访问，生产需 SITE_ACCESS_PASSWORD'],['/_swagger', 'Swagger UI 文档', '开发环境直接访问，生产需 SITE_ACCESS_PASSWORD']] as string[][])" :key="i">
+                    <tr v-for="(row, i) in ([['/_openapi.json', 'OpenAPI 3.1.0 原始 JSON', '直接访问'],['/_scalar', 'Scalar 交互式文档（紫色主题）', '直接访问'],['/_swagger', 'Swagger UI 文档', '直接访问']] as string[][])" :key="i">
                       <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
                     </tr>
                   </tbody>
@@ -2392,7 +2602,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
         </section>
 
         <!-- ═══════ S15: i18n Configuration ═══════ -->
-        <section id="s16" class="section">
+        <section id="s16" class="section" v-once>
           <div class="section-header">
             <div class="section-num">16</div>
             <h2>{{ '国际化配置' }}</h2>

@@ -7,7 +7,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Products'],
+    tags: ['商品'],
     summary: '创建商品',
     description: '在当前租户下创建新商品，tenant_id 由服务端注入。',
     security: [{ BearerAuth: [] }],
@@ -17,8 +17,11 @@ defineRouteMeta({
           schema: {
             type: 'object',
             properties: {
-              name: { type: 'string' },
-              price: { type: 'number' },
+              name: { type: 'string', minLength: 1 },
+              price: { type: 'number', minimum: 0 },
+              description: { type: 'string' },
+              image_url: { type: 'string', format: 'uri' },
+              is_active: { type: 'boolean' },
             },
             required: ['name', 'price'],
           },
@@ -26,7 +29,28 @@ defineRouteMeta({
       },
     },
     responses: {
-      201: { description: '商品创建成功' },
+      201: {
+        description: '商品创建成功',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    name: { type: 'string' },
+                    price: { type: 'number' },
+                    tenant_id: { type: 'string', format: 'uuid' },
+                    created_at: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       500: { description: '数据库错误' },
     },
   } as any,

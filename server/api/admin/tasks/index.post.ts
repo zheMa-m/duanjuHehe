@@ -8,7 +8,7 @@ import { logAuditEvent } from '~~/server/utils/logger'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin Tasks'],
+    tags: ['管理·运营-任务'],
     summary: '管理员：创建任务',
     description: '管理员创建任务，可选指定 tenant_id，默认使用管理员自身 tenantId。',
     security: [{ BearerAuth: [] }],

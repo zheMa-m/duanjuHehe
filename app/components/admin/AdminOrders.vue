@@ -16,15 +16,52 @@ interface Order {
 
 const props = defineProps<{
   orders: Order[] | null
+  ordersTotal: number
+  ordersPage: number
+  ordersPageSize: number
   isLoading: boolean
 }>()
+
+const refundLoading = ref<Record<string, boolean>>({})
 
 const emit = defineEmits<{
   refresh: []
   updateStatus: [id: string, status: string]
+  changePage: [page: number]
+  toast: [msg: string, type: 'success' | 'error' | 'info']
 }>()
 
+const handleRefund = async (orderId: string) => {
+  if (!confirm('确定要为该订单办理原路退款吗？\n该操作将自动：\n1. 向 Stripe 发起原路退款申请\n2. 取消该用户的活跃订阅\n3. 将该用户 Profiles 权限降级为 Free\n4. 在系统安全表中记录管理员退款操作审计日志')) return
+  
+  refundLoading.value[orderId] = true
+  try {
+    const res = await $fetch<any>(`/api/admin/orders/${orderId}/refund`, { method: 'POST' })
+    emit('toast', res?.message || '退款及用户会员降级处理成功', 'success')
+    emit('refresh')
+  } catch (e: any) {
+    emit('toast', '退款处理失败: ' + (e.data?.statusMessage || e.message), 'error')
+  } finally {
+    refundLoading.value[orderId] = false
+  }
+}
+
 const statusFilter = ref('all')
+
+const orderStatusList = ['all', 'paid', 'pending', 'failed', 'refunded']
+const orderStatusLabel: Record<string, string> = {
+  all: '全部订单',
+  paid: '已支付',
+  pending: '待支付',
+  failed: '已失败',
+  refunded: '已退款',
+}
+const orderStatusText: Record<string, string> = {
+  paid: '已支付',
+  pending: '待支付',
+  failed: '已失败',
+  refunded: '已退款',
+}
 
 const filteredOrders = computed(() => {
   if (!props.orders) return []
@@ -37,7 +74,7 @@ const statusBadge = (status: string) => {
     paid: 'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/20',
     pending: 'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/20',
     failed: 'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/20',
-    refunded: 'bg-[#bf5af2]/10 text-[#bf5af2] border-[#bf5af2]/20',
+    refunded: 'bg-[#64d2ff]/10 text-[#64d2ff] border-[#64d2ff]/20',
   }
   return map[status] || 'bg-white/5 text-white/40 border-white/10'
 }
@@ -47,14 +84,15 @@ const statusPulseDot = (status: string) => {
     paid: 'bg-[#30d158]',
     pending: 'bg-[#ff9f0a]',
     failed: 'bg-[#ff453a]',
-    refunded: 'bg-[#bf5af2]',
+    refunded: 'bg-[#64d2ff]',
   }
   return map[status] || 'bg-white/40'
 }
 
-const handleRefund = (orderId: string) => {
-  if (!confirm('确定要为该订单办理退款回收吗？此操作将实时触发审计流并在 Supabase 标记为 refunded。')) return
-  emit('updateStatus', orderId, 'refunded')
+const totalPages = computed(() => Math.max(1, Math.ceil(props.ordersTotal / props.ordersPageSize)))
+const handlePageChange = (page: number) => {
+  if (page < 1 || page > totalPages.value) return
+  emit('changePage', page)
 }
 </script>
 
@@ -63,8 +101,8 @@ const handleRefund = (orderId: string) => {
     <!-- 标题 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-semibold text-white tracking-tight">订单流水管理</h1>
-        <p class="text-white/40 text-xs mt-1">管理并监控全站支付订单、追踪退款及安全合规流水</p>
+        <h1 class="text-[28px] font-bold text-white tracking-tight">订单流水管理</h1>
+        <p class="text-white/40 text-sm mt-1">管理并监控全站支付订单、追踪退款及安全合规流水</p>
       </div>
       <button
         @click="$emit('refresh')"
@@ -79,27 +117,27 @@ const handleRefund = (orderId: string) => {
     <!-- 订单状态分类栏 (高级一体化胶囊 Switcher) -->
     <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
       <button
-        v-for="s in ['all', 'paid', 'pending', 'failed', 'refunded']"
+        v-for="s in orderStatusList"
         :key="s"
         @click="statusFilter = s"
         class="text-[10px] font-semibold px-4.5 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
         :class="statusFilter === s 
           ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]' 
-          : 'bg-transparent text-white/40 hover:text-white/70'"
+          : 'bg-transparent text-white/60 hover:text-white/90'"
       >
-        {{ s === 'all' ? '全部订单' : s.charAt(0).toUpperCase() + s.slice(1) }}
+        {{ orderStatusLabel[s] || s }}
       </button>
     </div>
 
     <!-- 订单表格 (毛玻璃卡片) -->
-    <div class="bg-[#0c0c0e]/60 border border-white/[0.06] rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[9px] bg-white/[0.005]">
-              <th class="px-6 py-4 font-semibold font-mono">订单号 (Order No)</th>
+    <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+      <div class="overflow-x-auto overflow-y-auto max-h-[60vh]">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead class="sticky top-0 z-10">
+            <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-[#0d0d18]/95 backdrop-blur-sm">
+              <th class="px-6 py-4 font-semibold font-mono">订单号</th>
               <th class="px-6 py-4 font-semibold font-mono">购买商品</th>
-              <th class="px-6 py-4 font-semibold font-mono">金额 (Amount)</th>
+              <th class="px-6 py-4 font-semibold font-mono">金额</th>
               <th class="px-6 py-4 font-semibold font-mono">支付状态</th>
               <th class="px-6 py-4 font-semibold font-mono">支付渠道</th>
               <th class="px-6 py-4 font-semibold font-mono">下单时间</th>
@@ -112,13 +150,13 @@ const handleRefund = (orderId: string) => {
               :key="order.id"
               class="hover:bg-white/[0.02] transition-colors duration-200"
             >
-              <td class="px-6 py-4 font-mono text-[11px] text-white/70 tracking-wide">{{ order.order_no }}</td>
-              <td class="px-6 py-4 text-white/90 font-medium">{{ order.product_name }}</td>
-              <td class="px-6 py-4 font-mono text-white/90 text-xs font-semibold">
+              <td class="px-6 py-5 font-mono text-xs text-white/70 tracking-wide">{{ order.order_no }}</td>
+              <td class="px-6 py-5 text-white/90 font-medium">{{ order.product_name }}</td>
+              <td class="px-6 py-5 font-mono text-white/90 text-sm font-semibold">
                 {{ order.currency }} {{ Number(order.amount).toFixed(2) }}
               </td>
-              <td class="px-6 py-4">
-                <span class="text-[9px] px-2.5 py-0.5 rounded-full border inline-flex items-center" :class="statusBadge(order.status)">
+              <td class="px-6 py-5">
+                <span class="text-[10px] px-2.5 py-0.5 rounded-full border inline-flex items-center" :class="statusBadge(order.status)">
                   <span 
                     class="w-1.2 h-1.2 rounded-full mr-1.5"
                     :class="[
@@ -126,18 +164,19 @@ const handleRefund = (orderId: string) => {
                       order.status === 'paid' || order.status === 'pending' ? 'animate-pulse' : ''
                     ]"
                   ></span>
-                  {{ order.status }}
+                  {{ orderStatusText[order.status] || order.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-white/50 font-light">{{ order.payment_provider }}</td>
-              <td class="px-6 py-4 text-white/40 font-mono text-[11px]">{{ new Date(order.created_at).toLocaleString() }}</td>
-              <td class="px-6 py-4">
+              <td class="px-6 py-5 text-white/50 font-light">{{ order.payment_provider }}</td>
+              <td class="px-6 py-5 text-white/40 font-mono text-xs">{{ new Date(order.created_at).toLocaleString() }}</td>
+              <td class="px-6 py-5">
                 <button
                   v-if="order.status === 'paid'"
                   @click="handleRefund(order.id)"
-                  class="text-[10px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-3.5 py-1.5 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
+                  :disabled="refundLoading[order.id]"
+                  class="text-[11px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 disabled:opacity-50 disabled:cursor-not-allowed text-[#ff453a] px-4 py-2 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
                 >
-                  办理退款
+                  {{ refundLoading[order.id] ? '退款中...' : '办理退款' }}
                 </button>
                 <span v-else class="text-white/20 text-xs">-</span>
               </td>
@@ -147,6 +186,25 @@ const handleRefund = (orderId: string) => {
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 分页控制栏 -->
+    <div v-if="ordersTotal > 0" class="flex items-center justify-between px-5 py-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+      <div class="text-[11px] text-white/30 font-mono">
+        共 {{ ordersTotal }} 条 · 第 {{ ordersPage }}/{{ totalPages }} 页
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          @click="handlePageChange(ordersPage - 1)"
+          :disabled="ordersPage <= 1"
+          class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none"
+        >上一页</button>
+        <button
+          @click="handlePageChange(ordersPage + 1)"
+          :disabled="ordersPage >= totalPages"
+          class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none"
+        >下一页</button>
       </div>
     </div>
   </div>

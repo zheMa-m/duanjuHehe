@@ -12,7 +12,7 @@ import { getClientRealIP } from '~~/server/utils/ip'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Auth'],
+    tags: ['认证'],
     summary: 'OAuth 回调处理',
     description: '处理 Supabase OAuth 回调，交换 code 获取会话令牌并重定向至前端设置 cookie。',
     parameters: [

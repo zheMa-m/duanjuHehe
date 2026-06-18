@@ -1,0 +1,169 @@
+// @api-auth: admin
+import { getDB } from '~~/server/utils/db'
+import { sendSuccess } from '~~/server/utils/response'
+import { assertAdmin } from '~~/server/utils/auth'
+import { logAuditEvent } from '~~/server/utils/logger'
+import { getStripeClient } from '~~/server/utils/payments'
+
+defineRouteMeta({
+  openAPI: {
+    tags: ['管理端订单'],
+    summary: '管理员订单一键退款与降级',
+    description: '管理员可用此端点对已付（paid）订单发起全额退款。如果是周期性计费订阅，会同步取消 Stripe 的订阅合同并立即将用户 Profiles 降级为 free 级别。',
+    security: [{ BearerAuth: [] }],
+    parameters: [
+      { in: 'path', name: 'id', required: true, schema: { type: 'string' }, description: '订单 ID (UUID)' },
+    ],
+    responses: {
+      200: { description: '退款与降级成功完成' },
+      400: { description: '订单不满足退款条件' },
+      404: { description: '订单未找到' },
+    },
+  } as any,
+})
+
+/**
+ * 订单退款与降级处理
+ * POST /api/admin/orders/:id/refund
+ */
+export default defineEventHandler(async (event) => {
+  const adminUser = assertAdmin(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing order ID' })
+  }
+
+  const db = getDB(event)
+
+  // 1. 查询订单
+  const { data: order, error: orderErr } = await db
+    .from('orders')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (orderErr || !order) {
+    throw createError({ statusCode: 404, statusMessage: 'Order not found' })
+  }
+
+  // 2. 校验退款可行性
+  if (order.status !== 'paid') {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Order status is [${order.status}], only 'paid' orders can be refunded.`
+    })
+  }
+
+  if (!order.payment_intent_id) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Refund failed: Missing payment intent ID on this order.'
+    })
+  }
+
+  const provider = order.payment_provider || 'stripe'
+
+  if (process.env.MOCK_DB === 'true') {
+    // 3. Mock 模式下，直接修改数据库状态模拟闭环
+    // 修改订单状态
+    await db.from('orders').update({
+      status: 'refunded',
+      updated_at: new Date().toISOString()
+    }).eq('id', id)
+
+    if (order.user_id) {
+      // 降级用户 Profile
+      await db.from('profiles').update({
+        plan_status: 'free',
+        updated_at: new Date().toISOString()
+      }).eq('id', order.user_id)
+
+      // 取消关联订阅
+      await db.from('subscriptions').update({
+        status: 'canceled',
+        updated_at: new Date().toISOString()
+      }).eq('user_id', order.user_id).eq('status', 'active')
+    }
+  } else {
+    // 4. 真实支付渠道退款闭环
+    if (provider !== 'stripe') {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Refund for channel [${provider}] is currently not supported via automated API.`
+      })
+    }
+
+    // 从 system_configs 读取 Stripe 私钥
+    const { data: secretsRow } = await db
+      .from('system_configs')
+      .select('value')
+      .eq('key', 'payment_secrets')
+      .single()
+
+    const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
+    const stripe = getStripeClient(stripeSecretKey)
+
+    if (!stripe) {
+      throw createError({ statusCode: 500, statusMessage: 'Stripe client is not configured' })
+    }
+
+    try {
+      // (1) 向 Stripe 发起原路退款
+      await stripe.refunds.create({
+        payment_intent: order.payment_intent_id,
+        reason: 'requested_by_customer'
+      })
+
+      // (2) 联动检索并取消该用户的活跃订阅（若存在）
+      if (order.user_id) {
+        const { data: activeSub } = await db
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', order.user_id)
+          .eq('status', 'active')
+          .single()
+
+        if (activeSub) {
+          // 在 Stripe 端停用订阅
+          await stripe.subscriptions.cancel(activeSub.stripe_subscription_id)
+
+          // 本地更新订阅表为已取消
+          await db.from('subscriptions').update({
+            status: 'canceled',
+            updated_at: new Date().toISOString()
+          }).eq('id', activeSub.id)
+        }
+      }
+
+      // (3) 本地订单设为已退款，用户 plan 状态降级为 free
+      await db.from('orders').update({
+        status: 'refunded',
+        updated_at: new Date().toISOString()
+      }).eq('id', id)
+
+      if (order.user_id) {
+        await db.from('profiles').update({
+          plan_status: 'free',
+          updated_at: new Date().toISOString()
+        }).eq('id', order.user_id)
+      }
+    } catch (err: any) {
+      console.error('[Stripe Refund] Action failed:', err.message)
+      throw createError({
+        statusCode: 500,
+        statusMessage: `Gateway refund failed: ${err.message}`
+      })
+    }
+  }
+
+  // 5. 审计日志记录
+  await logAuditEvent(
+    event,
+    adminUser,
+    `ADMIN_REFUND_SUCCESS:${order.order_no}:user_id=${order.user_id || 'none'}`,
+    'SUCCESS'
+  )
+
+  return sendSuccess(event, { orderId: id, status: 'refunded' }, 'Order refunded and user plan status downgraded')
+})

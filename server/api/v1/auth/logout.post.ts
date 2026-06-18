@@ -11,7 +11,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Auth'],
+    tags: ['认证'],
     summary: '用户登出',
     description: '通过 Supabase signOut 使当前会话失效并清除认证 cookie。',
     responses: {

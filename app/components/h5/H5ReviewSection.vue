@@ -48,10 +48,10 @@ const submitSuccess = ref(false)
 const fetchFeedbacks = async () => {
   isLoading.value = true
   try {
-    const params = new URLSearchParams({ type: 'review', limit: '10' })
+    const params = new URLSearchParams({ type: 'review', pageSize: '10' })
     if (props.subdomain) params.set('subdomain', props.subdomain)
     const res = await $fetch<any>(`/api/v1/feedback?${params.toString()}`)
-    feedbacks.value = res.data?.feedbacks || []
+    feedbacks.value = res.data?.items || []
     stats.value = res.data?.stats || { total: 0, averageRating: 0, ratingDistribution: {} }
   } catch {
     feedbacks.value = []

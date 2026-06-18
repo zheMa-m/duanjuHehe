@@ -1,5 +1,5 @@
 import { defineEventHandler, getHeader, parseCookies, setResponseHeader } from 'h3'
-import { getDB } from '~~/server/utils/db'
+import { getDB, mockProfilesTable } from '~~/server/utils/db'
 import { ensureAdminAuthUser } from '~~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
@@ -32,37 +32,63 @@ export default defineEventHandler(async (event) => {
       return
     }
 
-    // 默认赋予管理员权限与项目数据隔离标识
-    event.context.user = {
-      id: 'mock-user-123',
-      username: 'solo_hacker',
-      role: 'admin',
-      tenantId: 'mock-tenant-abc'
+    const cookies = parseCookies(event)
+    let token: string | null = null
+    const authHeader = getHeader(event, 'authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+    } else {
+      token = cookies['sb-access-token'] || null
+    }
+
+    if (token) {
+      // 查找包含当前 Token 的用户
+      const profile = mockProfilesTable.find((p: any) => token!.includes(p.id))
+      if (profile) {
+        event.context.user = {
+          id: profile.id,
+          email: profile.email || null,
+          username: profile.username || profile.email || 'anonymous',
+          role: profile.role || 'user',
+          tenantId: profile.id,
+          isAnonymous: profile.is_anonymous || false,
+        }
+        return
+      }
+    }
+
+    // 默认回退逻辑：若访问管理后台接口且未登录，兜底为默认管理员，方便开发测试
+    if (event.path.startsWith('/api/admin/')) {
+      event.context.user = {
+        id: 'mock-user-123',
+        email: 'admin@hehe.dev',
+        username: 'solo_hacker',
+        role: 'admin',
+        tenantId: 'mock-tenant-abc'
+      }
+      return
+    }
+
+    // 前台/普通接口：检测匿名设备标识，或返回未登录 (null)
+    const deviceId = cookies['device-id']
+    if (deviceId) {
+      event.context.user = {
+        id: `anon-${deviceId}`,
+        email: null,
+        username: 'anonymous',
+        role: 'anonymous',
+        tenantId: deviceId,
+        isAnonymous: true,
+      }
+    } else {
+      event.context.user = null
     }
     return
   }
 
   // 2. 真实部署环境（Supabase 真实凭据解析）
   try {
-    // ── 内置管理员检测：通过 site-access Cookie 识别 ──
     const cookies = parseCookies(event)
-    const siteAccessCookie = cookies['site-access']
-    if (siteAccessCookie) {
-      const adminPassword = process.env.SITE_ADMIN_PASSWORD || process.env.SITE_ACCESS_PASSWORD || ''
-      if (adminPassword && siteAccessCookie === adminPassword) {
-        // ✅ 性能与容错优化：直接使用固定的管理员 UUID (BUILTIN_ADMIN_UUID = '9e638ba2-41aa-4434-a68b-6bd9f7ed0963')
-        // 构造管理员身份，避免在鉴权中间件中为每一个 API 请求发起远程 Supabase Auth Admin API 网络调用。
-        // 内置管理员的 Auth 用户实体仅在管理员点击登录 (/api/admin/login) 时进行幂等初始化。
-        event.context.user = {
-          id: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963',
-          username: process.env.SITE_ADMIN_USERNAME || 'admin',
-          role: 'admin',
-          tenantId: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963',
-          isAnonymous: false,
-        }
-        return
-      }
-    }
 
     // Token 来源优先级：Bearer header > Cookie
     let token: string | null = null
@@ -93,13 +119,14 @@ export default defineEventHandler(async (event) => {
       // 获取当前用户的 profiles 属性以确认身份角色
       const { data: profile, error: profileError } = await db
         .from('profiles')
-        .select('email, role, username, display_name, avatar_url, auth_provider, is_anonymous')
+        .select('role, username, display_name, avatar_url, auth_provider, is_anonymous')
         .eq('id', user.id)
         .single()
 
       if (profileError || !profile) {
         event.context.user = {
           id: user.id,
+          email: user.email || null,
           username: user.email || 'anonymous',
           role: 'user',
           tenantId: user.id
@@ -107,6 +134,7 @@ export default defineEventHandler(async (event) => {
       } else {
         event.context.user = {
           id: user.id,
+          email: user.email || null,
           username: profile.username || user.email || 'anonymous',
           role: profile.role || 'user',
           tenantId: user.id,
@@ -120,6 +148,7 @@ export default defineEventHandler(async (event) => {
       if (deviceId) {
         event.context.user = {
           id: `anon-${deviceId}`,
+          email: null,
           username: 'anonymous',
           role: 'anonymous',
           tenantId: deviceId,

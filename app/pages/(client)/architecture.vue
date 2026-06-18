@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
   </div>
 
   <!-- S1: 架构总览 -->
-  <section class="section" id="s1">
+  <section class="section" id="s1" v-once>
     <div class="section-header">
       <div class="section-num num-blue">01</div>
       <h2>架构全景总览</h2>
@@ -372,7 +372,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S2: 技术栈 -->
-  <section class="section" id="s2">
+  <section class="section" id="s2" v-once>
     <div class="section-header">
       <div class="section-num num-purple">02</div>
       <h2>技术栈选型与职责划分</h2>
@@ -390,7 +390,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S3: 目录结构 -->
-  <section class="section" id="s3">
+  <section class="section" id="s3" v-once>
     <div class="section-header">
       <div class="section-num num-green">03</div>
       <h2>单仓目录结构规范</h2>
@@ -430,14 +430,14 @@ onBeforeUnmount(() => {
 │       └── analytics.ts             <span class="cm"># 数据分析埋点与上报</span>
 │
 ├── supabase/migrations/              <span class="cm"># 数据库迁移 SQL（版本控制严格管理）</span>
-├── .github/workflows/                <span class="cm"># CI 流水线（类型/安全/性能/DB 四道防线）</span>
+├── .github/workflows/                <span class="cm"># CI 流水线（类型/安全/性能/DB 自动化校验）</span>
 ├── .cursorrules                      <span class="cm"># AI Coding 强制规范（Cursor/Claude 读取）</span>
 └── nuxt.config.ts                    <span class="cm"># 核心配置（路由规则·渲染模式·缓存·图片）</span></pre>
     </div>
   </section>
 
   <!-- S4: 路由设计 -->
-  <section class="section" id="s4">
+  <section class="section" id="s4" v-once>
     <div class="section-header">
       <div class="section-num num-cyan">04</div>
       <h2>多域名流量路由设计</h2>
@@ -488,7 +488,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S5: 渲染策略 -->
-  <section class="section" id="s5">
+  <section class="section" id="s5" v-once>
     <div class="section-header">
       <div class="section-num num-blue">05</div>
       <h2>混合渲染模式与边缘缓存策略</h2>
@@ -534,13 +534,13 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S6: 鉴权 -->
-  <section class="section" id="s6">
+  <section class="section" id="s6" v-once>
     <div class="section-header">
       <div class="section-num num-purple">06</div>
       <h2>鉴权体系设计（多端兼容）</h2>
     </div>
     <div class="subsection">
-      <h3>五层纵深安全防御</h3>
+      <h3>多层拦截鉴权机制</h3>
       <div class="security-layers">
         <div class="security-layer sl-1">
           <div class="sl-icon">🛡️</div>
@@ -578,7 +578,7 @@ onBeforeUnmount(() => {
           <div class="sl-icon">🔐</div>
           <div class="sl-content">
             <div class="sl-title">第五层：Supabase RLS 行级安全</div>
-            <div class="sl-desc">数据库层最后一道防线，即使绕过前四层，RLS Policy 保证用户只能访问属于自己的数据</div>
+            <div class="sl-desc">数据库层数据访问约束，即使绕过前四层，RLS 策略仍能确保用户仅访问授权数据</div>
           </div>
           <div class="sl-badge">Supabase PG</div>
         </div>
@@ -610,7 +610,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S7: 管理后台 -->
-  <section class="section" id="s7">
+  <section class="section" id="s7" v-once>
     <div class="section-header">
       <div class="section-num num-green">07</div>
       <h2>管理后台模块设计</h2>
@@ -637,10 +637,10 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S8: 系统监控 -->
-  <section class="section" id="s8">
+  <section class="section" id="s8" v-once>
     <div class="section-header">
       <div class="section-num num-orange">08</div>
-      <h2>APM 系统健康监控</h2>
+      <h2>请求耗时与系统指标采集</h2>
     </div>
     <div class="subsection">
       <h3>监控流程</h3>
@@ -656,10 +656,10 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S9: 性能 SEO -->
-  <section class="section" id="s9">
+  <section class="section" id="s9" v-once>
     <div class="section-header">
       <div class="section-num num-blue">09</div>
-      <h2>性能与 SEO 防线</h2>
+      <h2>性能与 SEO 优化指标</h2>
     </div>
     <div class="subsection">
       <h3>Core Web Vitals 指标目标</h3>
@@ -683,7 +683,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S10: Cloudflare -->
-  <section class="section" id="s10">
+  <section class="section" id="s10" v-once>
     <div class="section-header">
       <div class="section-num num-orange">10</div>
       <h2>Cloudflare 接入方案（可选·免费）</h2>
@@ -714,7 +714,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S11: 数据库 -->
-  <section class="section" id="s11">
+  <section class="section" id="s11" v-once>
     <div class="section-header">
       <div class="section-num num-green">11</div>
       <h2>数据库设计规范（Supabase 团队版）</h2>
@@ -751,48 +751,48 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S12: CI/CD -->
-  <section class="section" id="s12">
+  <section class="section" id="s12" v-once>
     <div class="section-header">
       <div class="section-num num-red">12</div>
-      <h2>CI/CD 工程化防线（GitHub 团队版）</h2>
+      <h2>CI/CD 自动化构建与验证门禁（GitHub 团队版）</h2>
     </div>
     <div class="ci-pipeline">
       <div class="ci-gate">
-        <div class="ci-num" style="color:var(--accent-blue);">防线 01</div>
+        <div class="ci-num" style="color:var(--accent-blue);">门禁 01</div>
         <div class="ci-title">静态类型与代码合规</div>
         <code class="ci-cmd">npx vue-tsc --noEmit</code>
         <div class="ci-desc">TS 类型全检，验证前台/后台/API 三层的接口契约是否完全对齐。同时运行 ESLint 代码风格检查。</div>
-        <span class="ci-result">类型漂移 → 强制打回</span>
+        <span class="ci-result">类型不匹配 → 强制退回</span>
       </div>
       <div class="ci-gate">
-        <div class="ci-num" style="color:var(--accent-red);">防线 02</div>
+        <div class="ci-num" style="color:var(--accent-red);">门禁 02</div>
         <div class="ci-title">API 安全越权自动化测试</div>
         <code class="ci-cmd">curl /api/admin/users → 必须 401/403</code>
         <div class="ci-desc">自动模拟匿名用户和普通用户请求 /api/admin/** 管理接口，验证必须被强拦截。</div>
         <span class="ci-result">越权放行 → 立即阻断</span>
       </div>
       <div class="ci-gate">
-        <div class="ci-num" style="color:var(--accent-green);">防线 03</div>
+        <div class="ci-num" style="color:var(--accent-green);">门禁 03</div>
         <div class="ci-title">Supabase RLS 安全检查</div>
         <code class="ci-cmd">npx supabase db lint</code>
         <div class="ci-desc">检查所有 SQL 迁移文件语法正确性，验证新增数据表是否已开启 RLS，防止数据越权读取。</div>
         <span class="ci-result">RLS 缺失 → 强制阻断</span>
       </div>
       <div class="ci-gate">
-        <div class="ci-num" style="color:var(--accent-orange);">防线 04</div>
+        <div class="ci-num" style="color:var(--accent-orange);">门禁 04</div>
         <div class="ci-title">Web Vitals 性能门禁</div>
         <code class="ci-cmd">Lighthouse CI Action</code>
         <div class="ci-desc">仅在 /pages/(client)/ 或 /pages/(h5)/ 有改动时触发。LCP &gt; 2s 或 SEO &lt; 95 直接阻断合入。</div>
-        <span class="ci-result">LCP 退化 → 打回修复</span>
+        <span class="ci-result">LCP 退化 → 退回修复</span>
       </div>
     </div>
   </section>
 
   <!-- S13: AI Coding -->
-  <section class="section" id="s13">
+  <section class="section" id="s13" v-once>
     <div class="section-header">
       <div class="section-num num-purple">13</div>
-      <h2>AI Coding 开发规范与 Harness 防线</h2>
+      <h2>代码生成规范与自动化校验保障</h2>
     </div>
     <div class="subsection">
       <h3>多 Agent 协作分工</h3>
@@ -840,7 +840,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S14: 本地沙盒 -->
-  <section class="section" id="s14">
+  <section class="section" id="s14" v-once>
     <div class="section-header">
       <div class="section-num num-cyan">14</div>
       <h2>本地开发沙盒配置</h2>
@@ -876,7 +876,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S15: 检查清单 -->
-  <section class="section" id="s15">
+  <section class="section" id="s15" v-once>
     <div class="section-header">
       <div class="section-num num-blue">15</div>
       <h2>项目启动检查清单</h2>
@@ -899,9 +899,9 @@ onBeforeUnmount(() => {
       <div class="checklist-group">
         <h4>🔐 安全与合规</h4>
         <div class="check-item"><div class="check-box"></div>所有数据表已开启 RLS（supabase db lint 通过）</div>
-        <div class="check-item"><div class="check-box"></div>APM 监控告警系统就绪，P95/P99 时延基线已校准</div>
+        <div class="check-item"><div class="check-box"></div>性能监控告警就绪，P95/P99 时延基线已校准</div>
         <div class="check-item"><div class="check-box"></div>getClientRealIP 工具函数覆盖所有 IP 读取场景</div>
-        <div class="check-item"><div class="check-box"></div>GitHub Actions CI 四道防线全部配置</div>
+        <div class="check-item"><div class="check-box"></div>GitHub Actions CI 验证门禁配置完成</div>
       </div>
       <div class="checklist-group">
         <h4>🚀 性能</h4>
@@ -921,7 +921,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S16: 平台决策 -->
-  <section class="section" id="s16">
+  <section class="section" id="s16" v-once>
     <div class="section-header">
       <div class="section-num num-red">16</div>
       <h2>平台职责边界决策（Supabase vs Vercel）</h2>
@@ -929,7 +929,7 @@ onBeforeUnmount(() => {
 
     <div class="alert alert-important">
       <div class="alert-icon">📌</div>
-      <div class="alert-body"><strong>架构硬性决策</strong>Supabase 负责"数据与身份"，Vercel 负责"计算与交付"。两者都不应越界。错误使用将导致重复付费、数据孤岛、安全漏洞 and 架构混乱。</div>
+      <div class="alert-body"><strong>架构硬性决策</strong>Supabase 负责"数据与身份"，Vercel 负责"计算与交付"。两者都不应越界。错误使用将导致重复付费、数据孤岛、安全漏洞与架构混乱。</div>
     </div>
 
     <div class="subsection">
@@ -938,7 +938,7 @@ onBeforeUnmount(() => {
         <table>
           <thead><tr><th>重叠能力</th><th>选择平台</th><th>核心决策理由</th></tr></thead>
           <tbody>
-            <tr><td><strong>关系型数据库</strong></td><td style="color:var(--accent-green);font-weight:700;">✅ Supabase PG</td><td>RLS 行级安全 + Auth 深度集成 + DB 分支不可替代；Vercel Postgres 不具备 these 企业级能力</td></tr>
+            <tr><td><strong>关系型数据库</strong></td><td style="color:var(--accent-green);font-weight:700;">✅ Supabase PG</td><td>RLS 行级安全 + Auth 深度集成 + DB 分支不可替代；Vercel Postgres 不具备这些企业级能力</td></tr>
             <tr><td><strong>文件存储</strong></td><td style="color:var(--accent-cyan);font-weight:700;">✅ 场景分治</td><td>用户私密文件 → Supabase Storage（RLS）；公开营销素材 → public/ 目录 + Cloudflare CDN</td></tr>
             <tr><td><strong>HTTP API 路由</strong></td><td style="color:var(--accent-blue);font-weight:700;">✅ Vercel Nitro</td><td>所有业务 HTTP API 由 Nuxt 4 Nitro 承接；Supabase Edge Functions 仅用于 DB 触发器增强</td></tr>
             <tr><td><strong>KV 缓存（限流）</strong></td><td style="color:var(--accent-blue);font-weight:700;">✅ Vercel KV</td><td>Supabase 无内置 Redis；Vercel KV（Upstash Redis）直接补位</td></tr>
@@ -1012,22 +1012,22 @@ onBeforeUnmount(() => {
       <div class="alert-icon">💡</div>
       <div class="alert-body">
         <strong>成本控制三问原则</strong>
-        In 引入任何新服务前，先回答：① 这个能力是否已被 Supabase 或 Vercel 其中之一覆盖？② 若两者都覆盖，与"数据安全/用户身份"更强相关？→ 选 Supabase。③ 若两者都覆盖，与"交付性能/计算速度"更强相关？→ 选 Vercel。
+        在引入任何新服务前，先回答：① 这个能力是否已被 Supabase 或 Vercel 其中之一覆盖？② 若两者都覆盖，与"数据安全/用户身份"更强相关？→ 选 Supabase。③ 若两者都覆盖，与"交付性能/计算速度"更强相关？→ 选 Vercel。
       </div>
     </div>
   </section>
   <!-- S17: AI 极致提效 -->
-  <section class="section" id="s17">
+  <section class="section" id="s17" v-once>
     <div class="section-header">
       <div class="section-num num-purple">17</div>
-      <h2>AI 极致提效与单人进阶黑科技 (v1.0 增补)</h2>
+      <h2>自动化开发辅助与调试技巧 (v1.0 增补)</h2>
     </div>
     
     <div class="alert alert-important">
-      <div class="alert-icon">🚀</div>
+      <div class="alert-icon">💡</div>
       <div class="alert-body">
-        <strong>极致人机协同与自动化</strong>
-        单人全栈模式的精髓在于“消除人机协同摩擦力，裁剪一切繁琐开发流程，由 AI + 自动化安全栅栏提供 10x 效能支撑”。以下是精选的 10 大提效高级黑科技。
+        <strong>工程自动化与开发协同</strong>
+        单人全栈模式侧重于通过构建自动化验证门禁与强类型契约，来大幅缩减测试与维护周期。以下是常用的提效工程实践。
       </div>
     </div>
 
@@ -1222,7 +1222,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S18: 三方支付系统集成 -->
-  <section class="section" id="s18">
+  <section class="section" id="s18" v-once>
     <div class="section-header">
       <div class="section-num num-purple">18</div>
       <h2>三方支付系统集成 (Stripe Checkout)</h2>
@@ -1272,7 +1272,7 @@ onBeforeUnmount(() => {
   </section>
 
   <!-- S20: 移动端用户认证体系 -->
-  <section class="section" id="s20">
+  <section class="section" id="s20" v-once>
     <div class="section-header">
       <div class="section-num num-purple">20</div>
       <h2>移动端用户认证体系</h2>
@@ -1353,9 +1353,9 @@ onBeforeUnmount(() => {
       <span class="footer-badge">v1.0</span>
       <span class="footer-badge">20 Chapters</span>
       <span class="footer-badge">Nuxt 4 · Supabase · Vercel</span>
-      <span class="footer-badge">AI Coding Ready</span>
+      <span class="footer-badge">已完成自动化校验</span>
     </div>
-    <div>单人全栈单仓混合技术架构方案 v1.0 · Protocol-First × Harness Engineering × AI Coding × Solo AI Hacks</div>
+    <div>单人全栈单仓混合技术架构方案 v1.0 · 接口优先 × 本地沙盒仿真 × 自动化辅助开发</div>
   </div>
 
 </main>

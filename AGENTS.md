@@ -44,9 +44,9 @@ server/
   api/
     admin/       # Admin-only endpoints — 03.admin.ts middleware enforces assertAdmin
     v1/          # Public/user endpoints — auth via Bearer header or Cookie
-  middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.access-guard
-  utils/         # Server utilities: db.ts, auth.ts, payments.ts, ads.ts, ip.ts, logger.ts, response.ts
-supabase/migrations/  # Versioned SQL migrations (0001_core → 0005_payment_optional)
+  middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 06.api-security
+  utils/         # Server utilities: db.ts, auth.ts, payments.ts, ads.ts, ip.ts, logger.ts, response.ts, api-security.ts
+supabase/migrations/  # Versioned SQL migrations (0001_core → 0006_system)
 docs/            # Core architecture documentation (9 files, incl. Supabase, Vercel, GitHub & Cloudflare guides)
 DESIGN.md          # Unified design system (Client/Admin/H5 three-platform specs)
 scripts/         # CLI generators and test probes (shared via _shared.mjs)
@@ -55,6 +55,7 @@ scripts/         # CLI generators and test probes (shared via _shared.mjs)
   scaffolder.mjs         # API + Page scaffold generator
   generate-rls-sql.mjs   # RLS policy SQL generator (--admin for admin policies)
   test-api-safety.mjs    # API auth safety scanner
+  test-signature.mjs     # HMAC-SHA256 signature algorithm test (offline + online)
   test-supabase-connection.mjs  # DB connection + table + bucket health check
   test-storage.mjs       # Supabase Storage full-chain integration test
 ```
@@ -83,8 +84,6 @@ scripts/         # CLI generators and test probes (shared via _shared.mjs)
 **NEVER expose to frontend (no `NUXT_PUBLIC_` prefix):**
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
-- `SITE_ACCESS_PASSWORD` — 生产环境统一访问密码，由 `05.access-guard` 中间件校验（页面 + API 文档）
-- `SITE_ADMIN_USERNAME` / `SITE_ADMIN_PASSWORD` — 管理后台内置管理员账号（脚手架默认能力，不依赖邮箱/Supabase Auth）
 
 **Authentication:**
 - Frontend Supabase client uses anon key only (`NUXT_PUBLIC_SUPABASE_ANON_KEY`)
@@ -116,13 +115,13 @@ scripts/         # CLI generators and test probes (shared via _shared.mjs)
 Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashboard and help docs page are Chinese-only.
 
 - **Module config** in `nuxt.config.ts` — strategy `prefix_except_default`, default locale `zh`
-- **Translation files**: `locales/zh.json`, `locales/en.json` — sections: common, nav, header, home, architecture, hero, tasks, h5, userBar, login, review, share
+- **Translation files**: `locales/zh.json`, `locales/en.json` — sections: common, nav, header, home, architecture, hero, h5, userBar, login, review, share
 - **Language detection**: URL path > Cookie (`i18n_locale`) > browser language > timezone > fallback `zh`
 - **Composable**: `useLocaleDetect()` wraps detection logic and toggle
 - **UI component**: `<LanguageSwitcher />` in shared components
 
 **When adding new pages/components:**
-1. Extract all user-facing text to `locales/*.json` with namespaced keys (e.g. `tasks.title`)
+1. Extract all user-facing text to `locales/*.json` with namespaced keys (e.g. `h5.title`)
 2. Use `const { t } = useI18n()` in `<script setup>` then `t('key')` in template
 3. Use `() => t('key')` for `useSeoMeta` title/description (reactive)
 4. Admin pages (`(admin)/`) and help docs (`/help`) — keep hardcoded Chinese, no i18n needed
@@ -138,6 +137,7 @@ Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashb
 ## Testing
 
 - API safety scan: `npm run test:api-safety` — validates `@api-auth` declarations match actual middleware behavior
+- Signature test: `node scripts/test-signature.mjs` — HMAC-SHA256 signature algorithm offline + online verification
 - Storage test: `npm run test:storage` — full-chain Storage integration test (upload, public URL, signed URL, RLS)
 - Supabase health: `npm run test:supabase` — connection, table, bucket, migration status check
 - Any endpoint returning 200 without proper auth is a FAIL (blocks merge)
@@ -151,15 +151,12 @@ Nitro's built-in OpenAPI 3.1.0 support is enabled for **both dev and production*
 - `/_scalar` — Scalar interactive API reference (purple theme)
 - `/_swagger` — Swagger UI
 
-**Authentication (production only):**
-- Dev mode (`MOCK_DB=true`): auto-allow, no auth needed
-- Production: requires `SITE_ACCESS_PASSWORD` env var (set in `.env` + Vercel), enforced by `05.access-guard.ts`
-- Access via: `?token=<password>`, `?password=<password>`, `Authorization: Bearer <password>`, or cookie `site-access`
-- Without password: 401 Unauthorized
+**Authentication:**
+- OpenAPI 接口支持开发环境与生产环境直接访问。
 
-**Example:** `https://hehe-app-tau.vercel.app/_swagger?token=hehe2024`
+**Example:** `https://hehe-app-tau.vercel.app/_swagger`
 
-**Tag groups:** Auth, Products, Tasks, Payments, Orders, Ads, Campaigns, Feedback, User, Admin Tasks, Admin Orders, Admin Campaigns, Admin Ad Slots, Admin APM, Admin Audit, Admin Revenue, Admin Profile
+**Tag groups:** Auth, Products, Tasks, Payments, Orders, Ads, Campaigns, Feedback, User, Admin Tasks, Admin Orders, Admin Campaigns, Admin Ad Slots, Admin APM, Admin Audit, Admin Revenue, Admin Profile, Admin Security
 
 **When adding new endpoints:**
 1. Add `defineRouteMeta({ openAPI: { tags, summary, description, parameters, requestBody, responses } } as any)` above `export default`
@@ -171,7 +168,7 @@ Nitro's built-in OpenAPI 3.1.0 support is enabled for **both dev and production*
 - `.env` — contains secrets, never commit real values
 - `node_modules/` — managed by npm
 - `supabase/migrations/` existing files — create new numbered files instead
-- `server/middleware/` numbering — order matters (00→01→02→03→04→05→06)
+- `server/middleware/` numbering — order matters (00→01→02→03→04→06)
 - Mock DB adapter (`server/utils/db.ts`) chain API — fragile, extend carefully
 
 ## Mock DB Development

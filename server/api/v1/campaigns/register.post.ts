@@ -8,7 +8,7 @@ import { getClientRealIP } from '~~/server/utils/ip'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Campaigns'],
+    tags: ['营销活动'],
     summary: '营销活动预约注册（H5 表单）',
     description: '记录来自 H5 营销活动落地页的用户注册/预约信息。',
     requestBody: {

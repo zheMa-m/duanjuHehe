@@ -7,7 +7,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Products'],
+    tags: ['商品'],
     summary: '更新商品',
     description: '部分更新商品名称/价格，仅允许白名单字段，tenant_id 由服务端强制校验。',
     security: [{ BearerAuth: [] }],

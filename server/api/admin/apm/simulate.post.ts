@@ -7,7 +7,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin APM'],
+    tags: ['管理·系统-监控'],
     summary: '管理员：模拟 APM 警报',
     description: '触发测试警报以验证警报管线（Warning 800ms / Critical 2000ms）。',
     security: [{ BearerAuth: [] }],

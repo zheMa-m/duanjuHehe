@@ -6,7 +6,7 @@
  *   - 大文件（>= 5MB）：客户端直传 → POST /api/v1/storage/signed-url → PUT signedUrl
  */
 
-type StorageBucket = 'avatars' | 'campaign-assets' | 'uploads'
+type StorageBucket = string
 
 interface UploadOptions {
   path?: string
@@ -23,6 +23,31 @@ const SIZE_THRESHOLD = 5 * 1024 * 1024 // 5 MB
 // 文件名安全清理
 function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255)
+}
+
+// EXIF 字段提取（仅图片文件）
+async function extractExif(file: File): Promise<Record<string, any> | null> {
+  if (!file.type.startsWith('image/')) return null
+  try {
+    const exifr = await import('exifr')
+    const data = await exifr.default.parse(file, { gps: true, exif: true, ifd0: {} })
+    if (!data) return null
+    return {
+      Make: data.Make || null,
+      Model: data.Model || null,
+      DateTimeOriginal: data.DateTimeOriginal?.toISOString?.() || data.DateTimeOriginal || null,
+      ExposureTime: data.ExposureTime || null,
+      FNumber: data.FNumber || null,
+      ISO: data.ISO || null,
+      FocalLength: data.FocalLength || null,
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
+      ImageWidth: data.ImageWidth || null,
+      ImageHeight: data.ImageHeight || null,
+    }
+  } catch {
+    return null
+  }
 }
 
 export function useStorage() {
@@ -55,6 +80,11 @@ export function useStorage() {
     formData.append('bucket', bucket)
     if (options?.path) {
       formData.append('path', options.path)
+    }
+    // 提取 EXIF 数据（仅图片）
+    const exif = await extractExif(file)
+    if (exif) {
+      formData.append('exif', JSON.stringify(exif))
     }
 
     try {

@@ -11,10 +11,20 @@ export default defineConfig({
       brand: {
         primary: '#4f8ef7',
         secondary: '#8b5cf6',
-        accent: '#22d3ee',
+        accent: '#6366f1',         // indigo-500, 管理后台主色调
+        'accent-light': '#818cf8', // indigo-400
+        'accent-dark': '#4f46e5',  // indigo-600
+        'accent-soft': '#a5b4fc',  // indigo-300
+        'blue-500': '#3b82f6',     // 渐变用蓝
+        violet: '#bf5af2',         // 紫色强调
         success: '#10b981',
         warning: '#f59e0b',
         danger: '#ef4444',
+        // Apple HIG 状态色（管理后台专用）
+        'status-ok': '#30d158',
+        'status-err': '#ff453a',
+        'status-warn': '#ff9f0a',
+        'status-info': '#bf5af2',
       },
       surface: {
         DEFAULT: '#0a0e1a',
@@ -44,5 +54,26 @@ export default defineConfig({
     'glass-card',
     'btn-premium',
     'btn-danger',
+    // 管理后台菜单图标（动态绑定，UnoCSS 静态扫描无法检测）
+    'i-lucide-layout-dashboard',
+    'i-lucide-shopping-bag',
+    'i-lucide-clipboard-list',
+    'i-lucide-receipt',
+    'i-lucide-trending-up',
+    'i-lucide-megaphone',
+    'i-lucide-message-square',
+    'i-lucide-users',
+    'i-lucide-image',
+    'i-lucide-shield',
+    'i-lucide-activity',
+    'i-lucide-settings',
+    'i-lucide-file-text',
+    'i-lucide-eye',
+    'i-lucide-eye-off',
+    // 主题切换器图标（动态绑定）
+    'i-lucide-moon',
+    'i-lucide-sun',
+    'i-lucide-contrast',
+    'i-lucide-monitor',
   ]
 })

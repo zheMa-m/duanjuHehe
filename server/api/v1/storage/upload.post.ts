@@ -16,14 +16,13 @@ import {
   isMimeAllowed,
   buildStoragePath,
   uploadFile,
+  getBucketConfig,
   SERVER_PROXY_MAX_SIZE,
-  BUCKET_CONFIG,
-  type StorageBucket,
 } from '~~/server/utils/storage'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Storage'],
+    tags: ['存储'],
     summary: '服务端中转上传文件',
     description: '小文件（< 5MB）通过服务端中转上传至 Supabase Storage。大文件请使用 signed-url 接口。',
     security: [{ BearerAuth: [] }],
@@ -63,6 +62,7 @@ export default defineEventHandler(async (event: H3Event) => {
   const bucketField = formData.find(f => f.name === 'bucket')
   const fileField = formData.find(f => f.name === 'file')
   const pathField = formData.find(f => f.name === 'path')
+  const exifField = formData.find(f => f.name === 'exif')
 
   if (!bucketField || !bucketField.data) {
     return throwError(400, 'Missing required field: bucket')
@@ -72,8 +72,8 @@ export default defineEventHandler(async (event: H3Event) => {
   }
 
   const bucket = bucketField.data.toString()
-  if (!isValidBucket(bucket)) {
-    return throwError(400, `Invalid bucket: ${bucket}. Must be one of: avatars, campaign-assets, uploads`)
+  if (!(await isValidBucket(bucket, event))) {
+    return throwError(400, `Invalid bucket: ${bucket}`)
   }
 
   // campaign-assets 仅管理员可写入
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event: H3Event) => {
     return throwError(403, 'Only admins can upload to campaign-assets bucket')
   }
 
-  const config = BUCKET_CONFIG[bucket]
+  const config = getBucketConfig(bucket)
 
   // 文件大小校验
   const fileSize = fileField.data.length
@@ -111,10 +111,19 @@ export default defineEventHandler(async (event: H3Event) => {
   const fileData = new Uint8Array(fileField.data)
   const result = await uploadFile(bucket, storagePath, fileData, contentType, event)
 
+  // 解析 EXIF 数据
+  let exifData: Record<string, any> | null = null
+  if (exifField?.data) {
+    try {
+      exifData = JSON.parse(exifField.data.toString())
+    } catch {}
+  }
+
   await logAuditEvent(event, ctxUser, 'STORAGE_UPLOAD', 'SUCCESS')
 
   return sendSuccess(event, {
     path: result.path,
     publicUrl: result.publicUrl,
+    exif: exifData,
   }, 'File uploaded successfully')
 })

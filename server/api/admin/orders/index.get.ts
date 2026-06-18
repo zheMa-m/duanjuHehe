@@ -6,7 +6,7 @@ import { assertAdmin } from '~~/server/utils/auth'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin Orders'],
+    tags: ['管理·运营-订单'],
     summary: '管理员：获取订单列表（分页）',
     security: [{ BearerAuth: [] }],
     parameters: [
@@ -39,7 +39,12 @@ export default defineEventHandler(async (event) => {
     chain = chain.eq('status', status)
   }
 
-  const { data: orders, error, count } = await chain.order('created_at', { ascending: false })
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
+  const { data: orders, error, count } = await chain
+    .order('created_at', { ascending: false })
+    .range(from, to)
 
   if (error) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch orders' })

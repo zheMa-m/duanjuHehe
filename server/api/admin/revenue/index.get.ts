@@ -6,7 +6,7 @@ import { assertAdmin } from '~~/server/utils/auth'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin Revenue'],
+    tags: ['管理·运营-收入'],
     summary: '管理员：收入分析',
     description: '支付收入数据分析，包含每日明细与收入快照。',
     security: [{ BearerAuth: [] }],
@@ -30,8 +30,15 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const days = Math.min(parseInt(query.days as string) || 30, 365)
 
-  // 获取已支付订单的收入数据
-  const { data: orders } = await db.from('orders').select('*').eq('status', 'paid')
+  // 优化：仅查询回溯范围内的已支付订单，避免全表扫描
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+
+  const { data: orders } = await db
+    .from('orders')
+    .select('*')
+    .eq('status', 'paid')
+    .gte('created_at', startDate.toISOString())
   const paidOrders = (orders || [])
   const paymentRevenue = paidOrders.reduce((sum: number, o: any) => sum + (Number(o.amount) || 0), 0)
 

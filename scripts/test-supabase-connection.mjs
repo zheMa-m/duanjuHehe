@@ -47,14 +47,26 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 section('1. 连通性 & 表完备性检查')
 
 const requiredTables = [
-  'profiles',       // 0001_core
-  'tasks',          // 0001_core
-  'activity_logs',  // 0001_core
-  'campaigns',      // 0002_campaign_optional
-  'feedbacks',      // 0004_feedback_optional
-  'products',       // 0005_payment_optional
-  'orders',         // 0005_payment_optional
-  'campaign_registrations', // 0006_campaign_registrations
+  // 0001_core
+  'profiles',
+  'tasks',
+  'activity_logs',
+  'storage_trash',
+  // 0002_campaign
+  'campaigns',
+  'campaign_registrations',
+  // 0003_feedback
+  'feedbacks',
+  // 0004_payment
+  'products',
+  'orders',
+  'payment_configs',
+  'subscriptions',
+  // 0005_api_security
+  'api_security_settings',
+  'api_keys',
+  // 0006_system
+  'system_configs',
 ]
 
 for (const table of requiredTables) {

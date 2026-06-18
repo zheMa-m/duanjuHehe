@@ -8,7 +8,7 @@ import { logAuditEvent } from '~~/server/utils/logger'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin Tasks'],
+    tags: ['管理·运营-任务'],
     summary: '管理员：切换任务完成状态',
     security: [{ BearerAuth: [] }],
     parameters: [

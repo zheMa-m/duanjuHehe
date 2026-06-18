@@ -6,7 +6,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Products'],
+    tags: ['商品'],
     summary: '删除商品',
     description: '删除当前租户下的指定商品。',
     security: [{ BearerAuth: [] }],

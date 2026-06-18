@@ -8,7 +8,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin Profile'],
+    tags: ['管理·系统-个人'],
     summary: '管理员：修改密码',
     description: '通过 Supabase Admin API 更新管理员密码。',
     security: [{ BearerAuth: [] }],

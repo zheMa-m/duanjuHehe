@@ -6,7 +6,7 @@ import { assertUser } from '~~/server/utils/auth'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Payments'],
+    tags: ['支付'],
     summary: '获取单个订单状态',
     description: '返回订单详情，RLS 限制用户仅可查看自己的订单（管理员除外）。',
     security: [{ BearerAuth: [] }],

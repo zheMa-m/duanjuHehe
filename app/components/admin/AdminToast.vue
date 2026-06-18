@@ -27,11 +27,11 @@ defineExpose({ show })
         <div
           v-for="t in toasts"
           :key="t.id"
-          class="pointer-events-auto px-4.5 py-3.5 rounded-2xl text-[11px] font-semibold shadow-[0_15px_30px_rgba(0,0,0,0.6)] backdrop-blur-xl border flex items-center gap-3 transition-all duration-300 w-full"
+          class="pointer-events-auto px-4.5 py-3.5 rounded-2xl text-xs font-semibold shadow-[0_15px_30px_rgba(0,0,0,0.6)] backdrop-blur-xl border flex items-center gap-3 transition-all duration-300 w-full"
           :class="{
             'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/25 shadow-[0_0_15px_rgba(48,209,88,0.1)]': t.type === 'success',
             'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/25 shadow-[0_0_15px_rgba(255,69,58,0.1)]': t.type === 'error',
-            'bg-black/60 text-white/80 border-white/[0.08]': t.type === 'info',
+            'bg-[#12121a]/90 text-white/80 border-white/[0.08]': t.type === 'info',
           }"
         >
           <!-- 状态视觉修饰前缀图标 -->

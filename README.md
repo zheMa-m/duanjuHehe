@@ -125,11 +125,11 @@ npm run dev:all
 请求进入后依次经过编号中间件，形成清晰的安全管道：
 
 ```
-00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 05.access-guard
+00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 06.api-security
   │              │                  │           │             │                │
   │              │                  │           │             │                │
-  性能监控     子域名路由         Bearer/      管理员        用户态          站点访问
-              重写到对应路径     Cookie      断言守卫      强制认证        密码保护
+  性能监控     子域名路由         Bearer/      管理员        用户态          API安全
+              重写到对应路径     Cookie      断言守卫      强制认证        和防刷限制
                                双模鉴权
 ```
 
@@ -241,8 +241,7 @@ hehe-app/
 
 ### 📊 OpenAPI 文档
 
-- **三套交互式 UI**：Scalar（紫色主题）、Swagger UI、原始 OpenAPI 3.1.0 JSON
-- **生产环境密码保护**：`SITE_ACCESS_PASSWORD` 环境变量，支持 `?token=` / `?password=` / Bearer / Cookie 四种方式
+- **三套交互式 UI**：Scalar（紫色主题）、Swagger UI、原始 OpenAPI 3.1.0 JSON（开发与生产环境均支持直接访问）
 
 ---
 
@@ -254,10 +253,12 @@ hehe-app/
 
 | 迁移 | 内容 | 状态 |
 |---|---|---|
-| `0001_core.sql` | 核心表（profiles、tasks、activity_logs）+ Storage Bucket + RLS 策略 | **必选** |
-| `0002_campaign_optional.sql` | 营销活动 campaigns | 可选 |
-| `0004_feedback_optional.sql` | 用户反馈 feedbacks | 可选 |
-| `0005_payment_optional.sql` | 支付 products、orders | 可选 |
+| `0001_core.sql` | 核心表（profiles、tasks、activity_logs）+ Storage Bucket + RLS + 回收站 | **必选** |
+| `0002_campaign.sql` | 营销活动 campaigns + 留资 | 可选 |
+| `0003_feedback.sql` | 用户反馈 feedbacks | 可选 |
+| `0004_payment.sql` | 商品 products + 订单 orders + 支付配置 + 订阅 | 可选 |
+| `0005_api_security.sql` | API 安全策略（速率限制 / IP / API Key） | 可选 |
+| `0006_system.sql` | 系统通用配置 + 埋点种子数据 | 可选 |
 
 ### RLS 设计原则
 
@@ -310,13 +311,11 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Layer 1: 站点访问密码 (SITE_ACCESS_PASSWORD) │
-│           → 页面拦截 + API 文档保护           │
-│  Layer 2: 管理员断言 (assertAdmin)            │
-│  Layer 3: 用户认证守卫 (assertUser)           │
-│  Layer 4: RLS 行级安全 (FORCE ROW LEVEL)      │
-│  Layer 5: Zod 输入校验                         │
-│  Layer 6: API 安全扫描 (@api-auth 声明)       │
+│  Layer 1: 管理员断言 (assertAdmin)            │
+│  Layer 2: 用户认证守卫 (assertUser)           │
+│  Layer 3: RLS 行级安全 (FORCE ROW LEVEL)      │
+│  Layer 4: Zod 输入校验                         │
+│  Layer 5: API 安全扫描 (@api-auth 声明)       │
 └──────────────────────────────────────────────┘
 ```
 
@@ -329,7 +328,6 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 | `SUPABASE_SERVICE_ROLE_KEY` | 服务端数据库操作 |
 | `STRIPE_SECRET_KEY` | Stripe 支付密钥 |
 | `STRIPE_WEBHOOK_SECRET` | Stripe Webhook 验证 |
-| `SITE_ACCESS_PASSWORD` | 站点访问密码（页面 + API 文档统一） |
 
 ### 鉴权流程
 
@@ -378,17 +376,9 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 | `/_scalar` | Scalar 交互式文档（紫色主题） | 开发 + 生产 |
 | `/_swagger` | Swagger UI 交互式文档 | 开发 + 生产 |
 
-### 生产环境访问
+### 访问方式
 
-```bash
-# Query 参数
-curl "https://hehe-app.vercel.app/_swagger?token=<SITE_ACCESS_PASSWORD>"
-
-# Bearer Header
-curl -H "Authorization: Bearer <SITE_ACCESS_PASSWORD>" "https://hehe-app.vercel.app/_scalar"
-```
-
-> 开发环境自动放行，无需 Token。
+开发环境与生产环境均无需 Token，可直接访问。
 
 ### API 分组
 
@@ -498,9 +488,6 @@ NUXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 STRIPE_SECRET_KEY=<stripe_secret>
 STRIPE_WEBHOOK_SECRET=<stripe_webhook>
 
-# ── 安全 ──
-SITE_ACCESS_PASSWORD=<your_password>            # 统一访问密码（页面 + API 文档）
-
 # ── 站点 ──
 NUXT_PUBLIC_BASE_URL=https://yourdomain.com     # 站点 URL（可选，自动探测）
 ROOT_DOMAIN=yourdomain.com                      # 根域名（子域名路由用）
@@ -539,7 +526,7 @@ ROOT_DOMAIN=yourdomain.com                      # 根域名（子域名路由用
 
 ```bash
 # 1. 添加数据库迁移（如需要）
-# 创建 supabase/migrations/0008_xxx.sql
+# 创建 supabase/migrations/0007_xxx.sql
 
 # 2. 生成 CRUD API
 npm run gen:crud <resource>

@@ -19,25 +19,22 @@
 
 ## 安全架构
 
-HeHe App 采用 **6 层纵深防御模型**：
+HeHe App 采用 **5 层纵深防御模型**：
 
 ```
-Layer 1: 站点访问密码 (SITE_ACCESS_PASSWORD)
-         → 页面拦截 + API 文档保护
-
-Layer 2: 管理员断言 (assertAdmin)
+Layer 1: 管理员断言 (assertAdmin)
          → /api/admin/* 端点强制管理员身份
 
-Layer 3: 用户认证守卫 (assertUser)
+Layer 2: 用户认证守卫 (assertUser)
          → /api/v1/* 敏感端点强制登录
 
-Layer 4: RLS 行级安全 (FORCE ROW LEVEL SECURITY)
+Layer 3: RLS 行级安全 (FORCE ROW LEVEL SECURITY)
          → 数据库层用户数据隔离
 
-Layer 5: Zod 输入校验
+Layer 4: Zod 输入校验
          → API 入参类型与业务规则校验
 
-Layer 6: API 安全扫描 (@api-auth 声明)
+Layer 5: API 安全扫描 (@api-auth 声明)
          → 自动化测试验证鉴权完整性
 ```
 
@@ -52,7 +49,6 @@ Layer 6: API 安全扫描 (@api-auth 声明)
 | `SUPABASE_SERVICE_ROLE_KEY` | 绕过 RLS，可读写所有数据 |
 | `STRIPE_SECRET_KEY` | 创建 PaymentIntent，发起扣款 |
 | `STRIPE_WEBHOOK_SECRET` | 伪造 Webhook 事件 |
-| `SITE_ACCESS_PASSWORD` | 绕过站点访问保护 |
 
 ### 密钥存储位置
 
@@ -70,7 +66,7 @@ Layer 6: API 安全扫描 (@api-auth 声明)
 - ✅ Auth Cookie 使用 SameSite=Strict + Secure（HTTPS）
 - ✅ 金额字段使用 NUMERIC 类型（防浮点精度问题）
 - ✅ API 安全扫描器自动检测鉴权缺失
-- ✅ OpenAPI 文档生产环境密码保护
+- ✅ OpenAPI 文档开发与生产环境均支持直接访问
 - ✅ `.env` 已加入 `.gitignore`
 
 ## 依赖安全

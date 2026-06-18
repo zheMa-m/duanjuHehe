@@ -13,7 +13,7 @@ import { logAuditEvent } from '~~/server/utils/logger'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Auth'],
+    tags: ['认证'],
     summary: '更新用户档案',
     description: '仅允许更新 display_name、avatar_url 和 phone 字段。',
     security: [{ BearerAuth: [] }],

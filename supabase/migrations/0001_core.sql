@@ -7,6 +7,7 @@
 --   3. activity_logs       — 统一审计日志（append-only）
 --   4. storage.buckets     — Supabase Storage Bucket（avatars, campaign-assets, uploads）
 --     + storage.objects RLS 策略（路径隔离 + RESTRICTIVE 加固）
+--   5. storage_trash       — 回收站记录表（软删除，30 天自动清理）
 --
 -- 通用函数：
 --   set_updated_at()       — updated_at 自动刷新
@@ -14,10 +15,11 @@
 --   handle_new_user()      — Auth 触发器（OAuth email_verified 区分）
 --
 -- ⚠️  可选模块（按需启用，依赖本文件）：
---   0002_campaign_optional.sql    — 营销活动配置
---   0003_ad_optional.sql          — 广告位 + 广告事件（依赖 campaigns）
---   0004_feedback_optional.sql  — 用户评价
---   0005_payment_optional.sql     — 商品 + 订单（支付模块）
+--   0002_campaign.sql    — 营销活动配置
+--   0003_feedback.sql    — 用户评价
+--   0004_payment.sql     — 商品 + 订单 + 支付配置 + 订阅
+--   0005_api_security.sql — API 安全策略
+--   0006_system.sql      — 系统通用配置 + 埋点
 -- ====================================================================
 
 
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS "profiles" (
   "device_id"          TEXT,
   "is_anonymous"       BOOLEAN NOT NULL DEFAULT FALSE,
   "email_verified"     BOOLEAN NOT NULL DEFAULT FALSE,
+  "stripe_customer_id" TEXT UNIQUE,
   "phone"              TEXT,
   "created_at"         TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "updated_at"         TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -352,7 +355,44 @@ CREATE POLICY "uploads_restrict_anon" ON storage.objects
 
 
 -- ╔════════════════════════════════════════════════════════════════╗
--- ║  5. Seed: 内置管理员 profiles 记录                            ║
+-- ║  5. storage_trash — 回收站记录表                               ║
+-- ║  删除文件时移动到 __trash__ 前缀，30 天后自动清理              ║
+-- ╚════════════════════════════════════════════════════════════════╝
+
+CREATE TABLE IF NOT EXISTS "storage_trash" (
+  "id"              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "original_bucket" TEXT NOT NULL,
+  "original_path"   TEXT NOT NULL,
+  "trash_path"      TEXT NOT NULL,
+  "file_name"       TEXT NOT NULL,
+  "mime_type"       TEXT,
+  "file_size"       BIGINT NOT NULL DEFAULT 0,
+  "deleted_by"      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  "expires_at"      TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '30 days',
+  "created_at"      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE "storage_trash" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "storage_trash" FORCE ROW LEVEL SECURITY;
+
+-- 仅管理员可读写回收站
+CREATE POLICY "storage_trash_admin_all" ON "storage_trash"
+  FOR ALL TO authenticated
+  USING ("is_admin"((SELECT auth.uid())))
+  WITH CHECK ("is_admin"((SELECT auth.uid())));
+
+-- 索引：按过期时间（定时清理任务用）
+CREATE INDEX IF NOT EXISTS "idx_storage_trash_expires"
+  ON "storage_trash"("expires_at")
+  WHERE "expires_at" IS NOT NULL;
+
+-- 索引：按创建时间（列表排序用）
+CREATE INDEX IF NOT EXISTS "idx_storage_trash_created"
+  ON "storage_trash"("created_at" DESC);
+
+
+-- ╔════════════════════════════════════════════════════════════════╗
+-- ║  6. Seed: 内置管理员 profiles 记录                            ║
 -- ║  Auth 用户由服务端 ensureAdminAuthUser() 在首次请求时创建     ║
 -- ║  固定 UUID: 9e638ba2-41aa-4434-a68b-6bd9f7ed0963             ║
 -- ║  此处预置 profiles 记录，确保 role='admin'（handle_new_user  ║

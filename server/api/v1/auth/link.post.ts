@@ -15,7 +15,7 @@ import { getClientRealIP } from '~~/server/utils/ip'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Auth'],
+    tags: ['认证'],
     summary: '匿名用户绑定邮箱',
     description: '将匿名用户的 identity 绑定到真实邮箱/密码账户，绑定后 is_anonymous 变为 false。',
     security: [{ BearerAuth: [] }],

@@ -30,20 +30,24 @@ export interface StripeEvent {
 
 // ── 初始化 Stripe Client ─────────────────────────────────────
 let _stripeClient: any = null
+let _lastSecretKey: string = ''
 
-export function getStripeClient() {
+export function getStripeClient(secretKeyOverride?: string) {
   if (process.env.MOCK_DB === 'true') {
     return null // Mock 模式不需要真实 client
   }
 
-  if (!_stripeClient) {
+  const keyToUse = secretKeyOverride || process.env.STRIPE_SECRET_KEY || ''
+
+  if (!_stripeClient || (secretKeyOverride && _lastSecretKey !== secretKeyOverride)) {
     // 动态导入 Stripe SDK（仅真实环境加载）
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Stripe = require('stripe')
-      _stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      _stripeClient = new Stripe(keyToUse, {
         apiVersion: '2024-12-18.acacia'
       })
+      _lastSecretKey = keyToUse
     } catch {
       console.warn('[Payments] Stripe SDK not installed. Run: npm install stripe')
       return null
@@ -106,7 +110,12 @@ export async function createCheckoutSession(params: CheckoutParams): Promise<Che
 }
 
 // ── 验证 Webhook 签名 ────────────────────────────────────────
-export function verifyWebhookSignature(rawBody: string | Buffer, signature: string): StripeEvent | null {
+export function verifyWebhookSignature(
+  rawBody: string | Buffer,
+  signature: string,
+  secretKeyOverride?: string,
+  webhookSecretOverride?: string
+): StripeEvent | null {
   if (process.env.MOCK_DB === 'true') {
     // Mock 模式：直接解析 body 为事件
     try {
@@ -116,14 +125,16 @@ export function verifyWebhookSignature(rawBody: string | Buffer, signature: stri
     }
   }
 
-  const stripe = getStripeClient()
+  const stripe = getStripeClient(secretKeyOverride)
   if (!stripe) return null
+
+  const webhookSecret = webhookSecretOverride || process.env.STRIPE_WEBHOOK_SECRET || ''
 
   try {
     const event = stripe.webhooks.constructEvent(
       rawBody,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET || ''
+      webhookSecret
     )
     return event as StripeEvent
   } catch (err: any) {

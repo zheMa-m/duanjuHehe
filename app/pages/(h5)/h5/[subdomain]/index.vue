@@ -41,9 +41,9 @@ const triggerToast = (msg: string) => {
   setTimeout(() => { showToast.value = false }, 2500)
 }
 
-// 认证集成，解构出需要的匿名登录与绑定状态
 const { user, isLoggedIn, isAnonymous, signInAnonymously } = useAuth()
 const { t } = useI18n()
+const { trackEvent } = useAnalytics()
 const showLoginModal = ref(false)
 const loginMode = ref<'login' | 'register' | 'bind'>('login')
 const pendingAction = ref<(() => void) | null>(null)
@@ -74,6 +74,14 @@ const ensureLoggedInForAction = (action: () => void): boolean => {
 
 const handlePurchase = async () => {
   if (!ensureLoggedInForAction(() => handlePurchase())) return
+  // 进行购买前打点（不上报用户信息，仅上报商品信息）
+  trackEvent('purchase_initiate', {
+    item_id:   currentProduct.value.id,
+    item_name: currentProduct.value.name,
+    value:     currentProduct.value.price,
+    currency:  'USD',
+    channel:   subdomain.value,
+  })
   isPurchasing.value = true
   try {
     await createAndRedirect({
@@ -177,6 +185,10 @@ const handleRegister = async () => {
       body: { phone: phone.value, email: email.value, subdomain: subdomain.value }
     })
     isSubmitted.value = true
+    // 成功打点（严禁上报明文邮筱/手机号）
+    trackEvent('campaign_register', {
+      channel: subdomain.value,
+    })
   } catch (e: any) {
     triggerToast(e.data?.statusMessage || t('h5.registerFailed'))
   } finally {

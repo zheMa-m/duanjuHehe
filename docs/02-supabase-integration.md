@@ -73,10 +73,12 @@ STRIPE_PUBLIC_KEY=pk_test_xxx
 
 | 顺序 | 文件 | 内容 | 类型 |
 |------|------|------|------|
-| 1 | `supabase/migrations/0001_core.sql` | profiles, tasks, activity_logs + `is_admin()` 函数 + 触发器函数 | 必选 |
-| 2 | `supabase/migrations/0002_campaign_optional.sql` | campaigns（营销模块） | ⚠️ 可选 |
-| 4 | `supabase/migrations/0004_feedback_optional.sql` | feedbacks 评价表 | ⚠️ 可选 |
-| 5 | `supabase/migrations/0005_payment_optional.sql` | products, orders（支付模块） | ⚠️ 可选 |
+| 1 | `supabase/migrations/0001_core.sql` | profiles, tasks, activity_logs, storage_trash + Storage Buckets + RLS + 触发器函数 | 必选 |
+| 2 | `supabase/migrations/0002_campaign.sql` | campaigns + campaign_registrations（营销模块） | 可选 |
+| 3 | `supabase/migrations/0003_feedback.sql` | feedbacks 评价表 | 可选 |
+| 4 | `supabase/migrations/0004_payment.sql` | products, orders, payment_configs, subscriptions（支付模块） | 可选 |
+| 5 | `supabase/migrations/0005_api_security.sql` | api_security_settings, api_keys（API 安全） | 可选 |
+| 6 | `supabase/migrations/0006_system.sql` | system_configs 通用配置 + 埋点种子数据 | 可选 |
 
 3. 每次执行一个文件，确认无报错后再执行下一个
 4. 执行完成后进入 **Table Editor**，确认所有表已创建：

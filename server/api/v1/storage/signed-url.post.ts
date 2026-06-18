@@ -17,12 +17,12 @@ import {
   isMimeAllowed,
   buildStoragePath,
   createSignedUploadUrl,
-  BUCKET_CONFIG,
+  getBucketConfig,
 } from '~~/server/utils/storage'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Storage'],
+    tags: ['存储'],
     summary: '生成客户端直传的 Signed Upload URL',
     description: '获取 signed URL 后客户端可直接 PUT 上传文件至 Supabase Storage，适合大文件（>= 5MB）场景。',
     security: [{ BearerAuth: [] }],
@@ -50,9 +50,7 @@ defineRouteMeta({
 })
 
 const schema = z.object({
-  bucket: z.string().refine((v) => ['avatars', 'campaign-assets', 'uploads'].includes(v), {
-    message: 'Invalid bucket. Must be one of: avatars, campaign-assets, uploads',
-  }),
+  bucket: z.string().min(1),
   filename: z.string().min(1).max(255),
   contentType: z.string().optional(),
 })
@@ -62,11 +60,22 @@ export default defineEventHandler(async (event: H3Event) => {
 
   const body = await readValidatedBody(event, (data) => schema.parse(data))
 
-  const bucket = body.bucket as 'avatars' | 'campaign-assets' | 'uploads'
+  const bucket = body.bucket
+
+  // 动态校验 bucket 是否存在
+  if (!(await isValidBucket(bucket, event))) {
+    return throwError(400, `Invalid bucket: ${bucket}`)
+  }
 
   // campaign-assets 仅管理员可写入
   if (bucket === 'campaign-assets' && ctxUser.role !== 'admin') {
     return throwError(403, 'Only admins can upload to campaign-assets bucket')
+  }
+
+  // 自定义桶 adminOnly 校验
+  const config = getBucketConfig(bucket)
+  if (config.adminOnly && ctxUser.role !== 'admin') {
+    return throwError(403, 'Only admins can upload to this bucket')
   }
 
   // MIME 类型校验（如果提供了 contentType）

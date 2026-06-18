@@ -6,7 +6,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['User'],
+    tags: ['用户'],
     summary: '获取用户档案（租户隔离）',
     description: '返回已认证用户的档案信息，使用会话中的 tenant_id 进行租户隔离，防止水平越权。',
     security: [{ BearerAuth: [] }],

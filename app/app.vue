@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { inject } from '@vercel/analytics'
 import { injectSpeedInsights } from '@vercel/speed-insights'
 
@@ -7,6 +7,8 @@ if (import.meta.client && import.meta.env.PROD) {
   inject()
   injectSpeedInsights()
 }
+
+// ── 客户端站点访问密码门控已废除 ──
 </script>
 
 <template>
@@ -41,6 +43,18 @@ if (import.meta.client && import.meta.env.PROD) {
   --border-base: #1e2d4d;
   --font-sans: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  /* 品牌色 (indigo) */
+  --brand-accent: #6366f1;
+  --brand-accent-light: #818cf8;
+  --brand-accent-dark: #4f46e5;
+  --brand-accent-soft: #a5b4fc;
+  --brand-blue-500: #3b82f6;
+  --brand-violet: #bf5af2;
+  /* 状态色 (Apple HIG) */
+  --brand-status-ok: #30d158;
+  --brand-status-err: #ff453a;
+  --brand-status-warn: #ff9f0a;
+  --brand-status-info: #bf5af2;
 }
 
 *,
@@ -100,4 +114,5 @@ img {
   background: var(--bg-base);
   color: var(--text-base);
 }
+
 </style>

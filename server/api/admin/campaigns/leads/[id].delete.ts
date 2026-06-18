@@ -6,7 +6,7 @@ import { logAuditEvent } from '~~/server/utils/logger'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin Campaigns'],
+    tags: ['管理·营销-活动'],
     summary: '管理员：删除特定营销留资预约记录',
     description: '通过记录 ID 删除一条营销活动留资记录，仅限管理员访问。',
     security: [{ BearerAuth: [] }],

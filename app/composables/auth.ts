@@ -181,8 +181,15 @@ export function useAuth() {
 
   // ── 匿名用户绑定邮箱 ────────────────────────────────────
   async function linkAnonymousToEmail(email: string, password: string) {
+    const headers: Record<string, string> = {}
+    const token = session.value?.accessToken || getCookie(AUTH_COOKIE_NAME)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const res = await $fetch<{ data: any }>('/api/v1/auth/link', {
       method: 'POST',
+      headers,
       body: { email, password }
     })
 
@@ -206,7 +213,12 @@ export function useAuth() {
   // ── 登出 ────────────────────────────────────────────────
   async function signOut() {
     try {
-      await $fetch('/api/v1/auth/logout', { method: 'POST' })
+      const headers: Record<string, string> = {}
+      const token = session.value?.accessToken || getCookie(AUTH_COOKIE_NAME)
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      await $fetch('/api/v1/auth/logout', { method: 'POST', headers })
     } catch { /* ignore */ }
     clearCookies()
     user.value = null
@@ -216,7 +228,12 @@ export function useAuth() {
   // ── 刷新用户信息 ────────────────────────────────────────
   async function refreshUser() {
     try {
-      const res = await $fetch<{ data: any }>('/api/v1/auth/me')
+      const headers: Record<string, string> = {}
+      const token = session.value?.accessToken || getCookie(AUTH_COOKIE_NAME)
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      const res = await $fetch<{ data: any }>('/api/v1/auth/me', { headers })
       if (res?.data) {
         user.value = mapProfileToUser(res.data)
       } else {
@@ -229,8 +246,14 @@ export function useAuth() {
 
   // ── 更新 profile ────────────────────────────────────────
   async function updateProfile(data: { display_name?: string; avatar_url?: string; phone?: string }) {
+    const headers: Record<string, string> = {}
+    const token = session.value?.accessToken || getCookie(AUTH_COOKIE_NAME)
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
     const res = await $fetch<{ data: any }>('/api/v1/auth/profile', {
       method: 'PATCH',
+      headers,
       body: data
     })
     await refreshUser()
@@ -239,15 +262,24 @@ export function useAuth() {
 
   // ── 管理后台内置管理员登录 ──────────────────────────────
   async function signInAsAdmin(username: string, password: string) {
-    const res = await $fetch<{ data: any }>('/api/admin/login', {
-      method: 'POST',
-      body: { username, password }
-    })
+    let email = username
+    if (!email.includes('@')) {
+      // 方便本地开发与常规管理员输入简写 "admin"，自动补全为系统管理员邮箱
+      email = `${username}@hehe.dev`
+    }
 
-    if (res?.data?.user) {
-      user.value = mapProfileToUser(res.data.user)
-      // 同步 cookie（服务端已设置，前端再设一遍确保）
-      setCookie(AUTH_COOKIE_NAME, `admin-${Date.now()}`, 1)
+    // 清空当前用户状态，防脏数据污染
+    user.value = null
+    session.value = null
+
+    // 调用常规邮箱登录
+    const res = await signInWithEmail(email, password)
+
+    // 校验登录后的用户是否具有管理员角色
+    const currentUser = user.value as AuthUser | null
+    if (currentUser && currentUser.role !== 'admin') {
+      await signOut()
+      throw new Error('您的账号不具有管理后台访问权限')
     }
 
     return res

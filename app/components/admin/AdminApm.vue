@@ -75,7 +75,7 @@ const formatUptime = (seconds: number) => {
     <!-- 标题栏 -->
     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
       <div>
-        <h1 class="text-2xl font-semibold text-white tracking-tight flex items-center gap-3">
+        <h1 class="text-[28px] font-bold text-white tracking-tight flex items-center gap-3">
           系统健康监控
           <span
             class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold border transition-all duration-300 animate-pulse-glow"
@@ -85,12 +85,12 @@ const formatUptime = (seconds: number) => {
             {{ healthStatus }}
           </span>
         </h1>
-        <p class="text-white/40 text-xs mt-1">实时分析 Node.js 服务端性能、硬件负荷及异常警报（3秒自轮询）</p>
+        <p class="text-white/40 text-sm mt-1">实时分析 Node.js 服务端性能、硬件负荷及异常警报（3秒自轮询）</p>
       </div>
       <button 
         @click="$emit('refresh')"
         :disabled="isLoading"
-        class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all flex items-center gap-1.5 active:scale-[0.98] cursor-pointer focus:outline-none"
+        class="text-sm bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-full transition-all flex items-center gap-1.5 active:scale-[0.98] cursor-pointer focus:outline-none"
       >
         <span :class="{'animate-spin': isLoading}" class="inline-block">🔄</span>
         {{ isLoading ? '正在更新...' : '刷新指标' }}
@@ -99,36 +99,36 @@ const formatUptime = (seconds: number) => {
 
     <!-- P95 / P99 / 错误率卡片 (Bento Panel) -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
-      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
-        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">Avg Latency</div>
-        <div class="text-2xl font-bold text-white font-mono">
+      <div class="bg-white/[0.04] p-5 rounded-2xl shadow-lg shadow-black/20 transition-all hover:bg-white/[0.06]">
+        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1.5 font-mono">平均延迟</div>
+        <div class="text-3xl font-bold text-white font-mono">
           {{ apmData?.summary?.averageDuration ? apmData.summary.averageDuration.toFixed(1) + ' ms' : '0.0 ms' }}
         </div>
-        <div class="text-[10px] text-white/25 mt-1 font-light">基于最近 100 次 API 数据</div>
+        <div class="text-xs text-white/25 mt-1 font-light">基于最近 100 次 API 数据</div>
       </div>
 
-      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
-        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">P95 Latency</div>
-        <div class="text-2xl font-bold text-[#0a84ff] font-mono">
+      <div class="bg-white/[0.04] p-5 rounded-2xl shadow-lg shadow-black/20 transition-all hover:bg-white/[0.06]">
+        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1.5 font-mono">P95 延迟</div>
+        <div class="text-3xl font-bold text-indigo-400 font-mono">
           {{ apmData?.summary?.p95Duration ? apmData.summary.p95Duration.toFixed(1) + ' ms' : '0.0 ms' }}
         </div>
-        <div class="text-[10px] text-white/25 mt-1 font-light">95% 的请求响应低于此值</div>
+        <div class="text-xs text-white/25 mt-1 font-light">95% 的请求响应低于此值</div>
       </div>
 
-      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
-        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">P99 Latency</div>
-        <div class="text-2xl font-bold text-[#bf5af2] font-mono">
+      <div class="bg-white/[0.04] p-5 rounded-2xl shadow-lg shadow-black/20 transition-all hover:bg-white/[0.06]">
+        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1.5 font-mono">P99 延迟</div>
+        <div class="text-3xl font-bold text-[#bf5af2] font-mono">
           {{ apmData?.summary?.p99Duration ? apmData.summary.p99Duration.toFixed(1) + ' ms' : '0.0 ms' }}
         </div>
-        <div class="text-[10px] text-white/25 mt-1 font-light">系统极限时延表现指标</div>
+        <div class="text-xs text-white/25 mt-1 font-light">系统极限时延表现指标</div>
       </div>
 
-      <div class="bg-[#0c0c0e]/60 border border-white/[0.06] p-5 rounded-2xl shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/15">
-        <div class="text-white/40 text-[9px] font-semibold uppercase tracking-widest mb-1.5 font-mono">Error Rate</div>
+      <div class="bg-white/[0.04] p-5 rounded-2xl shadow-lg shadow-black/20 transition-all hover:bg-white/[0.06]">
+        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1.5 font-mono">错误率</div>
         <div class="text-2xl font-bold font-mono" :class="(apmData?.summary?.errorRate ?? 0) > 0 ? 'text-[#ff453a]' : 'text-[#30d158]'">
           {{ apmData?.summary?.errorRate ? apmData.summary.errorRate.toFixed(1) + '%' : '0.0%' }}
         </div>
-        <div class="text-[10px] text-white/25 mt-1 font-light">状态码 >= 400 请求占比</div>
+        <div class="text-xs text-white/25 mt-1 font-light">状态码 >= 400 请求占比</div>
       </div>
     </div>
 
@@ -136,15 +136,15 @@ const formatUptime = (seconds: number) => {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       <!-- CPU & 内存 (高品质毛玻璃卡片) -->
-      <div class="lg:col-span-1 bg-[#0c0c0e]/60 border border-white/[0.06] p-6 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/12 relative group overflow-hidden">
-        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-blue-500/[0.02] blur-xl"></div>
+      <div class="lg:col-span-1 bg-white/[0.04] p-6 rounded-2xl flex flex-col justify-between shadow-lg shadow-black/20 transition-all hover:bg-white/[0.06] relative group overflow-hidden">
+        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-indigo-500/[0.04] blur-2xl"></div>
         
         <div class="space-y-6 relative z-10">
-          <h3 class="text-xs font-semibold text-white/50 uppercase tracking-widest pl-1 font-mono">Hardware Load</h3>
+          <h3 class="text-sm font-semibold text-white/50 uppercase tracking-widest pl-1 font-mono">硬件负荷</h3>
           
           <!-- CPU -->
           <div class="space-y-2">
-            <div class="flex justify-between text-xs font-light">
+            <div class="flex justify-between text-sm font-light">
               <span class="text-white/70 tracking-wide">CPU 负载比例</span>
               <span class="text-white font-semibold font-mono">{{ apmData?.system?.cpuLoad }}%</span>
             </div>
@@ -164,7 +164,7 @@ const formatUptime = (seconds: number) => {
 
           <!-- Memory -->
           <div class="space-y-2">
-            <div class="flex justify-between text-xs font-light">
+            <div class="flex justify-between text-sm font-light">
               <span class="text-white/70 tracking-wide">物理内存占用</span>
               <span class="text-white font-semibold font-mono">{{ apmData?.system?.memoryUsage }}%</span>
             </div>
@@ -179,34 +179,34 @@ const formatUptime = (seconds: number) => {
                 :style="{ width: (apmData?.system?.memoryUsage ?? 0) + '%' }"
               ></div>
             </div>
-            <div class="text-[10px] text-white/30 flex justify-between font-mono">
+            <div class="text-xs text-white/30 flex justify-between font-mono">
               <span>共 {{ apmData?.system?.totalMemGb }} GB</span>
               <span>可用 {{ apmData?.system?.freeMemGb }} GB</span>
             </div>
           </div>
         </div>
 
-        <div class="pt-5 border-t border-white/[0.06] text-[10px] text-white/40 flex justify-between items-center mt-6 relative z-10">
+        <div class="pt-5 border-t border-white/[0.06] text-xs text-white/40 flex justify-between items-center mt-6 relative z-10">
           <span class="tracking-wide">Node.js 服务已运行:</span>
           <span class="font-mono text-white/80 font-medium">{{ formatUptime(apmData?.system?.uptime ?? 0) }}</span>
         </div>
       </div>
 
       <!-- 告警清单 (双列高透卡片) -->
-      <div class="lg:col-span-2 bg-[#0c0c0e]/60 border border-white/[0.06] p-6 rounded-2xl flex flex-col justify-between shadow-[inset_0_1px_rgba(255,255,255,0.02)] transition-all hover:border-white/12 relative group overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-purple-500/[0.01] blur-xl"></div>
+      <div class="lg:col-span-2 bg-white/[0.04] p-6 rounded-2xl flex flex-col justify-between shadow-lg shadow-black/20 transition-all hover:bg-white/[0.06] relative group overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-indigo-500/[0.03] blur-2xl"></div>
         
         <div class="relative z-10">
           <div class="flex justify-between items-center mb-4 pl-1">
-            <h3 class="text-xs font-semibold text-white/50 uppercase tracking-widest font-mono">Alerting Center</h3>
-            <span class="text-[9px] px-2.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/[0.05] font-mono">REAL-TIME CHECK</span>
+            <h3 class="text-sm font-semibold text-white/50 uppercase tracking-widest font-mono">告警中心</h3>
+            <span class="text-[10px] px-2.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/[0.05] font-mono">实时检测</span>
           </div>
 
           <div class="space-y-3 max-h-[170px] overflow-y-auto pr-1 scrollbar-none">
             <div 
               v-for="alert in apmData?.alerts" 
               :key="alert.id"
-              class="p-3.5 rounded-xl border text-xs flex justify-between items-center transition-all shadow-sm"
+              class="p-3.5 rounded-xl border text-sm flex justify-between items-center transition-all shadow-sm"
               :class="{
                 'bg-[#ff453a]/5 border-[#ff453a]/20 text-white': alert.level === 'critical',
                 'bg-[#ff9f0a]/5 border-[#ff9f0a]/20 text-white/90': alert.level === 'warning'
@@ -218,14 +218,14 @@ const formatUptime = (seconds: number) => {
                   <span class="relative inline-flex rounded-full h-2 w-2" :class="alert.level === 'critical' ? 'bg-[#ff453a]' : 'bg-[#ff9f0a]'"></span>
                 </span>
                 <div>
-                  <div class="font-bold text-[10px] uppercase tracking-widest opacity-40 font-mono">{{ alert.type }}</div>
+                  <div class="font-bold text-xs uppercase tracking-widest opacity-40 font-mono">{{ alert.type }}</div>
                   <div class="font-light text-[11px] mt-1 tracking-wide leading-relaxed">{{ alert.message }}</div>
                 </div>
               </div>
-              <span class="text-[9px] opacity-40 font-mono font-medium">{{ new Date(alert.timestamp).toLocaleTimeString() }}</span>
+              <span class="text-[10px] opacity-40 font-mono font-medium">{{ new Date(alert.timestamp).toLocaleTimeString() }}</span>
             </div>
 
-            <div v-if="!apmData?.alerts || apmData.alerts.length === 0" class="py-10 text-center text-xs text-white/20 flex flex-col items-center gap-2 font-light">
+            <div v-if="!apmData?.alerts || apmData.alerts.length === 0" class="py-10 text-center text-sm text-white/20 flex flex-col items-center gap-2 font-light">
               <span class="text-2xl text-emerald-500">✔</span>
               暂无活动告警，服务器状态表现极其平稳。
             </div>
@@ -234,19 +234,19 @@ const formatUptime = (seconds: number) => {
 
         <!-- 模拟测试 -->
         <div class="pt-4 border-t border-white/[0.06] mt-4 flex items-center justify-between gap-3 relative z-10">
-          <span class="text-[9px] text-white/30 uppercase font-semibold font-mono tracking-widest">Simulator Test:</span>
+          <span class="text-[10px] text-white/30 uppercase font-semibold font-mono tracking-widest">模拟测试:</span>
           <div class="flex gap-2.5">
             <button 
               @click="$emit('simulate', 'warning', '数据库连接出现瞬时抖动 (APM 模拟)')"
               :disabled="isSimulating"
-              class="text-[10px] font-semibold bg-[#ff9f0a]/10 hover:bg-[#ff9f0a]/20 text-[#ff9f0a] px-4 py-2 rounded-full border border-[#ff9f0a]/20 transition-all active:scale-[0.96] disabled:opacity-50 cursor-pointer focus:outline-none"
+              class="text-[11px] font-semibold bg-[#ff9f0a]/10 hover:bg-[#ff9f0a]/20 text-[#ff9f0a] px-4 py-2 rounded-full border border-[#ff9f0a]/20 transition-all active:scale-[0.96] disabled:opacity-50 cursor-pointer focus:outline-none"
             >
               ⚠️ WARNING 警报
             </button>
             <button 
               @click="$emit('simulate', 'critical', '服务器物理磁盘剩余可用空间不足 5%！(APM 模拟)')"
               :disabled="isSimulating"
-              class="text-[10px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-4 py-2 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.96] disabled:opacity-50 cursor-pointer focus:outline-none"
+              class="text-[11px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-4 py-2 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.96] disabled:opacity-50 cursor-pointer focus:outline-none"
             >
               🚨 CRITICAL 警报
             </button>
@@ -256,16 +256,16 @@ const formatUptime = (seconds: number) => {
     </div>
 
     <!-- API 请求追踪表 (高奢暗黑卡片) -->
-    <div class="bg-[#0c0c0e]/60 border border-white/[0.06] rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+    <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
       <div class="px-6 py-5 border-b border-white/[0.06] flex justify-between items-center bg-white/[0.005]">
-        <h2 class="text-xs font-semibold text-white/50 uppercase tracking-widest font-mono font-semibold">Live Trace Metrics</h2>
-        <span class="text-[9px] px-2.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/[0.05] font-mono">LATEST 100 RECORDS</span>
+        <h2 class="text-sm font-semibold text-white/50 uppercase tracking-widest font-mono">实时追踪指标</h2>
+        <span class="text-[10px] px-2.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/[0.05] font-mono">最新 100 条</span>
       </div>
       
       <div class="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-none">
-        <table class="w-full text-left text-xs border-collapse">
+        <table class="w-full text-left text-sm border-collapse">
           <thead>
-            <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[9px] sticky top-0 bg-[#0d0d0f] z-10">
+            <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] sticky top-0 bg-[#0d0d0f] z-10">
               <th class="px-6 py-4 font-semibold font-mono">请求路径 (Path)</th>
               <th class="px-6 py-4 font-semibold font-mono">方法</th>
               <th class="px-6 py-4 font-semibold font-mono">状态码</th>
@@ -275,11 +275,11 @@ const formatUptime = (seconds: number) => {
           </thead>
           <tbody class="divide-y divide-white/[0.04]">
             <tr v-for="metric in apmData?.metrics" :key="metric.timestamp + metric.path" class="hover:bg-white/[0.02] transition-colors duration-200">
-              <td class="px-6 py-4 font-mono text-[11px] text-white/80 tracking-wide">{{ metric.path }}</td>
-              <td class="px-6 py-4">
-                <span class="px-2 py-0.5 rounded text-[9px] font-bold font-mono border"
+              <td class="px-6 py-5 font-mono text-xs text-white/80 tracking-wide">{{ metric.path }}</td>
+              <td class="px-6 py-5">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono border"
                   :class="{
-                    'bg-[#0a84ff]/10 text-[#0a84ff] border-[#0a84ff]/15': metric.method === 'GET',
+                    'bg-indigo-500/10 text-indigo-400 border-indigo-500/15': metric.method === 'GET',
                     'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/15': metric.method === 'POST',
                     'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/15': metric.method === 'PATCH',
                     'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/15': metric.method === 'DELETE'
@@ -288,21 +288,21 @@ const formatUptime = (seconds: number) => {
                   {{ metric.method }}
                 </span>
               </td>
-              <td class="px-6 py-4">
-                <span class="font-mono font-bold text-xs" :class="metric.status >= 400 ? 'text-[#ff453a]' : 'text-[#30d158]'">
+              <td class="px-6 py-5">
+                <span class="font-mono font-bold text-sm" :class="metric.status >= 400 ? 'text-[#ff453a]' : 'text-[#30d158]'">
                   {{ metric.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 font-mono text-xs" :class="{
+              <td class="px-6 py-5 font-mono text-sm" :class="{
                 'text-[#ff453a] font-bold filter drop-shadow-[0_0_4px_rgba(255,69,58,0.2)]': metric.duration > 800,
                 'text-white/60 font-light': metric.duration <= 800
               }">
                 {{ metric.duration.toFixed(1) }} ms
               </td>
-              <td class="px-6 py-4 text-white/40 font-mono text-[11px]">{{ new Date(metric.timestamp).toLocaleTimeString() }}</td>
+              <td class="px-6 py-5 text-white/40 font-mono text-xs">{{ new Date(metric.timestamp).toLocaleTimeString() }}</td>
             </tr>
             <tr v-if="!apmData?.metrics || apmData.metrics.length === 0">
-              <td colspan="5" class="py-12 text-center text-xs text-white/20 font-light">
+              <td colspan="5" class="py-12 text-center text-sm text-white/20 font-light">
                 ⌛ 暂未捕获到接口流量，请尝试在其他面板操作或刷新页面。
               </td>
             </tr>

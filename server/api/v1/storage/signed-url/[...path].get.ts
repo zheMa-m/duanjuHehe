@@ -15,7 +15,7 @@ import { isValidBucket, getSignedUrl, type StorageBucket } from '~~/server/utils
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Storage'],
+    tags: ['存储'],
     summary: '获取私有文件临时访问 URL',
     description: '为私有 Bucket 中的文件生成临时 signed URL，默认 1 小时有效。用户仅可访问自己目录下的文件。',
     security: [{ BearerAuth: [] }],
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event: H3Event) => {
   }
 
   const bucket = segments[0] || ''
-  if (!isValidBucket(bucket)) {
+  if (!(await isValidBucket(bucket, event))) {
     return throwError(400, `Invalid bucket: ${bucket}`)
   }
 

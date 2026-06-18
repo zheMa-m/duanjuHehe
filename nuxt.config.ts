@@ -18,6 +18,10 @@ export default defineNuxtConfig({
         // 字体预加载：Inter 400/700 woff2，消除 FOUT
         { rel: 'preload', href: '/fonts/inter-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
         { rel: 'preload', href: '/fonts/inter-v18-latin-700.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+        // 外部 Google Fonts 预连接，消减 TLS/DNS 耗时
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap' },
         // SVG favicon（轻量 <1KB）
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         // Apple Touch Icon
@@ -27,8 +31,6 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // 站点访问密码（生产环境保护内部访问，服务端专用，严禁暴露给前端）
-    accessPassword: process.env.SITE_ACCESS_PASSWORD || '',
     // 根域名，从 baseUrl 自动提取 hostname；本地子域名开发可用 ROOT_DOMAIN 覆盖
     rootDomain: process.env.ROOT_DOMAIN || (() => {
       try { return new URL(_resolveBaseUrl()).hostname } catch { return 'localhost' }
@@ -56,7 +58,6 @@ export default defineNuxtConfig({
     '/': { isr: 3600 },
     '/architecture': { isr: 3600 },
     '/help': { isr: 3600 },
-    '/tasks': { isr: 3600 },
     // API 接口绝对禁止缓存，确保每次请求实时响应
     '/api/**': { cors: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
   },
@@ -81,7 +82,7 @@ export default defineNuxtConfig({
       production: 'prerender',
       meta: {
         title: 'HeHe App API',
-        description: '单人全栈脚手架 API — Nuxt 4 + Supabase + Stripe，包含认证、支付、广告、营销活动、评价及管理端接口。',
+        description: 'HeHe 应用全量 API 文档 — 涵盖认证、支付、商品、任务、营销活动、存储及管理端接口。',
         version: '1.0.0',
       },
       ui: {

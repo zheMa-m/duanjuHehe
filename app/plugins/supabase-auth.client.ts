@@ -4,7 +4,6 @@
  * 监听 Supabase onAuthStateChange 事件，将 token 同步到 cookie，
  * 供 server middleware 读取。页面加载时从 cookie 恢复 session。
  */
-import { useSupabaseClient } from '~/utils/supabase-client'
 import { AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME } from '~/composables/auth'
 
 function setCookie(name: string, value: string, days = 7) {
@@ -15,6 +14,12 @@ function setCookie(name: string, value: string, days = 7) {
 
 function removeCookie(name: string) {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1] || '') : null
 }
 
 export default defineNuxtPlugin({
@@ -40,24 +45,34 @@ export default defineNuxtPlugin({
       window.history.replaceState({}, '', url.pathname + url.search + url.hash)
     }
 
-    const supabase = useSupabaseClient()
+    // ── 延迟懒加载 Supabase 客户端 ──
+    // 匿名游客在只读前台（首页、文档等）浏览时，完全不需要初始化并运行 Supabase
+    // 只有在已登录、从 OAuth 回调回来，或者访问后台(/admin)及 H5 活动(/h5)等交互路由时，才引入 Supabase SDK
+    const hasAuthCookie = !!getCookie(AUTH_COOKIE_NAME)
+    const currentPath = window.location.pathname
+    const isInteractiveRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/h5') || currentPath.startsWith('/h5-v2')
 
-    // 监听认证状态变化
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session?.access_token) {
-          setCookie(AUTH_COOKIE_NAME, session.access_token, 1)
-        }
-        if (session?.refresh_token) {
-          setCookie(REFRESH_COOKIE_NAME, session.refresh_token, 30)
-        }
-      }
+    if (hasAuthCookie || authToken || isInteractiveRoute) {
+      const { useSupabaseClient } = await import('~/utils/supabase-client')
+      const supabase = useSupabaseClient()
 
-      if (event === 'SIGNED_OUT') {
-        removeCookie(AUTH_COOKIE_NAME)
-        removeCookie(REFRESH_COOKIE_NAME)
-      }
-    })
+      // 监听认证状态变化
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.access_token) {
+            setCookie(AUTH_COOKIE_NAME, session.access_token, 1)
+          }
+          if (session?.refresh_token) {
+            setCookie(REFRESH_COOKIE_NAME, session.refresh_token, 30)
+          }
+        }
+
+        if (event === 'SIGNED_OUT') {
+          removeCookie(AUTH_COOKIE_NAME)
+          removeCookie(REFRESH_COOKIE_NAME)
+        }
+      })
+    }
 
     // 页面加载时初始化 auth 状态
     const { initAuth } = useAuth()

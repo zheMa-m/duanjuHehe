@@ -15,7 +15,7 @@ import { isValidBucket, deleteFile, type StorageBucket } from '~~/server/utils/s
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Storage'],
+    tags: ['存储'],
     summary: '删除存储文件',
     description: '删除指定路径的文件。用户仅可删除自己目录下的文件，管理员可操作 campaign-assets。',
     security: [{ BearerAuth: [] }],
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event: H3Event) => {
   }
 
   const bucket = segments[0] || ''
-  if (!isValidBucket(bucket)) {
+  if (!(await isValidBucket(bucket, event))) {
     return throwError(400, `Invalid bucket: ${bucket}`)
   }
 

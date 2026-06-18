@@ -8,7 +8,7 @@ import { logAuditEvent } from '~~/server/utils/logger'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin Orders'],
+    tags: ['管理·运营-订单'],
     summary: '管理员：更新订单状态',
     security: [{ BearerAuth: [] }],
     parameters: [

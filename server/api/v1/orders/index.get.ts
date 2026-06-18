@@ -6,7 +6,7 @@ import { assertUser } from '~~/server/utils/auth'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Orders'],
+    tags: ['订单'],
     summary: '获取用户订单列表',
     description: '返回当前用户的订单列表（分页），按 user_id 进行 RLS 隔离。',
     security: [{ BearerAuth: [] }],
@@ -15,7 +15,32 @@ defineRouteMeta({
       { in: 'query', name: 'pageSize', schema: { type: 'integer', default: 20 }, description: '每页条数（最大 100）' },
     ],
     responses: {
-      200: { description: '分页订单列表 — { items, pagination: { page, pageSize, total } }' },
+      200: {
+        description: '分页订单列表',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    items: { type: 'array', items: { type: 'object' } },
+                    pagination: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer' },
+                        pageSize: { type: 'integer' },
+                        total: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   } as any,
 })

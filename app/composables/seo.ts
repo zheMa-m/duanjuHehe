@@ -10,6 +10,7 @@
 interface SeoOptions {
   title: MaybeRefOrGetter<string>
   description: MaybeRefOrGetter<string>
+  keywords?: MaybeRefOrGetter<string>
   image?: MaybeRefOrGetter<string>
   url?: MaybeRefOrGetter<string>
   type?: 'website' | 'article'
@@ -18,15 +19,19 @@ interface SeoOptions {
 export function useAppSEO(options: SeoOptions) {
   const siteName = 'HEHE'
   const defaultImage = '/og-default.png'
+  const config = useRuntimeConfig()
+  const route = useRoute()
 
   const title = computed(() => `${toValue(options.title)} | ${siteName}`)
   const desc = computed(() => toValue(options.description))
+  const keywords = computed(() => toValue(options.keywords) || 'Nuxt 4, Supabase, Monorepo, Fullstack, Serverless')
   const image = computed(() => toValue(options.image) || defaultImage)
   const url = computed(() => toValue(options.url) || undefined)
 
   useSeoMeta({
     title,
     description: desc,
+    keywords,
     ogTitle: title,
     ogDescription: desc,
     ogImage: image,
@@ -36,5 +41,21 @@ export function useAppSEO(options: SeoOptions) {
     twitterTitle: title,
     twitterDescription: desc,
     twitterImage: image,
+  })
+
+  // 自动拼接注入 canonical 链接，解决多域名重复内容 SEO 惩罚问题
+  const canonicalUrl = computed(() => {
+    if (options.url) return toValue(options.url)
+    const base = (config.public.baseUrl || 'http://localhost:3000').replace(/\/$/, '')
+    return `${base}${route.path}`
+  })
+
+  useHead({
+    link: [
+      {
+        rel: 'canonical',
+        href: canonicalUrl,
+      },
+    ],
   })
 }

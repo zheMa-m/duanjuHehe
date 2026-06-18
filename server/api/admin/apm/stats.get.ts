@@ -7,7 +7,7 @@ import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Admin APM'],
+    tags: ['管理·系统-监控'],
     summary: '管理员：获取 APM 统计数据',
     description: '返回内存中的 APM 指标（请求数、延迟百分位、警报）。',
     security: [{ BearerAuth: [] }],

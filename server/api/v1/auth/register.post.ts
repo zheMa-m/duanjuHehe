@@ -13,7 +13,7 @@ import { getClientRealIP } from '~~/server/utils/ip'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Auth'],
+    tags: ['认证'],
     summary: '邮箱注册',
     description: '通过 Supabase Auth signUp 创建新账户，profiles 记录由数据库触发器自动创建。',
     requestBody: {

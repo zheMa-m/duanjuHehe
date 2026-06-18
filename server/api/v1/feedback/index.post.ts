@@ -14,7 +14,7 @@ import { logAuditEvent } from '~~/server/utils/logger'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Feedback'],
+    tags: ['反馈'],
     summary: '提交评价/反馈',
     description: '提交一条评价，需要已登录的非匿名用户。type=review 时评分必填。',
     security: [{ BearerAuth: [] }],

@@ -130,16 +130,16 @@ const handleClose = () => {
     ></div>
     
     <!-- Modal 主体 (赛博磨砂框) -->
-    <div class="bg-[#0c0c0e]/75 border border-white/10 w-full max-w-[420px] rounded-3xl p-7 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),inset_0_1px_rgba(255,255,255,0.05)] relative z-10 backdrop-blur-2xl animate-fade-in group overflow-hidden">
+    <div class="bg-[#12121a]/90 w-full max-w-[420px] rounded-3xl p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_8px_40px_rgba(0,0,0,0.4)] relative z-10 backdrop-blur-2xl animate-fade-in group overflow-hidden">
       
       <!-- 顶部漫反射氛围点 -->
-      <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-blue-500/5 blur-xl group-hover:bg-blue-500/10 transition-all"></div>
+      <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-indigo-500/8 blur-xl group-hover:bg-indigo-500/15 transition-all"></div>
       
       <!-- 头部 -->
       <div class="flex justify-between items-start mb-6 relative z-10">
         <div>
           <h3 class="text-base font-semibold text-white tracking-wide">账号与安全设置</h3>
-          <p class="text-[10px] text-white/35 uppercase tracking-widest mt-1.5 font-mono">Profile & Credentials</p>
+          <p class="text-[11px] text-white/35 uppercase tracking-widest mt-1.5 font-mono">个人资料与凭据</p>
         </div>
         <button 
           @click="handleClose"
@@ -164,12 +164,12 @@ const handleClose = () => {
 
         <!-- 头像上传 -->
         <div class="space-y-2">
-          <label class="block text-[9px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">Avatar Upload</label>
+          <label class="block text-[11px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">上传头像</label>
           <div class="flex items-center gap-4">
             <button
               type="button"
               @click="handleAvatarClick"
-              class="relative w-14 h-14 rounded-full border border-white/10 hover:border-[#0a84ff]/40 transition-all overflow-hidden flex items-center justify-center bg-white/[0.03] flex-shrink-0 cursor-pointer focus:outline-none ring-offset-black"
+              class="relative w-14 h-14 rounded-full border border-white/10 hover:border-indigo-500/40 transition-all overflow-hidden flex items-center justify-center bg-white/[0.03] flex-shrink-0 cursor-pointer focus:outline-none ring-offset-black"
               :disabled="isUploading"
             >
               <img
@@ -199,36 +199,36 @@ const handleClose = () => {
 
         <!-- 账号（只读展示） -->
         <div class="space-y-1.5">
-          <label class="block text-[9px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">Admin Account</label>
+          <label class="block text-[11px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">管理员账号</label>
           <input 
             type="text" 
             :value="user?.email || user?.username || '-'"
             disabled
-            class="w-full bg-white/[0.01] border border-white/[0.04] rounded-xl px-4 py-2.5 text-xs text-white/30 focus:outline-none cursor-not-allowed font-light font-mono"
+            class="w-full bg-white/[0.01] border border-white/[0.04] rounded-xl px-4 py-2.5 text-sm text-white/30 focus:outline-none cursor-not-allowed font-light font-mono"
           />
         </div>
 
         <!-- 新密码 -->
         <div class="space-y-1.5">
-          <label class="block text-[9px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">Set New Password</label>
+          <label class="block text-[11px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">设置新密码</label>
           <input 
             v-model="newPassword" 
             type="password" 
             placeholder="至少 6 位安全字符"
             required
-            class="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] focus:border-[#0a84ff]/50 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-4 focus:ring-[#0a84ff]/5 transition-all font-light"
+            class="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all font-light"
           />
         </div>
 
         <!-- 确认密码 -->
         <div class="space-y-1.5">
-          <label class="block text-[9px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">Confirm New Password</label>
+          <label class="block text-[11px] font-semibold text-white/40 uppercase tracking-widest pl-1 font-mono">确认新密码</label>
           <input 
             v-model="confirmPassword" 
             type="password" 
             placeholder="请再次输入以确认新密码"
             required
-            class="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] focus:border-[#0a84ff]/50 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-4 focus:ring-[#0a84ff]/5 transition-all font-light"
+            class="w-full bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all font-light"
           />
         </div>
 
@@ -244,7 +244,7 @@ const handleClose = () => {
           <button 
             type="submit"
             :disabled="isSaving"
-            class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-xs font-semibold rounded-full text-white transition-all active:scale-[0.98] disabled:opacity-50 border-0 flex items-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(59,130,246,0.2)] focus:outline-none"
+            class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-sm font-semibold rounded-full text-white transition-all active:scale-[0.98] disabled:opacity-50 border-0 flex items-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(99,102,241,0.25)] focus:outline-none"
           >
             <span v-if="isSaving" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             {{ isSaving ? '正在保存...' : '保存密码' }}

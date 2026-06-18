@@ -16,7 +16,7 @@ import { getClientRealIP } from '~~/server/utils/ip'
 
 defineRouteMeta({
   openAPI: {
-    tags: ['Auth'],
+    tags: ['认证'],
     summary: '统一登录入口',
     description: '支持三种模式：邮箱密码登录、社交 OAuth 跳转（google/facebook/apple）、匿名用户登录（device_id）。',
     requestBody: {
@@ -56,7 +56,25 @@ defineRouteMeta({
       },
     },
     responses: {
-      200: { description: '登录成功 — 返回用户信息 + 会话令牌' },
+      200: {
+        description: '登录成功 — 返回用户信息 + 会话令牌',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    user: { type: 'object', properties: { id: { type: 'string' }, email: { type: 'string' } } },
+                    session: { type: 'object', properties: { access_token: { type: 'string' }, refresh_token: { type: 'string' }, expires_at: { type: 'integer' } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       401: { description: '凭证无效' },
     },
   } as any,

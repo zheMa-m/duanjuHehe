@@ -28,15 +28,17 @@ colors:
   client-text-muted: "#64748b"
   client-border: "#1e2d4d"
   # Admin backgrounds
-  admin-bg: "#000000"
-  admin-bg-elevated: "rgba(255,255,255,0.05)"
-  admin-bg-hover: "rgba(255,255,255,0.08)"
+  admin-bg: "#08080f"
+  admin-bg-elevated: "rgba(255,255,255,0.04)"
+  admin-bg-hover: "rgba(255,255,255,0.06)"
   admin-bg-active: "rgba(255,255,255,0.10)"
   admin-bg-input: "rgba(255,255,255,0.06)"
+  admin-brand-from: "#818cf8"
+  admin-brand-to: "#6366f1"
   admin-text-primary: "#ffffff"
   admin-text-secondary: "rgba(255,255,255,0.6)"
   admin-text-muted: "rgba(255,255,255,0.3)"
-  admin-border-subtle: "rgba(255,255,255,0.05)"
+  admin-border-subtle: "rgba(255,255,255,0.06)"
   admin-border-medium: "rgba(255,255,255,0.1)"
   # H5 backgrounds
   h5-bg-page: "#020617"
@@ -77,27 +79,32 @@ typography:
   # Admin
   admin-h1:
     fontFamily: Inter
-    fontSize: 1.25rem
-    fontWeight: 600
+    fontSize: 1.75rem
+    fontWeight: 700
     lineHeight: 1.3
   admin-h2:
     fontFamily: Inter
-    fontSize: 1rem
+    fontSize: 1.125rem
     fontWeight: 600
     lineHeight: 1.4
   admin-body:
     fontFamily: Inter
-    fontSize: 0.75rem
+    fontSize: 0.875rem
     fontWeight: 400
     lineHeight: 1.5
   admin-label:
     fontFamily: Inter
-    fontSize: 0.625rem
-    fontWeight: 500
+    fontSize: 0.6875rem
+    fontWeight: 600
     letterSpacing: 0.05em
+  admin-stat:
+    fontFamily: Inter
+    fontSize: 2.25rem
+    fontWeight: 700
+    lineHeight: 1.1
   admin-mono:
     fontFamily: JetBrains Mono
-    fontSize: 0.6875rem
+    fontSize: 0.8125rem
     fontWeight: 400
   # H5
   h5-h1:
@@ -165,25 +172,54 @@ components:
     textColor: "#c9d1d9"
     border: "1px solid {colors.client-border}"
     rounded: "{rounded.md}"
-  # Admin
-  admin-sidebar:
-    width: 240px
-    background: "{colors.admin-bg}"
-    borderRight: "1px solid {colors.admin-border-subtle}"
-  admin-sidebar-item-active:
-    background: "{colors.admin-bg-active}"
-    textColor: "{colors.admin-text-primary}"
-  admin-header:
-    height: 56px
+  # Admin — 三模式导航系统
+  admin-sidebar-grouped:
+    widthExpanded: 272px
+    widthCollapsed: 64px
+    background: "#08080f"
+    borderRight: "1px solid rgba(255,255,255,0.06)"
+    shadow: "4px 0 24px rgba(0,0,0,0.5)"
+  admin-sidebar-tabbed:
+    width: 192px
+    background: "rgba(0,0,0,0.2)"
+    borderRight: "1px solid rgba(255,255,255,0.04)"
+  admin-sidebar-compact:
+    widthDefault: 64px
+    widthHover: 208px
     background: "rgba(0,0,0,0.4)"
-    backdropFilter: "blur(12px)"
-    borderBottom: "1px solid {colors.admin-border-subtle}"
+    backdropFilter: "blur(24px)"
+    transition: "width 0.2s"
+  admin-sidebar-item-active:
+    background: "rgba(255,255,255,0.06)"
+    textColor: "#818cf8"
+    indicator: "3px solid linear-gradient(180deg, #818cf8, #6366f1) (left)"
+    iconGlow: "drop-shadow(0 0 6px rgba(129,140,248,0.4))"
+  admin-command-palette:
+    width: 520px
+    maxHeight: 420px
+    background: "#0c0c0e/95%"
+    backdropFilter: "blur(24px)"
+    border: "1px solid rgba(255,255,255,0.1)"
+    rounded: "16px"
+  admin-header:
+    height: 64px
+    background: "rgba(8,8,15,0.8)"
+    backdropFilter: "blur(24px)"
+    shadow: "0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.3)"
+  admin-card:
+    background: "rgba(255,255,255,0.04)"
+    border: "none"
+    shadow: "0 20px 25px -5px rgba(0,0,0,0.2)"
+    rounded: "{rounded.2xl}"
+    hoverBackground: "rgba(255,255,255,0.06)"
+    hoverShadow: "0 25px 50px -12px rgba(0,0,0,0.3)"
+    hoverTranslate: "translateY(-2px)"
   admin-table-row:
-    height: 48px
+    height: 56px
     borderBottom: "1px solid {colors.admin-border-subtle}"
     hoverBackground: "rgba(255,255,255,0.02)"
   admin-pill-badge:
-    padding: "2px 8px"
+    padding: "2px 10px"
     fontSize: 0.625rem
     rounded: "{rounded.full}"
     background: "{colors.admin-bg-elevated}"
@@ -231,7 +267,7 @@ components:
 HeHe 是一个三端统一的全栈应用，包含 Client（主站官网白皮书）、Admin（管理后台）和 H5（营销落地页）三个平台。每个平台拥有独立的视觉性格，但共享基础设计语言——Inter 字体栈、8px 间距体系、以及统一的语义功能色体系。
 
 - **Client**：深海暗色科技主题，侧边栏双栏布局，渐变光晕和荧光色点缀营造科技感
-- **Admin**：纯黑极简，灵感来自 Apple 系统级管理工具，白色透明度层级区分状态
+- **Admin**：深靛蓝极简，灵感来自 Linear/Vercel，紫蓝渐变品牌色 + 白色透明度层级 + 无边框卡片投影分层
 - **H5**：深色沉浸主题，拟真手机框架为核心视觉载体，动态渐变光晕由活动配置驱动
 
 字体栈：UI 文字使用 `Inter, -apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif`，代码和技术标记使用 `'JetBrains Mono', monospace`。
@@ -244,9 +280,9 @@ HeHe 是一个三端统一的全栈应用，包含 Client（主站官网白皮�
 
 背景从最深的侧边栏 `#080c18` 到页面主背景 `#0a0e1a` 再到卡片层 `#131d35`，形成空间纵深。强调色使用 `accent-blue: #4f8ef7`、`accent-purple: #8b5cf6`、`accent-cyan: #22d3ee`。文字使用柔和的 `#e2e8f0` 而非纯白，避免暗色背景下的视觉疲劳。
 
-### Admin — 纯黑背景 + 白色透明度层级
+### Admin — 深靛蓝背景 + 紫蓝品牌色 + 投影分层
 
-全局唯一背景色 `#000000`，通过白色透明度建立视觉层次：elevated 5%、hover 8%、active 10%。功能色严格语义化——绿 `#30d158` = 成功、红 `#ff453a` = 错误、橙 `#ff9f0a` = 警告、蓝 `#007aff` = 操作。
+全局背景色 `#08080f`（深靛蓝），通过白色透明度建立视觉层次：elevated 4%、hover 6%、active 10%。品牌色 `#818cf8 → #6366f1`（indigo 渐变）用于按钮、激活态和 Logo 发光。卡片采用无边框设计，靠 `bg-white/[0.04]` 色块 + `shadow-xl shadow-black/20` 投影分层，hover 时微浮起 `translateY(-2px)` + 加深投影。功能色严格语义化——绿 `#30d158` = 成功、红 `#ff453a` = 错误、橙 `#ff9f0a` = 警告、蓝 `#007aff` = 操作。
 
 ### H5 — Slate 深色沉浸 + 动态渐变
 
@@ -262,7 +298,7 @@ Headlines 使用 Inter Bold 建立权威感。h1 为 2rem/700 用于 Hero 标题
 
 ### Admin 排版
 
-整体更紧凑——h1 为 1.25rem/600，body 为 0.75rem/400。字段标签 label 为 0.625rem/500，使用 `uppercase` + `letter-spacing: 0.05em` 增强可读性。代码、ID、时间戳使用 JetBrains Mono 0.6875rem。
+宽敞舒适——h1 为 1.75rem/700（28px），h2 为 1.125rem/600（18px），body 为 0.875rem/400（14px）。字段标签 label 为 0.6875rem/600（11px），使用 `uppercase` + `letter-spacing: 0.05em` 增强可读性。统计大数字 stat 为 2.25rem/700（36px）。代码、ID、时间戳使用 JetBrains Mono 0.8125rem（13px）。
 
 ### H5 排版
 
@@ -283,17 +319,26 @@ Headlines 使用 Inter Bold 建立权威感。h1 为 2rem/700 用于 Hero 标题
 
 Sidebar 固定左侧 `position: fixed; width: 260px; height: 100vh`，Content 区 `margin-left: 260px`。Header 固定顶部 `height: 56px; backdrop-filter: blur(12px)`。Section 间距 80px，卡片内边距 24px。响应式断点 1024px，侧边栏折叠为抽屉。
 
-### Admin — 侧边栏 + 工作区
+### Admin — 三合一可选导航系统
+
+管理员可在 Header 右侧切换器中自由选择三种导航模式，偏好持久化至 `localStorage('admin-nav-mode')`。
 
 ```
-┌──────────┬──────────────────────────────────┐
-│ Sidebar  │ Header (h-14, backdrop-blur-md)  │
-│ 240px    ├──────────────────────────────────┤
-│ fixed    │ Workspace (p-8, flex-1)          │
-└──────────┴──────────────────────────────────┘
+┌──────────────────────┬──────────────────────────────────┐
+│ Dynamic Sidebar      │ Header (h-16, backdrop-blur-xl)  │
+│ (grouped/tabbed/     │ [环境标签] [面包屑/Tab/Cmd+K]    │
+│  compact)            │ [导航切换▾] [头像] [退出]        │
+│                      ├──────────────────────────────────┤
+│                      │ Workspace (p-10, max-w-1400px)   │
+└──────────────────────┴──────────────────────────────────┘
 ```
 
-Sidebar `w-60 (240px)`，`≥ lg` 可见，`< lg` 隐藏由汉堡菜单唤出。Header `h-14 (56px)` 毛玻璃效果。Workspace `flex-1; padding: 32px`。表格在 `< md` 时切换为卡片列表。
+- **Grouped（分组折叠）**: `w-[272px]` / collapsed `w-16 (64px)`，菜单按 5 组折叠，分组标题 `11px uppercase tracking-widest`，激活项左侧 `3px` 紫蓝渐变竖线
+- **Tabbed（双栏分区）**: `w-48 (192px)` 子侧栏 + Header 内域 Tab 栏（运营/营销/系统），`Cmd+1/2/3` 切换域
+- **Compact（极简命令）**: 默认 `w-16 (64px)` hover 展开 `w-52 (208px)`，仅 5 个高频项 + `Cmd+K` 命令面板
+- **命令面板**: 全局 `Cmd+K` 唤起，`w-[520px]` 居中模态，模糊搜索 + 最近使用 + 键盘导航
+- **图标**: Lucide SVG 线条图标（UnoCSS `~icons/lucide/*`），`16px`，`stroke-width: 1.5`
+- **响应式**: `≥ lg` 可见，`< lg` 隐藏由汉堡菜单唤出
 
 ### H5 — 拟真手机框架
 
@@ -322,7 +367,7 @@ Sidebar `w-60 (240px)`，`≥ lg` 可见，`< lg` 隐藏由汉堡菜单唤出。
 三端采用不同的深度表达策略：
 
 - **Client**：通过背景色三层递进（`#080c18` → `#0a0e1a` → `#131d35`）和卡片悬停微上移 `translateY(-2px)` 表达层次，不使用投影
-- **Admin**：通过白色透明度层级（5% → 8% → 10%）区分浮层、悬停、激活态。Header 使用 `backdrop-blur-md` 毛玻璃效果
+- **Admin**：通过 `bg-white/[0.04]` 无边框卡片 + `shadow-xl shadow-black/20` 投影分层，hover 时 `translateY(-2px)` + 加深投影。Header 使用 `backdrop-blur-xl` 毛玻璃 + 双层阴影。背景光球 `blur-[130px]` 紫蓝色系点缀
 - **H5**：通过动态渐变光球 `blur-[100px]` 和手机框架的外环光晕 `ring-12` 营造空间纵深。背景光晕颜色由活动配置驱动
 
 ## Shapes
@@ -331,7 +376,7 @@ Sidebar `w-60 (240px)`，`≥ lg` 可见，`< lg` 隐藏由汉堡菜单唤出。
 
 H5 手机框架使用特殊圆角：外框 `rounded-[40px]`，屏幕 `rounded-[32px]`。不要在手机框架外使用这些超大圆角。
 
-Admin 圆角不超过 16px（Pill Badge 除外），保持极简锐利感。
+Admin 圆角不超过 20px（Pill Badge 除外），卡片统一 `rounded-2xl`（16px），保持极简但不失柔和。
 
 ## Components
 
@@ -349,19 +394,21 @@ Admin 圆角不超过 16px（Pill Badge 除外），保持极简锐利感。
 
 ### Admin 组件
 
-**Sidebar**：Logo 白底黑字方块 + 项目名。导航项使用图标 + 文字，激活态为白色半透明背景 `bg-active` + 纯白文字。底部显示版本号。
+**Sidebar（三模式）**: 三种可切换的侧边栏组件。Grouped 模式支持分组折叠（`max-height` 过渡 `0.25s`）+ collapsed/expanded 切换；Tabbed 模式为域驱动的极简子侧栏，圆点指示器；Compact 模式 hover 展开 + 底部 `Cmd+K` 搜索入口。所有模式共享 `useAdminMenu.ts` 统一数据源（13 项菜单，5 组分类）。底部显示版本号。
 
-**Header**：`bg-black/40` + `backdrop-blur-md` 毛玻璃。左侧环境标签（MOCK_DB / PRODUCTION），右侧管理员头像。
+**Header**: `bg-[#08080f]/80` + `backdrop-blur-xl` 毛玻璃 + 双层阴影。高度 64px。左侧：LIVE 环境标签 + 面包屑（Grouped）/ 域 Tab 栏（Tabbed）/ Cmd+K 提示（Compact）。右侧：导航模式切换器下拉（三种风格可选）+ 管理员头像 + 退出按钮。
 
-**Data Table**：行高 48px，`border-subtle` 分隔线，hover 行 `rgba(255,255,255,0.02)`。操作列固定在右侧，使用图标按钮。
+**Command Palette**: `Teleport to body`，`Cmd+K` 全局快捷键唤起。`w-[520px] max-h-[420px]` 居中模态，`backdrop-blur-xl`。模糊搜索菜单项、最近使用记录（`localStorage`）、`↑↓/Enter/Esc` 键盘导航、分组展示。过渡动画 `scale(0.96) + translateY(-8px)`。
 
-**Stat Card**：`rgba(255,255,255,0.03)` 背景 + 同色描边，数值大号粗体白字。
+**Data Table**: 行高 56px，`border-subtle` 分隔线，hover 行 `rgba(255,255,255,0.02)`。表格容器无边框 + `bg-white/[0.04]` + `shadow-xl shadow-black/20`。操作列固定在右侧，使用 pill 按钮。
 
-**Pill Badge**：全圆角 + `bg-elevated` 背景 + `border-medium` 描边，文字 `0.625rem`。
+**Stat Card**: `bg-white/[0.04]` 无边框 + `shadow-xl shadow-black/20` 投影，数值使用 `admin-stat`（36px/700）大号粗体白字。hover 微浮起 + 加深投影。Dashboard 核心指标卡片可跨 2 列制造主次感。
 
-**Modal**：登录卡片使用纯白 `#fff` 背景；配置弹窗使用深色毛玻璃 `backdrop-blur`。
+**Pill Badge**: 全圆角 + `bg-elevated` 背景 + `border-medium` 描边，文字 `0.625rem`。
 
-**状态点**：4px 圆形 + 对应功能色（绿/红/橙/蓝）。
+**Modal**: 登录卡片使用 `bg-white/[0.04]` + 大投影；配置弹窗使用 `bg-[#12121a]` + `backdrop-blur`。
+
+**状态点**: 4px 圆形 + 对应功能色（绿/红/橙/蓝）。
 
 ### H5 组件
 
@@ -390,8 +437,8 @@ Admin 圆角不超过 16px（Pill Badge 除外），保持极简锐利感。
 - Do 代码块使用 JetBrains Mono 字体
 - Don't 在暗色背景使用纯白文字（Client 用 `#e2e8f0`，Admin 用 `#ffffff`）
 - Don't 使用内联颜色值，统一走 CSS 变量或设计 Token
-- Don't 在 Admin 使用彩色背景或渐变（登录卡片毛玻璃除外）
-- Don't 在 Admin 使用圆角超过 16px（Pill Badge 除外）
+- Don't 在 Admin 使用彩色背景或大面积渐变（品牌色仅限按钮/指示器/Logo 发光）
+- Don't 在 Admin 使用圆角超过 20px（Pill Badge 除外）
 - Don't 在 H5 页面使用亮色背景（保持深色沉浸感）
 - Don't 在 H5 UserBar 使用深色背景（它是唯一的白色元素）
 - Don't 在 H5 手机框架外使用 `rounded-[40px]` 圆角
