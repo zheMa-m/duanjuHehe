@@ -182,7 +182,7 @@ const sectionLabelMap: Record<string, string> = {
   's2': '目录结构与路由',
   's3': '环境变量',
   's4': '渲染策略对比',
-  's5': 'Supabase 集成与数据库迁移',
+  's5': 'Supabase 集成',
   's7': 'Supabase OAuth 体系',
   's8': 'Vercel 部署',
   's9': 'GitHub 集成',
