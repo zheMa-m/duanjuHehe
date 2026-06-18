@@ -166,14 +166,14 @@ defineExpose({ showError })
 }
 
 /* Light 主题：调低光球亮度 */
-:global(.theme-light) .login-bg-orb--a {
+:global(.theme-light .login-bg-orb--a) {
   background: radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%);
 }
-:global(.theme-light) .login-bg-orb--b {
+:global(.theme-light .login-bg-orb--b) {
   background: radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 70%);
 }
 /* Classic Dark：隐藏光球 */
-:global(.theme-classic-dark) .login-bg-orb {
+:global(.theme-classic-dark .login-bg-orb) {
   display: none;
 }
 
@@ -187,7 +187,7 @@ defineExpose({ showError })
   mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 50%, transparent 100%);
   pointer-events: none;
 }
-:global(.theme-light) .login-grid-overlay {
+:global(.theme-light .login-grid-overlay) {
   background-image:
     linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
@@ -215,14 +215,14 @@ defineExpose({ showError })
 }
 
 /* Light 模式卡片 */
-:global(.theme-light) .login-card {
+:global(.theme-light .login-card) {
   background: #ffffff;
   border-color: rgba(0,0,0,0.08);
   box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
 }
 
 /* Classic Dark 模式卡片 */
-:global(.theme-classic-dark) .login-card {
+:global(.theme-classic-dark .login-card) {
   background: #0d0d0d;
   border-color: rgba(255,255,255,0.12);
   box-shadow: 0 24px 64px rgba(0,0,0,0.6);
@@ -257,7 +257,7 @@ defineExpose({ showError })
 }
 
 /* Classic Dark 调整品牌蓝 */
-:global(.theme-classic-dark) .login-logo {
+:global(.theme-classic-dark .login-logo) {
   background: linear-gradient(135deg, #60a5fa, #3b82f6);
   box-shadow: 0 4px 20px rgba(59,130,246,0.35);
 }

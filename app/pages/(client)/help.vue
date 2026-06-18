@@ -171,7 +171,7 @@ const toggleFaq = (key: string) => {
 const navSections = computed(() => [
   { group: 'overview', items: ['s0', 's1', 's2', 's3', 's4'] },
   { group: 'infrastructure', items: ['s5', 's7', 's8', 's9'] },
-  { group: 'business', items: ['s10', 's12'] },
+  { group: 'business', items: ['s10', 's11', 's12'] },
   { group: 'optional', items: ['s13'] },
   { group: 'faq', items: ['s14', 's15', 's16', 's17'] },
 ])
@@ -186,7 +186,8 @@ const sectionLabelMap: Record<string, string> = {
   's7': 'Supabase OAuth 体系',
   's8': 'Vercel 部署',
   's9': 'GitHub 集成',
-  's10': 'Stripe 支付平台集成',
+  's10': '支付系统',
+  's11': '管理后台',
   's12': '社交分享与反馈',
   's13': 'Cloudflare 接入',
   's14': '本地开发',
@@ -223,10 +224,11 @@ const techStackRows = computed(() => [
   ['图片优化', '@nuxt/image', '自动压缩、格式转换、懒加载'],
   ['国际化', '@nuxtjs/i18n', '中英文双语，prefix_except_default 策略'],
   ['PWA', '@vite-pwa/nuxt', 'Admin 后台离线可用，Service Worker 缓存'],
-  ['数据库', 'Supabase PostgreSQL', 'RLS 行级安全策略'],
-  ['认证', 'Supabase Auth', '邮箱 + 社交媒体 OAuth'],
-  ['支付', 'Stripe', 'MOCK_DB 模式下返回假数据'],
-  ['部署', 'Vercel', 'Git 推送自动部署'],
+  ['数据库', 'Supabase PostgreSQL', 'RLS 行级安全策略，Supavisor 连接池'],
+  ['认证', 'Supabase Auth', '邮箱 + Google/GitHub OAuth + 匿名登录'],
+  ['支付', 'Stripe（策略模式）', '支持一次性付款 + 订阅制，Mock/生产双模式'],
+  ['分析', 'Vercel Analytics + 多平台埋点', 'GA4 / Meta Pixel / TikTok Pixel 自动分发'],
+  ['部署', 'Vercel', 'Git 推送自动部署，子域名自适应路由'],
 ])
 
 const prereqRows = [
@@ -252,36 +254,56 @@ const middlewareSteps = [
   '04.auth-guard', '06.api-security',
 ]
 
+const middlewareStepsDetail = [
+  ['00.apm', '性能监控', '记录 /api/ 路径的请求耗时与状态码，异步写入 APM 系统'],
+  ['01.subdomain', '子域名路由重写', '根据 Host 头静默重写路由：主域名→/client，admin子域名→/admin，通配子域名→/h5/{subdomain}'],
+  ['02.auth', '双模鉴权', 'Mock模式（内存用户表）与生产模式（Supabase JWT验证），支持 Bearer/Cookie/device-id 多通道'],
+  ['03.admin', '管理员断言', '拦截 /api/admin/*，验证管理员角色，放行定时任务 x-cron-secret'],
+  ['04.auth-guard', '用户认证守卫', '要求支付/订单/存储等敏感端点已登录，匿名用户返回 403'],
+  ['06.api-security', 'API 安全防护', '8层安全检查：IP黑白名单、国家限制、API Key验证、HMAC签名、端点控制、速率限制'],
+]
+
 const envRows = [
   ['NUXT_PUBLIC_SUPABASE_URL', 'Supabase 项目 URL', '是', '前端可访问'],
   ['NUXT_PUBLIC_SUPABASE_ANON_KEY', 'Supabase anon key', '是', '前端可访问'],
-  ['SUPABASE_SERVICE_ROLE_KEY', 'Supabase service_role key', '是', '仅服务端'],
+  ['SUPABASE_SERVICE_ROLE_KEY', 'Supabase service_role key', '是', '仅服务端，禁止加 NUXT_PUBLIC_ 前缀'],
   ['STRIPE_SECRET_KEY', 'Stripe 密钥', '否', '仅支付模块'],
   ['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 密钥', '否', '仅支付模块'],
+  ['STRIPE_PUBLIC_KEY', 'Stripe 公钥', '否', '仅支付模块'],
   ['MOCK_DB', 'Mock 数据库开关', '是', '本地开发 true，生产 false'],
+  ['SITE_ADMIN_USERNAME', '内置管理员用户名', '否', '默认 admin，管理后台登录'],
+  ['SITE_ADMIN_PASSWORD', '内置管理员密码', '否', '管理后台登录，不设置则无法使用管理后台'],
 ]
 
 const migrationRows = [
-  ['0001_core.sql', '核心表（profiles, tasks, activity_logs, storage buckets） + is_admin() 函数', '必选'],
-  ['0002_campaign_optional.sql', '营销活动表 campaigns', '可选'],
-  ['0004_feedback_optional.sql', '用户评价表 feedbacks', '可选'],
-  ['0005_payment_optional.sql', '商品表 products + 订单表 orders', '可选'],
+  ['0001_core.sql', '核心表（profiles, tasks, activity_logs, storage_trash） + is_admin() + handle_new_user()', '必选'],
+  ['0002_campaign.sql', '营销活动表 campaigns + 留资表 campaign_registrations', '必选（H5依赖）'],
+  ['0003_feedback.sql', '用户评价表 feedbacks（评分1-5 + 管理员审批回复）', '可选'],
+  ['0004_payment.sql', '商品表 products + 订单表 orders + 支付配置 + 订阅表 subscriptions', '可选'],
+  ['0005_api_security.sql', 'API安全策略表 api_security_settings + API Key 表 api_keys（SHA-256哈希）', '必选'],
+  ['0006_system.sql', '系统配置表 system_configs（KV配置） + 埋点种子数据', '必选'],
+  ['0012_archive_audit_logs.sql', '审计日志冷热归档（pg_cron定时任务 + audit-archives 存储桶）', '可选'],
 ]
 
-const adminSql = `-- 在 SQL Editor 中执行
+const adminSql = `-- 方式一：通过邮箱设置管理员（在 SQL Editor 中执行）
 UPDATE profiles
 SET role = 'admin'
 WHERE id = (
   SELECT id FROM auth.users WHERE email = 'your-email@example.com'
-);`
+);
 
-const seedSql = `-- 插入营销活动种子数据（必须）
+-- 方式二：使用内置管理员账号（推荐）
+-- 在 .env 中设置 SITE_ADMIN_USERNAME=admin 和 SITE_ADMIN_PASSWORD=your_password
+-- 0001_core.sql 迁移会自动 seed 固定 UUID 的管理员用户`
+
+const seedSql = `-- 插入营销活动种子数据（H5 页面依赖 campaigns 表，迁移后必须执行）
+-- 来源：supabase/migrations/0002_campaign.sql
 INSERT INTO campaigns (subdomain, title, subtitle, badge, color_from, color_to, is_active, cta_text, description, features) VALUES
 ('ai', '🤖 HEHE AI 协作者首发', '基于先进智能体的全自动化提效工作流上线。立即预约，锁定首月免费体验资格。', '限时 10,000 名', 'from-purple-600', 'to-indigo-600', true, '立即预约', '基于先进智能体的全自动化提效工作流', '[{"icon":"⚡","text":"一键生成"},{"icon":"🔒","text":"安全沙盒"},{"icon":"🌐","text":"全球分发"}]'::jsonb),
 ('cloud', '☁️ HEHE 云原生企业私有化', '一键输出物理隔离安全沙盒，专为合规与核心系统容灾设计。首发限时 7 折特惠。', '企业专属首发', 'from-blue-600', 'to-cyan-600', true, '立即预约', '专为合规与核心系统容灾设计', '[{"icon":"🛡️","text":"物理隔离"},{"icon":"📊","text":"实时监控"},{"icon":"🔄","text":"自动容灾"}]'::jsonb),
 ('promo', '🚀 HEHE 全栈单仓极速版', '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。', '开发者特惠季', 'from-rose-600', 'to-orange-600', true, '立即预约', '单人全栈闭环交付', '[{"icon":"🧑‍💻","text":"单人交付"},{"icon":"💰","text":"降本提效"},{"icon":"🚀","text":"极速上线"}]'::jsonb);
 
--- 插入商品种子数据（支付功能可选）
+-- 插入商品种子数据（支付功能可选，来源：supabase/migrations/0004_payment.sql）
 INSERT INTO products (name, price, tenant_id) VALUES
 ('HEHE Pro 工具套件', 29.99, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'),
 ('HEHE Enterprise 全套方案', 299.00, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
@@ -289,10 +311,12 @@ INSERT INTO products (name, price, tenant_id) VALUES
 
 const migrationRuleItems = [
   '所有表必须启用 RLS + FORCE RLS',
-  'Admin 检查使用 `is_admin(auth.uid())`，禁止 inline EXISTS',
-  'auth.uid() 使用 (SELECT auth.uid()) 子查询形式优化性能',
+  'Admin 检查使用 `is_admin(auth.uid())`，禁止 inline EXISTS 子查询',
+  '`is_admin()` 函数使用 SECURITY DEFINER 避免递归权限问题',
   'Money 字段使用 NUMERIC，禁止浮点数',
-  'activity_logs 表只追加不删除',
+  'activity_logs 表只追加不删除，定期归档到 Storage',
+  'API Key 使用 SHA-256 哈希存储，禁止明文',
+  '迁移文件按顺序编号（0001, 0002...），禁止修改已推送的迁移文件',
 ]
 
 const loginRows = [
@@ -305,7 +329,10 @@ const loginRows = [
 const profilesRows = [
   ['id', 'UUID', '与 auth.users 一对一关联'],
   ['email', 'TEXT', '用户邮箱'],
+  ['username', 'TEXT', '用户名（可选）'],
+  ['avatar_url', 'TEXT', '头像 URL（可选）'],
   ['role', 'TEXT', 'user / admin，管理员手动设置'],
+  ['is_anonymous', 'BOOLEAN', '是否为匿名用户'],
   ['created_at', 'TIMESTAMPTZ', '注册时间'],
   ['updated_at', 'TIMESTAMPTZ', '最后更新时间'],
 ]
@@ -325,10 +352,13 @@ const apiAuthRows = [
 ]
 
 const renderingRows = [
-  ['/', 'ISR (3600s)', 'SEO 友好的静态生成'],
-  ['/h5/**', 'SWR (600s)', '营销活动页快速更新'],
-  ['/admin/**', 'SPA (ssr: false)', '管理后台无 SSR 泄露'],
-  ['/api/**', 'no-store', '实时 API 零缓存'],
+  ['/', 'ISR (3600s)', 'SEO 友好的静态生成，首次构建后增量再生'],
+  ['/architecture', 'ISR (3600s)', '技术架构白皮书'],
+  ['/help', 'ISR (3600s)', '帮助文档中心'],
+  ['/h5/**', 'ISR (600s)', '营销活动页，后台修改后最快 10 分钟更新'],
+  ['/h5-v2/**', 'ISR (600s)', 'H5 v2 活动页'],
+  ['/admin/**', 'SPA (ssr: false)', '管理后台纯客户端渲染，隔离 SSR 安全泄露'],
+  ['/api/**', 'no-store', '实时 API 零缓存，每次请求实时响应'],
 ]
 
 const domainRows = [
@@ -337,13 +367,16 @@ const domainRows = [
 ]
 
 const checklistItems = [
-  '所有 .env 变量已在 Vercel 中配置',
+  '所有 .env 变量已在 Vercel Dashboard → Environment Variables 中配置',
   'Supabase 项目 URL + anon key + service_role key 已填入',
+  'MOCK_DB 设置为 false',
+  'SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD 已配置（管理后台登录）',
   'Stripe 密钥已配置（如需支付功能）',
   'npm run gen:types 已执行',
-  'supabase db push 已执行',
+  'supabase db push 已执行（所有迁移已应用）',
   'npm run check 通过',
-  'npm run build 通过',
+  'npm run build 通过（无 prerender 错误）',
+  'DNS 通配符记录已配置（*.domain.com → cname.vercel-dns.com）',
 ]
 
 const branchRows = [
@@ -378,8 +411,8 @@ const protectionItems = [
 ]
 
 const dualRows = [
-  ['Mock 模式', 'MOCK_DB=true', '返回假数据，不调用 Stripe API'],
-  ['生产模式', 'MOCK_DB=false', '调用真实 Stripe API，创建 PaymentIntent'],
+  ['Mock 模式', 'MOCK_DB=true', '返回模拟支付数据，不调用 Stripe API，适合前端开发'],
+  ['生产模式', 'MOCK_DB=false', '调用真实 Stripe API，支持一次性付款 + 订阅制（subscription）'],
 ]
 
 const rlsItems = [
@@ -470,16 +503,20 @@ supabase start
 # Anon Key: 在 Studio → Settings → API 中查看`
 
 const scriptsRows = [
-  ['npm run dev', '启动开发服务器（Mock DB）'],
-  ['npm run dev:all', '启动 Supabase + 开发服务器'],
-  ['npm run check', '类型检查（vue-tsc）'],
-  ['npm run build', '生产构建'],
-  ['npm run gen:types', '生成 Supabase 类型'],
-  ['npm run test:api-safety', 'API 安全扫描'],
-  ['npm run test:supabase', 'Supabase 连接测试'],
-  ['npm run test:storage', 'Storage 集成测试'],
-  ['npm run gen:crud <name>', '生成 CRUD API'],
-  ['npm run scaffold <name>', '脚手架：API + Page'],
+  ['npm run dev', '启动开发服务器（Mock DB 内存数据库）'],
+  ['npm run dev:all', '并发启动 Supabase 本地服务 + Nuxt 开发服务器'],
+  ['npm run check', 'TypeScript 类型检查（vue-tsc --noEmit）'],
+  ['npm run build', '生产构建（含 prerender + Vercel preset）'],
+  ['npm run gen:types', '生成 Supabase 数据库 TypeScript 类型定义'],
+  ['npm run gen:types:local', '从本地 Supabase 生成类型'],
+  ['npm run db:push', '推送数据库迁移到远程并重新生成类型'],
+  ['npm run test:api-safety', 'API 鉴权安全扫描（验证 @api-auth 声明与中间件行为一致性）'],
+  ['npm run test:supabase', 'Supabase 连接 + 表 + 桶 + 迁移状态健康检查'],
+  ['npm run test:storage', 'Storage 全链路集成测试（上传/公开URL/签名URL/RLS）'],
+  ['npm run gen:crud <name>', '生成 CRUD API 控制器（Zod + sendSuccess）'],
+  ['npm run gen:rls <table> [--admin]', '生成 RLS 策略 SQL'],
+  ['npm run scaffold <name>', '脚手架生成器：API 路由 + 页面组件'],
+  ['npm run seed:demo', '插入演示数据（活动/商品/用户）'],
 ]
 
 const apiResponseExample = `// 成功响应格式
@@ -565,35 +602,38 @@ const faqData = [
   {
     cat: 'deploy',
     items: [
-      { q: '如何部署到 Vercel？', a: '将项目推送到 GitHub，在 Vercel 中导入仓库即可自动部署。确保 .env 中的环境变量已在 Vercel Dashboard 中配置。' },
-      { q: '为什么 H5 页面没有内容？', a: 'H5 页面依赖 campaigns 表的数据。切换到真实 Supabase 数据库后，需要手动插入种子数据。详见迁移文档第 5 节。' },
-      { q: '如何配置自定义域名？', a: '在 Vercel Dashboard → Settings → Domains 中添加域名，然后在 DNS 提供商处添加对应的 A/CNAME 记录。' },
+      { q: '如何部署到 Vercel？', a: '将项目推送到 GitHub，在 Vercel 中导入仓库即可自动部署。确保 .env 中的环境变量已在 Vercel Dashboard → Environment Variables 中配置，尤其是 MOCK_DB=false 和 SITE_ADMIN_USERNAME/SITE_ADMIN_PASSWORD。' },
+      { q: '为什么 H5 页面没有内容？', a: 'H5 页面依赖 campaigns 表的数据。切换到真实 Supabase 数据库后，需要执行迁移并插入种子数据。详见本文 Supabase 集成章节。' },
+      { q: '如何配置自定义域名？', a: '在 Vercel Dashboard → Settings → Domains 中添加主域名和通配符域名（*.domain.com），然后在 DNS 提供商处添加对应的 A/CNAME 记录。' },
       { q: 'i18n 构建报错 "Cannot read properties of undefined"？', a: '检查所有 t() 调用是否使用了正确的 key 路径。确保 locales/zh.json 和 locales/en.json 的 key 结构完全一致。使用 npm run check 进行类型检查。' },
+      { q: 'build 时 prerender 失败返回 401？', a: '确认没有配置旧的 SITE_ACCESS_PASSWORD 环境变量。项目已移除站点访问密码机制，统一使用管理员账号认证。清除 Vercel 环境变量中的 SITE_ACCESS_PASSWORD。' },
     ],
   },
   {
     cat: 'database',
     items: [
-      { q: '本地开发如何连接 Supabase？', a: '使用 `npm run dev` 默认使用 Mock DB（内存数据库）。使用 `npm run dev:all` 启动本地 Supabase 服务。' },
-      { q: '如何执行数据库迁移？', a: '使用 `supabase login` 登录，然后 `supabase link --project-ref <ref>` 关联项目，最后 `supabase db push` 推送迁移。' },
-      { q: 'RLS 策略怎么写？', a: '参考 supabase/migrations/ 目录下的迁移文件。Admin 检查必须使用 `is_admin(auth.uid())` 函数，不要 inline EXISTS 子查询。' },
-      { q: '如何从 Mock DB 切换到真实 Supabase？', a: '设置 .env 中 MOCK_DB=false，确保 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY 正确配置。执行 supabase db push 推送迁移。重新运行 npm run dev:all。' },
-      { q: '子域名路由不生效？', a: '确认 DNS 通配符记录已配置（*.example.com → cname.vercel-dns.com）。确认 Vercel Dashboard → Domains 中已添加通配符域名。检查 01.subdomain-rewrite 中间件是否正常工作。' },
+      { q: '本地开发如何连接 Supabase？', a: '使用 `npm run dev` 默认使用 Mock DB（内存数据库）。使用 `npm run dev:all` 并发启动本地 Supabase 服务和 Nuxt 开发服务器。' },
+      { q: '如何执行数据库迁移？', a: '使用 `supabase login` 登录，然后 `supabase link --project-ref <ref>` 关联项目，最后 `supabase db push` 推送迁移。迁移按编号顺序（0001-0012）执行。' },
+      { q: 'RLS 策略怎么写？', a: '参考 supabase/migrations/ 目录下的迁移文件。Admin 检查必须使用 `is_admin(auth.uid())` SECURITY DEFINER 函数，不要 inline EXISTS 子查询。' },
+      { q: '如何从 Mock DB 切换到真实 Supabase？', a: '设置 .env 中 MOCK_DB=false，确保 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY 正确配置。执行 supabase db push 推送迁移。运行 npm run dev:all。' },
+      { q: '子域名路由不生效？', a: '确认 DNS 通配符记录已配置（*.example.com → cname.vercel-dns.com）。确认 Vercel Dashboard → Domains 中已添加通配符域名。检查 01.subdomain-rewrite 中间件日志。' },
     ],
   },
   {
     cat: 'auth',
     items: [
-      { q: '支持哪些登录方式？', a: '支持邮箱密码登录、Google OAuth、GitHub OAuth 和匿名登录。OAuth 需要在 Supabase Dashboard 中配置对应的 Client ID 和 Secret。' },
-      { q: 'Token 过期了怎么办？', a: 'Access Token 有效期 1 小时，Refresh Token 有效期 30 天。前端 Supabase 客户端会自动使用 Refresh Token 刷新 Access Token。' },
-      { q: '如何添加管理员？', a: '在 Supabase SQL Editor 中执行：UPDATE profiles SET role = \'admin\' WHERE id = (SELECT id FROM auth.users WHERE email = \'your-email@example.com\');' },
+      { q: '支持哪些登录方式？', a: '支持邮箱密码登录、Google OAuth、GitHub OAuth 和匿名登录。OAuth 需要在 Supabase Dashboard → Authentication → Providers 中配置对应的 Client ID 和 Secret。' },
+      { q: 'Token 过期了怎么办？', a: 'Access Token (JWT) 有效期 1 小时，Refresh Token 有效期 30 天。前端 supabase-auth 插件会自动使用 Refresh Token 刷新 Access Token，无需手动处理。' },
+      { q: '如何添加管理员？', a: '推荐方式：在 .env 中设置 SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD，迁移自动 seed 管理员。备选方式：在 Supabase SQL Editor 中执行 UPDATE profiles SET role = \'admin\' WHERE email = \'xxx\'。' },
+      { q: '管理后台如何登录？', a: '访问 /admin，使用 .env 中配置的 SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD 登录。内置管理员不依赖邮箱验证，开箱即用。' },
     ],
   },
   {
     cat: 'performance',
     items: [
-      { q: '页面加载慢怎么办？', a: '检查是否使用了 <NuxtImg> 替代原生 <img>；确认图片开启了懒加载和格式转换；检查 ISR/SWR 缓存策略是否生效。' },
-      { q: '如何监控线上性能？', a: '项目内置 APM 中间件（00.apm），记录请求耗时和状态码。Admin 后台可查看 APM 监控面板。Vercel Analytics 也可作为补充。' },
+      { q: '页面加载慢怎么办？', a: '检查是否使用了 <NuxtImg> 替代原生 <img>；确认图片开启了懒加载和格式转换；检查 ISR 缓存策略是否生效（/ 和 /help 为 3600s，/h5 为 600s）。' },
+      { q: '如何监控线上性能？', a: '项目内置 APM 中间件（00.apm），记录请求耗时和状态码。Admin 后台可查看 APM 监控面板。Vercel Analytics + Speed Insights 提供 Web Vitals 指标。' },
+      { q: 'API 接口有速率限制吗？', a: '是的。06.api-security 中间件实现了固定窗口速率限制，按 IP 或 API Key 限流，返回 X-RateLimit-Limit/Remaining/Reset 头。配置在 api_security_settings 表中。' },
     ],
   },
 ]
@@ -718,7 +758,7 @@ const faqData = [
             <div class="subsection">
               <h3>{{ '文档结构' }}</h3>
               <div class="doc-grid">
-                <div v-for="(doc, idx) in ([{num:'01', title:'定位与技术栈', desc:'平台边界、技术选型、渲染策略、快速启动、前置条件'},{num:'02', title:'目录结构与路由', desc:'目录结构、多域名路由、中间件执行链'},{num:'03', title:'环境变量', desc:'变量清单、安全红线、Mock DB 离线开发'},{num:'04', title:'渲染策略对比', desc:'SSR/ISR/SWR 全维度对比、选型决策树、性能数字'},{num:'05', title:'Supabase 集成与数据库迁移', desc:'数据库创建、迁移执行、连接池、种子数据、Storage、管理员创建'},{num:'06', title:'Supabase OAuth 体系', desc:'邮箱+社交 OAuth 配置、Token 生命周期、中间件链、useAuth API'},{num:'08', title:'Vercel 部署', desc:'环境变量、域名配置、渲染策略、检查清单、预览部署'},{num:'09', title:'GitHub 集成', desc:'分支策略、CI/CD、分支保护、Actions 配置、PR 模板'},{num:'10', title:'支付系统', desc:'Stripe 集成、订单流程、Mock/生产双模式、Webhook'},{num:'12', title:'社交分享与反馈', desc:'6 大平台分享、用户评价系统、审批工作流'},{num:'13', title:'Cloudflare 接入', desc:'DNS 配置、SSL/TLS、安全功能、缓存规则'},{num:'14', title:'本地开发', desc:'快速开始、本地 Supabase、脚本说明、代码生成器'},{num:'15', title:'API 规范', desc:'统一响应格式、Zod 校验、鉴权声明、OpenAPI 文档'},{num:'16', title:'国际化配置', desc:'i18n 策略、语言检测、翻译文件结构、使用规范'},{num:'17', title:'常见问题', desc:'部署、数据库、认证、支付相关 FAQ'}] as any[])" :key="idx" class="doc-card">
+                <div v-for="(doc, idx) in ([{num:'01', title:'定位与技术栈', desc:'平台边界、技术选型、渲染策略、快速启动、前置条件'},{num:'02', title:'目录结构与路由', desc:'目录结构、多域名路由、中间件执行链（6层）'},{num:'03', title:'环境变量', desc:'变量清单、安全红线、Mock DB 离线开发、管理员配置'},{num:'04', title:'渲染策略对比', desc:'SSR/ISR/SWR 全维度对比、选型决策树、性能数字'},{num:'05', title:'Supabase 集成与数据库迁移', desc:'7个迁移文件、连接池、种子数据、Storage、管理员创建'},{num:'06', title:'Supabase OAuth 体系', desc:'邮箱+社交OAuth、5层纵深防御、Token生命周期、useAuth API'},{num:'08', title:'Vercel 部署', desc:'环境变量、域名配置、渲染策略、检查清单、预览部署'},{num:'09', title:'GitHub 集成', desc:'分支策略、CI/CD、分支保护、Actions 配置、PR 模板'},{num:'10', title:'支付系统', desc:'Stripe策略模式、一次性付款+订阅制、Mock/生产双模式'},{num:'12', title:'社交分享与反馈', desc:'6大平台分享、用户评价系统、审批工作流'},{num:'13', title:'Cloudflare 接入', desc:'DNS配置、SSL/TLS、安全功能、缓存规则'},{num:'14', title:'本地开发', desc:'快速开始、本地Supabase、脚本说明、代码生成器'},{num:'15', title:'API 规范', desc:'统一响应格式、Zod校验、鉴权声明、OpenAPI文档'},{num:'16', title:'国际化配置', desc:'i18n策略、语言检测、翻译文件结构、使用规范'},{num:'17', title:'常见问题', desc:'部署、数据库、认证、性能相关FAQ'}] as any[])" :key="idx" class="doc-card">
                   <div class="doc-card-num">{{ doc.num }}</div>
                   <div class="doc-card-body">
                     <h4>{{ doc.title }}</h4>
@@ -739,7 +779,7 @@ const faqData = [
           <div class="section-body">
             <div class="subsection">
               <h3>{{ '项目定位' }}</h3>
-              <p>{{ '本项目是单人全栈独立开发者闭环项目脚手架，一人负责开发、维护、上线、测试、运维全流程。不是 SaaS 多租户产品，而是单人全栈项目的基础骨架。' }}</p>
+              <p>{{ '本项目是单人全栈独立开发者闭环项目脚手架，一人负责开发、维护、上线、测试、运维全流程。在单一 Nuxt 4 代码仓库中同时支撑主站官网（SSR）、管理后台（SPA + PWA）、营销 H5 落地页（ISR）和 REST API 四类运行时。不是 SaaS 多租户产品，而是单人全栈项目的基础骨架。' }}</p>
             </div>
             <div class="subsection">
               <h3>{{ '技术栈' }}</h3>
@@ -833,27 +873,29 @@ const faqData = [
                 <pre><code>hehe-app/
 ├── app/
 │   ├── components/
-│   │   ├── admin/         # Admin components (local imports)
-│   │   ├── client/        # Public site components
-│   │   ├── h5/            # H5 campaign components
-│   │   └── shared/        # Cross-context shared components
-│   ├── composables/       # Vue Composables (auto-imported)
+│   │   ├── admin/         # 管理后台组件（20+ 个，local imports）
+│   │   ├── client/        # 客户端网站组件
+│   │   ├── h5/            # H5 营销页组件
+│   │   └── shared/        # 跨平台共享组件（LanguageSwitcher, SocialShare）
+│   ├── composables/       # Vue Composables（9个，auto-imported）
 │   ├── pages/
-│   │   ├── (admin)/       # Admin dashboard (SPA)
-│   │   ├── (client)/      # Website + Architecture + Help Docs (ISR)
-│   │   └── (h5)/          # Campaign H5 (SWR)
-│   ├── plugins/           # Nuxt plugins
+│   │   ├── (admin)/       # 管理后台（SPA, ssr: false）
+│   │   ├── (client)/      # 官网 + 架构 + 帮助文档（ISR 3600s）
+│   │   └── (h5)/          # H5 营销活动页（ISR 600s）
+│   ├── plugins/           # Nuxt 插件（analytics, supabase-auth）
+│   ├── types/             # TypeScript 类型定义
+│   ├── utils/             # 客户端工具函数
 │   └── app.vue
-├── locales/               # i18n translation files
+├── locales/               # i18n 翻译文件（zh.json, en.json）
 ├── server/
-│   ├── api/admin/         # Admin API
-│   ├── api/v1/            # Public/user API
-│   ├── middleware/        # Middleware chain (00→01→02→03→04→05→06)
-│   └── utils/             # Server utilities
-├── supabase/migrations/   # SQL migrations (0001-0005)
-├── public/                # Static assets
-├── scripts/               # Ops scripts
-└── docs/                  # Core documentation</code></pre>
+│   ├── api/admin/         # 管理后台 API（03.admin 中间件保护）
+│   ├── api/v1/            # 公开/用户 API
+│   ├── middleware/        # 中间件链（00→01→02→03→04→06）
+│   └── utils/             # 服务端工具（db, auth, payment-strategies, storage, api-security）
+├── supabase/migrations/   # 数据库迁移（0001-0012，7个文件）
+├── public/                # 静态资源（fonts, favicon, og-image）
+├── scripts/               # 运维脚本（12个 .mjs）
+└── docs/                  # 核心架构文档</code></pre>
               </div>
             </div>
             <div class="subsection">
@@ -889,6 +931,17 @@ const faqData = [
                   <div class="flow-step"><span class="flow-num">{{ String(i).padStart(2, '0') }}</span>{{ step }}</div>
                   <div v-if="i < middlewareSteps.length - 1" class="flow-arrow">→</div>
                 </template>
+              </div>
+              <p class="mt-4">{{ '每个请求按编号顺序依次经过这 6 个中间件，形成清晰的安全管道。各中间件职责如下：' }}</p>
+              <div class="table-wrap mt-3">
+                <table>
+                  <thead><tr><th v-for="col in (['中间件', '职责', '说明'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in middlewareStepsDetail" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1003,10 +1056,13 @@ const faqData = [
                 <pre><code>// nuxt.config.ts
 export default defineNuxtConfig({
   routeRules: {
-    '/client/**': { isr: 3600 },           // 官网 ISR，1h
-    '/h5/**':    { swr: 600 },             // H5 SWR，10min
-    '/admin/**': { ssr: false },           // 后台 SPA
-    '/api/**':   { cors: true, headers: { 'cache-control': 'no-store' } },
+    '/admin/**': { ssr: false },           // 管理后台 SPA，隔离 SSR 泄露
+    '/h5/**':    { isr: 600 },             // H5 ISR，10min 刷新
+    '/h5-v2/**': { isr: 600 },            // H5 v2 ISR，10min 刷新
+    '/':         { isr: 3600 },            // 首页 ISR，1h 刷新
+    '/architecture': { isr: 3600 },        // 架构白皮书 ISR
+    '/help':     { isr: 3600 },            // 帮助文档 ISR
+    '/api/**':   { cors: true, headers: { 'cache-control': 'no-store, no-cache, must-revalidate' } },
   }
 })</code></pre>
               </div>
@@ -1065,22 +1121,28 @@ export default defineNuxtConfig({
               <div class="schema-diagram">
                 <div class="schema-box">
                   <div class="schema-title">auth.users</div>
-                  <div class="schema-desc">Supabase built-in user table</div>
+                  <div class="schema-desc">Supabase 内置用户表</div>
                 </div>
                 <div class="schema-arrow">▼ handle_new_user() trigger</div>
                 <div class="schema-row">
-                  <div class="schema-box schema-core"><div class="schema-title">profiles</div><div class="schema-desc">User profiles (required)</div></div>
-                  <div class="schema-box schema-core"><div class="schema-title">tasks</div><div class="schema-desc">Business tasks (required)</div></div>
-                  <div class="schema-box schema-core"><div class="schema-title">activity_logs</div><div class="schema-desc">Audit logs (required)</div></div>
+                  <div class="schema-box schema-core"><div class="schema-title">profiles</div><div class="schema-desc">用户档案 (0001 必选)</div></div>
+                  <div class="schema-box schema-core"><div class="schema-title">tasks</div><div class="schema-desc">业务任务 (0001 必选)</div></div>
+                  <div class="schema-box schema-core"><div class="schema-title">activity_logs</div><div class="schema-desc">审计日志 (0001 必选)</div></div>
                 </div>
                 <div class="schema-row">
-                  <div class="schema-box schema-opt"><div class="schema-title">campaigns</div><div class="schema-desc">Marketing campaigns ⚠️</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">orders</div><div class="schema-desc">Payment orders ⚠️</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">products</div><div class="schema-desc">Products ⚠️</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">campaigns</div><div class="schema-desc">营销活动 + 留资 (0002)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">feedbacks</div><div class="schema-desc">用户评价 (0003 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">products</div><div class="schema-desc">商品 (0004 可选)</div></div>
                 </div>
                 <div class="schema-row">
-                  <div class="schema-box schema-opt"><div class="schema-title">ad_events</div><div class="schema-desc">Ad events ⚠️</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">feedbacks</div><div class="schema-desc">User reviews ⚠️</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">orders</div><div class="schema-desc">订单 (0004 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">subscriptions</div><div class="schema-desc">订阅 (0004 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">api_keys</div><div class="schema-desc">API Key (0005)</div></div>
+                </div>
+                <div class="schema-row">
+                  <div class="schema-box schema-opt"><div class="schema-title">api_security_settings</div><div class="schema-desc">安全策略 (0005)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">system_configs</div><div class="schema-desc">系统配置 (0006)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">payment_configs</div><div class="schema-desc">支付配置 (0004)</div></div>
                 </div>
               </div>
             </div>
@@ -1128,16 +1190,25 @@ supabase db push</code></pre>
             </div>
             <div class="subsection">
               <h3>{{ '创建管理员账号' }}</h3>
-              <p>{{ '数据库迁移完成后，需要手动创建第一个管理员用户。' }}</p>
-              <p><strong>{{ '方式一：通过 Dashboard 创建' }}</strong></p>
+              <p>{{ '数据库迁移完成后，需要配置管理员账号。' }}</p>
+              <p><strong>{{ '方式一：内置管理员（推荐，开箱即用）' }}</strong></p>
+              <p>{{ '在 .env 中设置 ' }}<code>SITE_ADMIN_USERNAME</code> {{ '和' }} <code>SITE_ADMIN_PASSWORD</code>{{ '，0001_core.sql 迁移会自动 seed 固定 UUID 的管理员用户。登录管理后台（/admin）直接使用此账号即可。' }}</p>
+              <p><strong>{{ '方式二：通过 Dashboard 创建' }}</strong></p>
               <ol>
                 <li>{{ '进入 Authentication → Users → Add User，填写邮箱和密码，勾选 Auto Confirm User' }}</li>
                 <li>{{ '进入 Table Editor → profiles，找到刚创建的用户行，将 role 字段改为 admin' }}</li>
               </ol>
-              <p><strong>{{ '方式二：通过 SQL 快速设置' }}</strong></p>
+              <p><strong>{{ '方式三：通过 SQL 快速设置' }}</strong></p>
               <div class="code-block">
                 <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>{{ adminSql }}</code></pre>
+              </div>
+              <p><strong>{{ '方式四：通过 CLI 脚本创建/更新' }}</strong></p>
+              <p>{{ '项目提供 ' }}<code>temp-create-admin.mjs</code> {{ '脚本，可通过 CLI 快速创建或更新内置管理员账号：' }}</p>
+              <div class="code-block">
+                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <pre><code># 使用 .env 中配置的 SITE_ADMIN_USERNAME 和 SITE_ADMIN_PASSWORD
+node temp-create-admin.mjs</code></pre>
               </div>
             </div>
             <div class="subsection">
@@ -1470,14 +1541,15 @@ CREATE TRIGGER on_auth_user_created
               </div>
             </div>
             <div class="subsection">
-              <h3>{{ '权限守卫' }}</h3>
+              <h3>{{ '权限守卫（5 层纵深防御）' }}</h3>
               <p>{{ '服务端中间件链实现分层权限控制：' }}</p>
               <ul>
-                <li><strong>02.auth：</strong>{{ '解析用户身份（Bearer Header → Cookie → 匿名 device-id）' }}</li>
-                <li><strong>03.admin：</strong>{{ '验证管理员角色，非 admin 返回 403' }}</li>
-                <li><strong>04.auth-guard：</strong>{{ '要求登录用户，匿名用户访问 payments/orders 返回 403' }}</li>
-                <li><strong>06.api-security：</strong>{{ 'API 安全防护，防 CSRF 及暴力破解' }}</li>
-                <li>{{ '公开接口（campaigns 等）跳过 04.auth-guard，无需登录' }}</li>
+                <li><strong>00.apm：</strong>{{ 'APM 性能监控，异步记录请求耗时与状态码' }}</li>
+                <li><strong>01.subdomain：</strong>{{ '子域名自适应路由重写（多域名/单域名模式自动适配）' }}</li>
+                <li><strong>02.auth：</strong>{{ '双模鉴权，解析用户身份（Bearer Header → Cookie → 匿名 device-id）' }}</li>
+                <li><strong>03.admin：</strong>{{ '管理员断言守卫，拦截 /api/admin/*，非 admin 返回 403' }}</li>
+                <li><strong>04.auth-guard：</strong>{{ '用户认证守卫，要求登录用户，匿名用户访问 payments/orders 返回 403' }}</li>
+                <li><strong>06.api-security：</strong>{{ '8 层 API 安全策略：IP黑白名单 → 国家限制 → API Key 验证 → HMAC-SHA256 签名 → 端点控制 → 速率限制' }}</li>
               </ul>
             </div>
             <div class="subsection">
@@ -2096,6 +2168,22 @@ dist/
               </div>
             </div>
             <div class="subsection">
+              <h3>{{ '支付策略模式' }}</h3>
+              <p>{{ '支付系统采用策略模式设计（server/utils/payment-strategies/），支持多支付渠道扩展：' }}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['文件', '职责', '说明'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in ([['types.ts', '策略接口定义', 'PaymentStrategy 接口：createSession + verifyWebhook'],['factory.ts', '策略工厂', '按 provider 名获取策略实例，预留 PayPal/WeChat 扩展'],['stripe.ts', 'Stripe 策略', '支持 subscription（订阅制）和 payment（一次性付款）两种模式']] as string[][])" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p><strong>{{ 'Stripe Webhook 事件：' }}</strong>{{ 'checkout.session.completed、customer.subscription.created/updated/deleted、invoice.payment_failed、charge.refunded' }}</p>
+              <p><strong>{{ '支付配置来源：' }}</strong>{{ '生产环境从 ' }}<code>payment_configs</code> {{ '和 ' }}<code>system_configs</code> {{ '表动态读取 Stripe 密钥，无需硬编码。' }}</p>
+            </div>
+            <div class="subsection">
               <h3>{{ 'orders 表 RLS 策略' }}</h3>
               <ul>
                 <li v-for="(item, i) in rlsItems" :key="i" v-html="item.replace(/`([^`]+)`/g, '<code>$1</code>')" />
@@ -2225,7 +2313,79 @@ const stripeEvent = stripe.webhooks.constructEvent(
           </div>
         </section>
 
-        <!-- ═══════ S11: Social Share & Feedback ═══════ -->
+        <!-- ═══════ S11: Admin Dashboard ═══════ -->
+        <section id="s11" class="section" v-once>
+          <div class="section-header">
+            <div class="section-num">11</div>
+            <h2>{{ '管理后台' }}</h2>
+          </div>
+          <div class="section-body">
+            <div class="subsection">
+              <h3>{{ '登录方式' }}</h3>
+              <p>{{ '管理后台通过 ' }}<code>/admin</code> {{ '路径访问（SPA 模式，纯客户端渲染）。使用 .env 中配置的 ' }}<code>SITE_ADMIN_USERNAME</code> {{ '和 ' }}<code>SITE_ADMIN_PASSWORD</code> {{ '登录，不依赖 Supabase Auth 邮箱验证。' }}</p>
+              <p>{{ '内置管理员 UUID 为 ' }}<code>9e638ba2-41aa-4434-a68b-6bd9f7ed0963</code>{{ '，由 0001_core.sql 迁移自动 seed。' }}</p>
+            </div>
+            <div class="subsection">
+              <h3>{{ '三种导航模式' }}</h3>
+              <p>{{ '管理员可在 Header 右侧切换器中自由选择三种导航模式，偏好持久化至 ' }}<code>localStorage('admin-nav-mode')</code>{{ '：' }}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['模式', '宽度', '特点'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in ([['Grouped（分组折叠）', '272px / 64px（折叠）', '菜单按5组分类折叠，激活项左侧3px紫蓝渐变竖线'],['Tabbed（双栏分区）', '192px 子侧栏', '域驱动极简子侧栏，Header内Tab栏 Cmd+1/2/3切换'],['Compact（极简命令）', '64px / 208px（hover展开）', '仅5个高频项，Cmd+K命令面板搜索']] as string[][])" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><strong v-if="j === 0">{{ cell }}</strong><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="subsection">
+              <h3>{{ '四种主题' }}</h3>
+              <p>{{ '管理后台支持 4 种主题切换，通过 ' }}<code>useAdminTheme</code> {{ 'composable 管理，CSS Variables 驱动：' }}</p>
+              <ul>
+                <li><strong>Dark：</strong>{{ '默认深靛蓝暗色主题，灵感来自 Linear/Vercel' }}</li>
+                <li><strong>Light：</strong>{{ '亮色主题，适合日间办公' }}</li>
+                <li><strong>Classic Dark：</strong>{{ '经典暗色主题' }}</li>
+                <li><strong>System：</strong>{{ '跟随系统 ' }}<code>prefers-color-scheme</code> {{ '自动切换' }}</li>
+              </ul>
+            </div>
+            <div class="subsection">
+              <h3>{{ '管理后台功能模块' }}</h3>
+              <p>{{ '管理后台包含以下完整功能模块（共 20+ 个管理组件）：' }}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['模块', '功能'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in ([['概览 (Overview)', '核心指标卡片、收入趋势、活跃用户统计'],['任务管理 (Tasks)', '业务任务 CRUD、状态流转、定时任务触发'],['活动管理 (Campaigns)', '营销活动配置、留资管理（leads）、H5页面动态内容'],['商品管理 (Products)', '商品CRUD、Stripe产品同步'],['订单管理 (Orders)', '订单列表、状态管理、退款处理'],['订阅管理 (Subscriptions)', 'Stripe订阅周期管理'],['用户管理 (Users)', '用户列表、角色管理、统计数据'],['评价管理 (Feedback)', '用户评价审核、回复管理'],['收入统计 (Revenue)', '收入数据看板、趋势分析'],['媒体库 (Media)', 'Storage文件管理、批量删除、回收站、详情预览'],['API 安全 (Security)', 'API Key管理、安全策略配置、安全事件日志'],['审计日志 (Audit)', '管理员操作记录、冷热归档到Storage'],['APM 监控', '请求耗时、状态码、吞吐量实时面板'],['系统配置 (Config)', '系统KV配置、通知设置、支付通道配置'],['管理员账号', '密码修改、头像设置']] as string[][])" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><strong v-if="j === 0">{{ cell }}</strong><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="subsection">
+              <h3>{{ '命令面板 (Cmd+K)' }}</h3>
+              <p>{{ '全局 ' }}<code>Cmd+K</code> {{ '（Windows: ' }}<code>Ctrl+K</code>{{ '）唤起命令面板，支持：' }}</p>
+              <ul>
+                <li>{{ '模糊搜索所有菜单项' }}</li>
+                <li>{{ '最近使用记录（localStorage 持久化）' }}</li>
+                <li>{{ '↑↓ 键盘导航 + Enter 确认 + Esc 关闭' }}</li>
+                <li>{{ '分组展示（运营/营销/系统）' }}</li>
+              </ul>
+            </div>
+            <div class="subsection">
+              <h3>{{ 'PWA 离线支持' }}</h3>
+              <p>{{ '管理后台通过 @vite-pwa/nuxt 实现 PWA 功能，配置作用域仅限 ' }}<code>/admin/</code>{{ '：' }}</p>
+              <ul>
+                <li><strong>{{ '缓存策略：' }}</strong>{{ 'NetworkFirst，优先网络请求，失败时回退缓存' }}</li>
+                <li><strong>{{ '离线访问：' }}</strong>{{ '已访问过的管理页面在无网络时可离线查看' }}</li>
+                <li><strong>{{ '安装到桌面：' }}</strong>{{ '支持 Add to Home Screen，像原生 App 一样使用' }}</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════ S12: Social Share & Feedback ═══════ -->
         <section id="s12" class="section" v-once>
           <div class="section-header">
             <div class="section-num">12</div>
