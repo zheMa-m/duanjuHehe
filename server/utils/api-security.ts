@@ -132,9 +132,11 @@ export async function loadSecurityPolicy(event: H3Event): Promise<SecurityPolicy
   }
 }
 
-/** 管理后台更新策略时同步清除缓存（立即生效） */
+/** 管理后台更新策略时同步清除缓存（立即生效），同时清除 Overview 聚合缓存 */
 export function invalidatePolicyCache(): void {
   policyCache = null
+  // 清除 Overview 聚合缓存（跨模块，通过挂载到 process 共享）
+  ;(globalThis as any).__securityOverviewCache = null
 }
 
 // ╔════════════════════════════════════════════════════════════════╗
@@ -269,18 +271,31 @@ export function verifyRequestSignature(
 }
 
 // ╔════════════════════════════════════════════════════════════════╗
-// ║  4. 固定窗口速率限制器（Layer 3，内存 Map + GC）               ║
+// ║  4. 滑动窗口速率限制器（Layer 3，内存 Map + GC）               ║
 // ╚════════════════════════════════════════════════════════════════╝
 
 const GC_INTERVAL = 300_000 // 5 分钟
 let lastGC = Date.now()
-const rateLimitStore = new Map<string, { count: number; windowStart: number }>()
+
+interface RateWindowEntry {
+  count: number         // 当前窗口计数
+  windowStart: number   // 当前窗口起始时间戳
+  previousCount: number // 上一个完整窗口的计数（滑动加权用）
+}
+
+const rateLimitStore = new Map<string, RateWindowEntry>()
 
 /**
- * 检查速率限制（固定窗口计数器）
+ * 检查速率限制（滑动窗口计数器算法）
  *
- * 每个 key 仅存 { count: number, windowStart: number }（16 字节）
- * 定期 GC 清理过期条目，Map 大小可控
+ * 相比固定窗口，滑动窗口在当前窗口计数上叠加前一个窗口的加权剩余计数：
+ *   estimated = currentCount + previousCount × (windowMs - elapsedInWindow) / windowMs
+ *
+ * 这有效消除了固定窗口在边界处的「双倍突发」漏洞：
+ *   例：100 req/60s → 固定窗口在 T=59s + T=61s 可接收 200 req
+ *   滑动窗口：T=59s 已用 99 → T=61s 估算 ≈ 99×0.97 + 1 ≈ 97，拒绝
+ *
+ * 内存开销：每个条目 3 个 number（24 字节），定期 GC 清理 >2 窗口未活跃的条目
  */
 export function checkRateLimit(
   key: string,
@@ -289,28 +304,56 @@ export function checkRateLimit(
 ): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now()
 
-  // 定期 GC
+  // ── 定期 GC：清除超过 2 个窗口未活跃的条目 ──
   if (now - lastGC > GC_INTERVAL) {
     lastGC = now
+    const threshold = now - windowMs * 2
     for (const [k, v] of rateLimitStore) {
-      if (now - v.windowStart > windowMs * 2) {
+      if (v.windowStart < threshold) {
         rateLimitStore.delete(k)
       }
     }
   }
 
-  // 获取或创建窗口
   let entry = rateLimitStore.get(key)
-  if (!entry || (now - entry.windowStart) > windowMs) {
-    // 新窗口
-    entry = { count: 0, windowStart: now }
+
+  if (!entry) {
+    // 首次请求 → 创建新窗口
+    entry = { count: 1, windowStart: now, previousCount: 0 }
     rateLimitStore.set(key, entry)
+    return { allowed: true, remaining: limit - 1, resetAt: now + windowMs }
   }
 
-  entry.count++
+  const elapsed = now - entry.windowStart
+
+  if (elapsed >= windowMs) {
+    // 进入新窗口 → 当前窗口变为 previous，重置 count
+    const windowsPassed = Math.floor(elapsed / windowMs)
+
+    if (windowsPassed >= 2) {
+      // 超过 2 个窗口无活动 → 完全重置
+      entry.count = 1
+      entry.windowStart = now
+      entry.previousCount = 0
+    } else {
+      // 恰好跨 1 个窗口 → 滑动
+      entry.previousCount = entry.count
+      entry.count = 1
+      entry.windowStart += windowMs
+    }
+  } else {
+    // 同一窗口内 → 累加
+    entry.count++
+  }
+
+  // ── 滑动窗口加权估算 ──
+  const elapsedInWindow = now - entry.windowStart
+  const overlapRatio = Math.max(0, (windowMs - elapsedInWindow) / windowMs)
+  const estimatedCount = entry.count + entry.previousCount * overlapRatio
+
   const resetAt = entry.windowStart + windowMs
-  const allowed = entry.count <= limit
-  const remaining = Math.max(0, limit - entry.count)
+  const allowed = estimatedCount <= limit
+  const remaining = Math.max(0, Math.floor(limit - estimatedCount))
 
   return { allowed, remaining, resetAt }
 }

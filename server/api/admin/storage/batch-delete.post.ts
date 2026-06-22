@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await logAuditEvent(event, user, `STORAGE_BATCH_DELETE: ${bucket} [${deleted}/${paths.length}]`, 'SUCCESS')
+  await logAuditEvent(event, user, `STORAGE_BATCH_DELETED: ${bucket} [${deleted}/${paths.length}]`, 'SUCCESS')
 
   return sendSuccess(event, {
     deleted,

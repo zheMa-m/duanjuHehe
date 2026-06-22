@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await logAuditEvent(event, user, `STORAGE_TRASH_BATCH_DELETE: ${deleted}/${ids.length}`, 'SUCCESS')
+  await logAuditEvent(event, user, `STORAGE_TRASH_BATCH_DELETED: ${deleted}/${ids.length}`, 'SUCCESS')
 
   return sendSuccess(event, { deleted, errors }, `Permanently deleted ${deleted} of ${ids.length} files`)
 })

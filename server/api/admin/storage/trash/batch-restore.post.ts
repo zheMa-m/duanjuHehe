@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await logAuditEvent(event, user, `STORAGE_TRASH_BATCH_RESTORE: ${restored}/${ids.length}`, 'SUCCESS')
+  await logAuditEvent(event, user, `STORAGE_TRASH_BATCH_RESTORED: ${restored}/${ids.length}`, 'SUCCESS')
 
   return sendSuccess(event, { restored, errors }, `Restored ${restored} of ${ids.length} files`)
 })

@@ -79,5 +79,17 @@ export default defineConfig({
     // 媒体库工具栏图标（排序方向动态绑定）
     'i-lucide-arrow-down',
     'i-lucide-arrow-up',
+    // 安全模块子 Tab 图标（动态绑定 via v-for）
+    'i-lucide-bar-chart-3',
+    'i-lucide-zap',
+    'i-lucide-globe',
+    'i-lucide-map',
+    'i-lucide-key',
+    'i-lucide-link',
+    // 安全模块状态指示图标
+    'i-lucide-alert-triangle',
+    'i-lucide-clock',
+    'i-lucide-download',
+    'i-lucide-info',
   ]
 })

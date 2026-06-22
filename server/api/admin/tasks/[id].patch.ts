@@ -50,14 +50,14 @@ export default defineEventHandler(async (event) => {
   const { error } = await db.from('tasks').update({ completed: body.completed }).eq('id', id)
 
   if (error) {
-    await logAuditEvent(event, user, 'TASK_TOGGLE_FAILED', 'FAILED')
+    await logAuditEvent(event, user, 'TASK_UPDATE_FAILED', 'FAILED')
     throw createError({
       statusCode: 500,
       statusMessage: error.message || 'Failed to update task'
     })
   }
 
-  await logAuditEvent(event, user, `TASK_TOGGLED: ${id} | Completed: ${body.completed}`, 'SUCCESS')
+  await logAuditEvent(event, user, `TASK_UPDATED: ${id} (completed=${body.completed})`, 'SUCCESS')
 
   return sendSuccess(event, { id, completed: body.completed }, 'Updated task status successfully')
 })

@@ -43,7 +43,7 @@ export const menuItems: MenuItem[] = [
   // content
   { key: 'media', label: '媒体库', icon: 'i-lucide-image', group: 'content', component: 'AdminMedia' },
   // system
-  { key: 'security', label: '安全策略', icon: 'i-lucide-shield', group: 'system', component: 'AdminApiSecurity' },
+  { key: 'security', label: '安全', icon: 'i-lucide-shield', group: 'system', component: 'AdminApiSecurity' },
   { key: 'health', label: '监控', icon: 'i-lucide-activity', group: 'system', component: 'AdminApm' },
   { key: 'settings', label: '配置', icon: 'i-lucide-settings', group: 'system', component: 'AdminConfig' },
   { key: 'audit', label: '审计', icon: 'i-lucide-file-text', group: 'system', component: 'AdminAudit' },

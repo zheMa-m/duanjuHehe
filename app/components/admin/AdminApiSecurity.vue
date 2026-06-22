@@ -26,17 +26,30 @@ interface LogsResponse {
   pagination: { page: number; pageSize: number; total: number }
 }
 
+interface OverviewData {
+  score: number
+  grade: string
+  gradeLabel: string
+  scoreDetails: string[]
+  stats: { todayBlocked: number; activeThreats: number; totalKeys: number; activeKeys: number }
+  configStatus: { rate_limit: boolean; ip_policy_mode: string; country_policy: boolean; signature_required: boolean; endpoint_overrides_count: number }
+  keys: { expired: { id: string; name: string; key_prefix: string; expires_at: string }[]; expiringSoon: { id: string; name: string; key_prefix: string; expires_at: string }[] }
+  recentThreats: { id: number; action: string; ip: string | null; metadata: Record<string, any>; created_at: string }[]
+  rateLimitTop: { topIps: { ip: string; count: number }[]; topKeys: { keyPrefix: string; count: number }[] }
+}
+
 const emit = defineEmits<{ toast: [msg: string, type: 'success' | 'error' | 'info'] }>()
 
 // ── 子 tab ──────────────────────────────────────────────────
-const subTab = ref('rate')
+const subTab = ref('overview')
 const subTabs = [
-  { key: 'rate', label: '速率限制', icon: '⚡' },
-  { key: 'ip', label: 'IP 控制', icon: '🌐' },
-  { key: 'country', label: '国家限制', icon: '🗺️' },
-  { key: 'keys', label: 'API Key', icon: '🔑' },
-  { key: 'endpoints', label: '端点覆盖', icon: '🔗' },
-  { key: 'logs', label: '安全日志', icon: '📋' },
+  { key: 'overview', label: '概览', iconClass: 'i-lucide-bar-chart-3' },
+  { key: 'rate', label: '速率限制', iconClass: 'i-lucide-zap' },
+  { key: 'ip', label: 'IP 控制', iconClass: 'i-lucide-globe' },
+  { key: 'country', label: '国家限制', iconClass: 'i-lucide-map' },
+  { key: 'keys', label: 'API Key', iconClass: 'i-lucide-key' },
+  { key: 'endpoints', label: '端点覆盖', iconClass: 'i-lucide-link' },
+  { key: 'logs', label: '安全日志', iconClass: 'i-lucide-clipboard-list' },
 ]
 
 // ── 数据状态 ──────────────────────────────────────────────────
@@ -98,25 +111,56 @@ const resetLogFilters = () => {
   loadLogs()
 }
 
-// ── 限流统计（基于当前日志数据聚合） ──────────────────────────
-const rateLimitStats = computed(() => {
-  const rateEvents = logs.value.filter(l => l.action.includes('rate_limited'))
-  const byIp = new Map<string, number>()
-  const byKey = new Map<string, number>()
-  rateEvents.forEach(e => {
-    const ip = e.ip || 'unknown'
-    byIp.set(ip, (byIp.get(ip) || 0) + 1)
-    if (e.metadata?.keyPrefix) {
-      const kp = e.metadata.keyPrefix
-      byKey.set(kp, (byKey.get(kp) || 0) + 1)
-    }
-  })
-  return {
-    total: rateEvents.length,
-    topIps: [...byIp.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
-    topKeys: [...byKey.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
-  }
+// ── 安全概览（从服务端聚合接口获取真实数据） ──────────────────
+const overview = ref<OverviewData | null>(null)
+
+const securityScore = computed(() => overview.value?.score ?? 0)
+
+const scoreGrade = computed(() => {
+  const s = securityScore.value
+  if (s >= 80) return { label: '优秀', color: 'text-[#30d158]', bg: 'bg-[#30d158]/10', border: 'border-[#30d158]/20' }
+  if (s >= 60) return { label: '良好', color: 'text-[#ff9f0a]', bg: 'bg-[#ff9f0a]/10', border: 'border-[#ff9f0a]/20' }
+  return { label: '需改进', color: 'text-[#ff453a]', bg: 'bg-[#ff453a]/10', border: 'border-[#ff453a]/20' }
 })
+
+const activeThreatsCount = computed(() => overview.value?.stats.activeThreats ?? 0)
+const todayBlockedCount = computed(() => overview.value?.stats.todayBlocked ?? 0)
+const activeKeysCount = computed(() => overview.value?.stats.activeKeys ?? 0)
+const recentThreats = computed(() => overview.value?.recentThreats ?? [])
+const expiredKeys = computed(() => overview.value?.keys.expired ?? [])
+const expiringSoonKeys = computed(() => overview.value?.keys.expiringSoon ?? [])
+const overviewRateTop = computed(() => overview.value?.rateLimitTop ?? { topIps: [], topKeys: [] })
+const configStatus = computed(() => overview.value?.configStatus)
+
+const loadOverview = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: OverviewData }>('/api/admin/security/overview')
+    overview.value = res.data
+  } catch (e: any) { /* overview 加载失败不阻塞其他数据 */ }
+}
+
+// ── 日志严重级别 ──────────────────────────────────────────────
+const logSeverity = (action: string) => {
+  if (action.includes('INVALID_SIGNATURE') || action.includes('SIGNATURE_MISSING')) return 'high'
+  if (action.includes('BLOCKED') || action.includes('NOT_ALLOWED') || action.includes('DISABLED')) return 'medium'
+  if (action.includes('INVALID_API_KEY')) return 'medium'
+  if (action.includes('RATE_LIMITED')) return 'low'
+  return 'info'
+}
+
+const severityStyle = (action: string) => {
+  const s = logSeverity(action)
+  if (s === 'high') return 'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/20'
+  if (s === 'medium') return 'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/20'
+  if (s === 'low') return 'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/20'
+  return 'bg-white/5 text-white/40 border-white/10'
+}
+
+const daysUntilExpiry = (dateStr: string | null) => {
+  if (!dateStr) return null
+  const diff = new Date(dateStr).getTime() - Date.now()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
 
 // ── 加载数据 ──────────────────────────────────────────────────
 const loadPolicy = async () => {
@@ -165,7 +209,7 @@ const loadLogs = async () => {
 
 onMounted(async () => {
   isLoading.value = true
-  await Promise.all([loadPolicy(), loadKeys(), loadLogs()])
+  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview()])
   isLoading.value = false
 })
 
@@ -175,7 +219,7 @@ const savePolicy = async (patch: Partial<Policy>) => {
   isSaving.value = true
   try {
     await $fetch('/api/admin/security/policy', { method: 'PATCH', body: patch })
-    await loadPolicy()
+    await Promise.all([loadPolicy(), loadOverview()])
     emit('toast', '安全策略已更新', 'success')
   } catch (e: any) { emit('toast', '策略更新失败: ' + (e.data?.statusMessage || e.message || ''), 'error') }
   finally { isSaving.value = false }
@@ -183,7 +227,19 @@ const savePolicy = async (patch: Partial<Policy>) => {
 
 // ── 速率限制 ──────────────────────────────────────────────────
 const rateForm = computed(() => policy.value?.rate_limit || { enabled: false, window_seconds: 60, max_requests: 100, by_api_key: true, by_ip: true })
-const saveRate = () => savePolicy({ rate_limit: { ...rateForm.value } })
+
+const clampRateLimit = () => {
+  if (!policy.value) return
+  if (rateForm.value.window_seconds < 1) policy.value.rate_limit.window_seconds = 1
+  if (rateForm.value.window_seconds > 86400) policy.value.rate_limit.window_seconds = 86400
+  if (rateForm.value.max_requests < 1) policy.value.rate_limit.max_requests = 1
+  if (rateForm.value.max_requests > 100000) policy.value.rate_limit.max_requests = 100000
+}
+
+const saveRate = () => {
+  clampRateLimit()
+  savePolicy({ rate_limit: { ...rateForm.value } })
+}
 
 // ── IP 策略 ──────────────────────────────────────────────────
 const ipMode = computed(() => policy.value?.ip_policy.mode || 'disabled')
@@ -220,7 +276,14 @@ const newKeySig = ref(false)
 const createdKeyResult = ref<ApiKey | null>(null)
 
 const createKey = async () => {
-  if (!newKeyName.value.trim()) return
+  if (!newKeyName.value.trim()) {
+    emit('toast', '请输入 Key 名称', 'error')
+    return
+  }
+  if (newKeyPerms.value.length === 0) {
+    emit('toast', '请至少选择一个权限', 'error')
+    return
+  }
   try {
     const res = await $fetch<{ success: boolean; data: ApiKey }>('/api/admin/security/keys', {
       method: 'POST',
@@ -274,6 +337,58 @@ const removeEndpointOverride = (key: string) => {
   savePolicy({ endpoint_overrides: overrides })
 }
 
+// ── 日志导出 ──────────────────────────────────────────────────
+const exportLogs = async () => {
+  try {
+    const params = new URLSearchParams()
+    if (logEventFilter.value) params.set('eventType', logEventFilter.value)
+    if (logDateFrom.value) params.set('from', new Date(logDateFrom.value).toISOString())
+    if (logDateTo.value) params.set('to', new Date(logDateTo.value).toISOString())
+    const url = `/api/admin/security/logs/export?${params.toString()}`
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `security-logs-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    emit('toast', '日志导出已开始', 'success')
+  } catch { emit('toast', '导出失败', 'error') }
+}
+
+// ── 批量 Key 操作 ─────────────────────────────────────────────
+const selectedKeyIds = ref<Set<string>>(new Set())
+const allKeysSelected = computed(() =>
+  keys.value.length > 0 && keys.value.every(k => selectedKeyIds.value.has(k.id))
+)
+const toggleSelectKey = (id: string) => {
+  const next = new Set(selectedKeyIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedKeyIds.value = next
+}
+const toggleSelectAllKeys = () => {
+  if (allKeysSelected.value) {
+    selectedKeyIds.value = new Set()
+  } else {
+    selectedKeyIds.value = new Set(keys.value.map(k => k.id))
+  }
+}
+const batchRevoking = ref(false)
+const batchRevokeKeys = async () => {
+  if (selectedKeyIds.value.size === 0) return
+  const names = keys.value.filter(k => selectedKeyIds.value.has(k.id)).map(k => k.name).join('、')
+  if (!confirm(`确定要批量吊销以下 ${selectedKeyIds.value.size} 个 API Key 吗？\n${names}\n\n此操作不可恢复。`)) return
+  batchRevoking.value = true
+  try {
+    const res = await $fetch<{ success: boolean; data: { successCount: number; failCount: number } }>('/api/admin/security/keys/batch-revoke', {
+      method: 'POST',
+      body: { ids: [...selectedKeyIds.value] },
+    })
+    selectedKeyIds.value = new Set()
+    await loadKeys()
+    emit('toast', `批量吊销完成：${res.data.successCount} 成功，${res.data.failCount} 失败`, res.data.failCount > 0 ? 'error' : 'success')
+  } catch (e: any) { emit('toast', '批量吊销失败: ' + (e.data?.statusMessage || e.message || ''), 'error') }
+  finally { batchRevoking.value = false }
+}
+
 // ── 辅助 ──────────────────────────────────────────────────────
 const copyText = async (text: string) => {
   try { await navigator.clipboard.writeText(text); emit('toast', '已复制到剪贴板', 'success') } catch { emit('toast', '复制失败', 'error') }
@@ -284,7 +399,7 @@ const codeLabel = (action: string) => action.replace('api_security_', '').toUppe
 
 const refreshAll = async () => {
   isLoading.value = true
-  await Promise.all([loadPolicy(), loadKeys(), loadLogs()])
+  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview()])
   isLoading.value = false
 }
 </script>
@@ -294,23 +409,185 @@ const refreshAll = async () => {
     <!-- 标题栏 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-[28px] font-bold text-white tracking-tight">安全策略</h1>
-        <p class="text-white/40 text-sm mt-1">动态管理 API 安全配置：速率限制、IP/国家控制、API Key 管理、请求验签、安全日志</p>
+        <h1 class="text-[28px] font-bold text-white tracking-tight">安全</h1>
+        <p class="text-white/40 text-sm mt-1">API 安全配置中心：概览、速率限制、IP/国家控制、API Key 管理、请求验签、安全日志</p>
       </div>
       <button @click="refreshAll"
         :disabled="isLoading"
         class="text-sm bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5">
-        <span :class="{'animate-spin': isLoading}">🔄</span>刷新
+        <span :class="['i-lucide-refresh-cw text-sm', { 'animate-spin': isLoading }]" />刷新
       </button>
     </div>
 
     <!-- 子 tab 导航 -->
     <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)] flex-wrap gap-0.5">
       <button v-for="t in subTabs" :key="t.key" @click="subTab = t.key"
-        class="text-[11px] font-semibold px-4 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
+        class="text-[11px] font-semibold px-4 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0 flex items-center gap-1.5"
         :class="subTab === t.key ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]' : 'bg-transparent text-white/60 hover:text-white/90'">
-        {{ t.icon }} {{ t.label }}
+        <span :class="[t.iconClass, 'text-sm']" /> {{ t.label }}
       </button>
+    </div>
+
+    <!-- ═══ 安全概览 ═══ -->
+    <div v-if="subTab === 'overview'" class="space-y-6">
+      <!-- 加载骨架屏 -->
+      <template v-if="!overview">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div v-for="i in 4" :key="i" class="bg-white/[0.04] rounded-2xl p-5 animate-pulse">
+            <div class="h-3 bg-white/[0.06] rounded w-16 mb-2" />
+            <div class="h-8 bg-white/[0.06] rounded w-12" />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white/[0.04] rounded-2xl p-5 animate-pulse space-y-2">
+            <div class="h-3 bg-white/[0.06] rounded w-20" />
+            <div v-for="i in 5" :key="i" class="h-5 bg-white/[0.04] rounded" />
+          </div>
+          <div class="bg-white/[0.04] rounded-2xl p-5 animate-pulse space-y-2">
+            <div class="h-3 bg-white/[0.06] rounded w-20" />
+            <div v-for="i in 5" :key="i" class="h-5 bg-white/[0.04] rounded" />
+          </div>
+        </div>
+      </template>
+
+      <!-- 安全评分卡片 -->
+      <div v-if="overview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] text-white/40 uppercase tracking-widest font-mono">安全评分</span>
+            <span class="flex items-center gap-1.5">
+              <span :class="['inline-block w-2 h-2 rounded-full', scoreGrade.color.replace('text-', 'bg-')]" />
+              <span :class="['text-[10px] font-semibold', scoreGrade.color]">{{ scoreGrade.label }}</span>
+            </span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-white tracking-tighter">{{ securityScore }}</span>
+            <span class="text-white/30 text-sm">/ 100</span>
+          </div>
+          <div class="mt-3 w-full bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500"
+              :class="securityScore >= 80 ? 'bg-[#30d158]' : securityScore >= 60 ? 'bg-[#ff9f0a]' : 'bg-[#ff453a]'"
+              :style="{ width: securityScore + '%' }" />
+          </div>
+        </div>
+
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-alert-triangle text-sm text-[#ff9f0a]" />
+            <span class="text-[11px] text-white/40 uppercase tracking-widest font-mono">活跃威胁</span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-[#ff9f0a] tracking-tighter">{{ activeThreatsCount }}</span>
+            <span class="text-white/30 text-sm">个事件</span>
+          </div>
+        </div>
+
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-shield text-sm text-[#30d158]" />
+            <span class="text-[11px] text-white/40 uppercase tracking-widest font-mono">今日拦截</span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-[#30d158] tracking-tighter">{{ todayBlockedCount }}</span>
+            <span class="text-white/30 text-sm">次</span>
+          </div>
+        </div>
+
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-key text-sm text-indigo-400" />
+            <span class="text-[11px] text-white/40 uppercase tracking-widest font-mono">活跃 Key</span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-bold text-indigo-400 tracking-tighter">{{ activeKeysCount }}</span>
+            <span class="text-white/30 text-sm">/ {{ keys.length }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 配置状态面板 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <span class="i-lucide-shield-check text-sm text-indigo-400" /> 安全配置状态
+          </h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <span class="text-xs text-white/60">速率限制</span>
+              <span :class="configStatus?.rate_limit ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold">
+                {{ configStatus?.rate_limit ? '✓ 已启用' : '✗ 未启用' }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <span class="text-xs text-white/60">IP 访问控制</span>
+              <span :class="configStatus?.ip_policy_mode !== 'disabled' ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold">
+                {{ configStatus?.ip_policy_mode === 'whitelist' ? '白名单模式' : configStatus?.ip_policy_mode === 'blacklist' ? '黑名单模式' : '未启用' }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <span class="text-xs text-white/60">国家限制</span>
+              <span :class="configStatus?.country_policy ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold">
+                {{ configStatus?.country_policy ? '✓ 已启用' : '未启用' }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <span class="text-xs text-white/60">请求签名 (HMAC-SHA256)</span>
+              <span :class="configStatus?.signature_required ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold">
+                {{ configStatus?.signature_required ? '✓ 已启用' : '✗ 未启用' }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between py-2">
+              <span class="text-xs text-white/60">端点覆盖</span>
+              <span class="text-xs font-semibold text-white/50">{{ configStatus?.endpoint_overrides_count ?? 0 }} 条规则</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <span class="i-lucide-clock text-sm text-[#ff9f0a]" /> 最近安全事件
+          </h3>
+          <div v-if="recentThreats.length" class="space-y-2.5">
+            <div v-for="log in recentThreats" :key="log.id"
+              class="flex items-start gap-3 py-2 border-b border-white/[0.04] last:border-0">
+              <span :class="['inline-block w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                logSeverity(log.action) === 'high' ? 'bg-[#ff453a]' :
+                logSeverity(log.action) === 'medium' ? 'bg-[#ff9f0a]' : 'bg-[#30d158]']" />
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span :class="['text-[10px] px-1.5 py-0.5 rounded font-mono', severityStyle(log.action)]">{{ codeLabel(log.action) }}</span>
+                  <span class="text-[11px] text-white/50 truncate">{{ log.metadata?.path || '-' }}</span>
+                </div>
+                <div class="text-[10px] text-white/25 font-mono mt-0.5">{{ fmtDate(log.created_at) }}</div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-sm text-white/25 py-6 text-center">暂无安全事件，系统运行正常</div>
+        </div>
+      </div>
+
+      <!-- API Key 到期提醒 -->
+      <div v-if="expiredKeys.length || expiringSoonKeys.length" class="bg-[#ff9f0a]/[0.04] rounded-2xl p-5 border border-[#ff9f0a]/10 shadow-lg shadow-black/20">
+        <h3 class="text-sm font-semibold text-[#ff9f0a] mb-3 flex items-center gap-2">
+          <span class="i-lucide-clock text-sm" /> Key 到期提醒
+        </h3>
+        <div class="space-y-2">
+          <div v-if="expiredKeys.length" class="flex items-center gap-2 text-xs">
+            <span class="text-[#ff453a] font-semibold">{{ expiredKeys.length }} 个已过期</span>
+            <span class="text-white/30">—</span>
+            <span class="text-white/40">{{ expiredKeys.map(k => k.name).join('、') }}</span>
+          </div>
+          <div v-if="expiringSoonKeys.length" class="flex items-center gap-2 text-xs">
+            <span class="text-[#ff9f0a] font-semibold">{{ expiringSoonKeys.length }} 个即将到期</span>
+            <span class="text-white/30">—</span>
+            <span class="text-white/40">
+              <span v-for="(k, i) in expiringSoonKeys" :key="k.id">
+                {{ k.name }}({{ daysUntilExpiry(k.expires_at) }}天){{ i < expiringSoonKeys.length - 1 ? '、' : '' }}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ═══ 速率限制 ═══ -->
@@ -456,22 +733,38 @@ const refreshAll = async () => {
         </button>
       </div>
 
+      <!-- 批量操作栏 -->
+      <div v-if="selectedKeyIds.size > 0" class="bg-[#ff9f0a]/[0.06] rounded-2xl px-5 py-3 flex items-center justify-between border border-[#ff9f0a]/10 shadow-lg shadow-black/20">
+        <span class="text-sm text-white/70">已选择 <span class="text-[#ff9f0a] font-semibold">{{ selectedKeyIds.size }}</span> 个 Key</span>
+        <button @click="batchRevokeKeys" :disabled="batchRevoking"
+          class="text-sm font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-4 py-2 rounded-full border border-[#ff453a]/20 transition-all cursor-pointer disabled:opacity-50">
+          {{ batchRevoking ? '吊销中...' : '批量吊销' }}
+        </button>
+      </div>
+
       <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm border-collapse">
             <thead>
               <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-white/[0.005]">
+                <th class="px-4 py-3.5 w-10">
+                  <input type="checkbox" :checked="allKeysSelected" @change="toggleSelectAllKeys" class="accent-indigo-500 cursor-pointer w-3.5 h-3.5" />
+                </th>
                 <th class="px-5 py-3.5 font-semibold font-mono">名称</th>
                 <th class="px-5 py-3.5 font-semibold font-mono">Key 前缀</th>
                 <th class="px-5 py-3.5 font-semibold font-mono">权限</th>
                 <th class="px-5 py-3.5 font-semibold font-mono">签名</th>
                 <th class="px-5 py-3.5 font-semibold font-mono">状态</th>
+                <th class="px-5 py-3.5 font-semibold font-mono">到期</th>
                 <th class="px-5 py-3.5 font-semibold font-mono">最后使用</th>
                 <th class="px-5 py-3.5 font-semibold font-mono text-right">操作</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="key in keys" :key="key.id" class="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                <td class="px-4 py-5">
+                  <input type="checkbox" :checked="selectedKeyIds.has(key.id)" @change="toggleSelectKey(key.id)" class="accent-indigo-500 cursor-pointer w-3.5 h-3.5" />
+                </td>
                 <td class="px-5 py-5 text-white/90 font-medium">{{ key.name }}</td>
                 <td class="px-5 py-5 text-white/50 font-mono text-xs">{{ key.key_prefix }}...</td>
                 <td class="px-5 py-5">
@@ -486,6 +779,20 @@ const refreshAll = async () => {
                     {{ key.is_active ? '活跃' : '停用' }}
                   </span>
                 </td>
+                <td class="px-5 py-5">
+                  <template v-if="key.expires_at">
+                    <span class="text-[10px] px-2 py-0.5 rounded-full border inline-block"
+                      :class="daysUntilExpiry(key.expires_at)! <= 0
+                        ? 'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/20'
+                        : daysUntilExpiry(key.expires_at)! <= 7
+                          ? 'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/20'
+                          : 'bg-white/5 text-white/40 border-white/10'">
+                      {{ daysUntilExpiry(key.expires_at)! <= 0 ? '已过期' : daysUntilExpiry(key.expires_at) + '天后' }}
+                    </span>
+                    <div class="text-[10px] text-white/20 font-mono mt-0.5">{{ fmtDate(key.expires_at) }}</div>
+                  </template>
+                  <span v-else class="text-white/20 text-xs">-</span>
+                </td>
                 <td class="px-5 py-5 text-white/40 font-mono text-xs">{{ fmtDate(key.last_used_at) }}</td>
                 <td class="px-5 py-5 text-right">
                   <button @click="toggleKeyActive(key)" class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-full border border-white/10 transition-all cursor-pointer mr-1.5">
@@ -497,7 +804,7 @@ const refreshAll = async () => {
                 </td>
               </tr>
               <tr v-if="!keys.length">
-                <td colspan="7" class="py-10 text-center text-sm text-white/25">暂无 API Key</td>
+                <td colspan="9" class="py-10 text-center text-sm text-white/25">暂无 API Key</td>
               </tr>
             </tbody>
           </table>
@@ -588,37 +895,41 @@ const refreshAll = async () => {
               class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/60 px-4 py-2 rounded-xl transition-all cursor-pointer">
               重置
             </button>
+            <button @click="exportLogs"
+              class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/60 px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1">
+              <span class="i-lucide-download text-xs" />导出
+            </button>
           </div>
         </div>
       </div>
 
       <!-- 限流统计面板 -->
-      <div v-if="rateLimitStats.total > 0" class="bg-white/[0.04] rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20 border-l-2 border-[#ff9f0a]/30">
+      <div v-if="overviewRateTop.topIps.length || overviewRateTop.topKeys.length" class="bg-white/[0.04] rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20 border-l-2 border-[#ff9f0a]/30">
         <div class="flex items-center gap-2">
-          <span class="text-sm font-semibold text-white">⚡ 限流统计</span>
-          <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#ff9f0a]/10 text-[#ff9f0a] border border-[#ff9f0a]/20">当前页 {{ rateLimitStats.total }} 次</span>
+          <span class="text-sm font-semibold text-white">⚡ 今日限流统计</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#ff9f0a]/10 text-[#ff9f0a] border border-[#ff9f0a]/20">全局数据</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mb-1.5">Top IP（被限流次数）</div>
             <div class="space-y-1">
-              <div v-for="([ip, count], idx) in rateLimitStats.topIps" :key="ip"
+              <div v-for="item in overviewRateTop.topIps" :key="item.ip"
                 class="flex justify-between items-center text-xs bg-white/[0.02] rounded-lg px-3 py-1.5">
-                <span class="font-mono text-white/70">{{ ip }}</span>
-                <span class="font-mono text-[#ff9f0a]">{{ count }} 次</span>
+                <span class="font-mono text-white/70">{{ item.ip }}</span>
+                <span class="font-mono text-[#ff9f0a]">{{ item.count }} 次</span>
               </div>
-              <div v-if="rateLimitStats.topIps.length === 0" class="text-xs text-white/20 py-1">-</div>
+              <div v-if="overviewRateTop.topIps.length === 0" class="text-xs text-white/20 py-1">-</div>
             </div>
           </div>
           <div>
             <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mb-1.5">Top API Key（被限流次数）</div>
             <div class="space-y-1">
-              <div v-for="([kp, count], idx) in rateLimitStats.topKeys" :key="kp"
+              <div v-for="item in overviewRateTop.topKeys" :key="item.keyPrefix"
                 class="flex justify-between items-center text-xs bg-white/[0.02] rounded-lg px-3 py-1.5">
-                <span class="font-mono text-white/70">{{ kp }}...</span>
-                <span class="font-mono text-[#ff9f0a]">{{ count }} 次</span>
+                <span class="font-mono text-white/70">{{ item.keyPrefix }}...</span>
+                <span class="font-mono text-[#ff9f0a]">{{ item.count }} 次</span>
               </div>
-              <div v-if="rateLimitStats.topKeys.length === 0" class="text-xs text-white/20 py-1">-</div>
+              <div v-if="overviewRateTop.topKeys.length === 0" class="text-xs text-white/20 py-1">-</div>
             </div>
           </div>
         </div>
@@ -641,11 +952,16 @@ const refreshAll = async () => {
               <tr v-for="log in logs" :key="log.id" class="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                 <td class="px-5 py-5 text-white/40 font-mono text-xs whitespace-nowrap">{{ fmtDate(log.created_at) }}</td>
                 <td class="px-5 py-5">
-                  <span class="text-[10px] px-2 py-0.5 rounded-full border bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/20 font-mono">{{ codeLabel(log.action) }}</span>
+                  <span :class="['text-[10px] px-2 py-0.5 rounded-full border font-mono', severityStyle(log.action)]">{{ codeLabel(log.action) }}</span>
                 </td>
                 <td class="px-5 py-5 text-white/50 font-mono text-xs">{{ log.ip || '-' }}</td>
                 <td class="px-5 py-5 text-white/50 font-mono text-xs">{{ log.metadata?.path || '-' }}</td>
-                <td class="px-5 py-5 text-white/30 text-xs max-w-[200px] truncate">{{ JSON.stringify(log.metadata || {}) }}</td>
+                <td class="px-5 py-5 text-white/30 text-xs max-w-[220px]">
+                  <div v-if="log.metadata?.keyPrefix" class="truncate" :title="log.metadata.keyPrefix">Key: {{ log.metadata.keyPrefix }}</div>
+                  <div v-if="log.metadata?.country" class="truncate">国家: {{ log.metadata.country }}</div>
+                  <div v-if="log.metadata?.reason" class="truncate">{{ log.metadata.reason }}</div>
+                  <div v-if="!log.metadata?.keyPrefix && !log.metadata?.country && !log.metadata?.reason" class="opacity-50">-</div>
+                </td>
               </tr>
               <tr v-if="!logs.length">
                 <td colspan="5" class="py-10 text-center text-sm text-white/25">暂无安全事件记录</td>

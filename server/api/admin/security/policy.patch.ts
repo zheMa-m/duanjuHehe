@@ -9,7 +9,7 @@ import { getDB } from '~~/server/utils/db'
 import { assertAdmin } from '~~/server/utils/auth'
 import { sendSuccess, throwError } from '~~/server/utils/response'
 import { logAuditEvent } from '~~/server/utils/logger'
-import { invalidatePolicyCache } from '~~/server/utils/api-security'
+import { invalidatePolicyCache, invalidateAllKeyCache } from '~~/server/utils/api-security'
 
 const BodySchema = z.object({
   rate_limit: z.object({
@@ -122,6 +122,10 @@ export default defineEventHandler(async (event) => {
 
   // 同步清除策略缓存（立即生效）
   invalidatePolicyCache()
+  // 若修改了签名要求或端点覆盖，同步清除所有 Key 缓存，确保 requireSignature 重算
+  if (data.signature_required !== undefined || data.endpoint_overrides !== undefined) {
+    invalidateAllKeyCache()
+  }
 
   // 审计日志
   await logAuditEvent(event, user, `SECURITY_POLICY_UPDATE: ${Object.keys(updates).filter(k => k !== 'updated_by' && k !== 'updated_at').join(', ')}`)

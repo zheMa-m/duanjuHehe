@@ -33,14 +33,14 @@ export default defineEventHandler(async (event) => {
   const { error } = await db.from('tasks').delete().eq('id', id)
 
   if (error) {
-    await logAuditEvent(event, user, 'TASK_RECOVERY_FAILED', 'FAILED')
+    await logAuditEvent(event, user, 'TASK_DELETE_FAILED', 'FAILED')
     throw createError({
       statusCode: 500,
       statusMessage: error.message || 'Failed to delete task'
     })
   }
 
-  await logAuditEvent(event, user, `TASK_RECOVERED: ${id}`, 'SUCCESS')
+  await logAuditEvent(event, user, `TASK_DELETED: ${id}`, 'SUCCESS')
 
   return sendSuccess(event, { id }, 'Task deleted successfully')
 })

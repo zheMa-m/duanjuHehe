@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
 
   await restoreFile(id, event)
 
-  await logAuditEvent(event, user, `STORAGE_TRASH_RESTORE: ${id}`, 'SUCCESS')
+  await logAuditEvent(event, user, `STORAGE_TRASH_RESTORED: ${id}`, 'SUCCESS')
 
   return sendSuccess(event, { id }, 'File restored successfully')
 })

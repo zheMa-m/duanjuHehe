@@ -12,7 +12,7 @@
 import { z } from 'zod'
 import { getDB } from '~~/server/utils/db'
 import { assertAdmin } from '~~/server/utils/auth'
-import { sendSuccess } from '~~/server/utils/response'
+import { sendSuccess, throwError } from '~~/server/utils/response'
 
 const QuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
   const rawQuery = getQuery(event)
   const parsed = QuerySchema.safeParse(rawQuery)
   if (!parsed.success) {
-    return sendSuccess(event, { items: [], pagination: { page: 1, pageSize: 30, total: 0 } }, 'Invalid query parameters')
+    throwError(400, 'Invalid query parameters', parsed.error.flatten())
   }
 
   const { page, pageSize, eventType, from, to } = parsed.data
@@ -88,7 +88,7 @@ export default defineEventHandler(async (event) => {
   const { data, error, count } = await query.range(offset, offset + pageSize - 1)
 
   if (error) {
-    return sendSuccess(event, { items: [], pagination: { page, pageSize, total: 0 } }, 'No security events found')
+    throwError(500, 'Failed to query security event logs', error)
   }
 
   return sendSuccess(event, {

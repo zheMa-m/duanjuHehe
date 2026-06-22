@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await logAuditEvent(event, user, `STORAGE_TRASH: ${bucket} [${trashed.length}/${paths.length}]`, 'SUCCESS')
+  await logAuditEvent(event, user, `STORAGE_TRASH_MOVED: ${bucket} [${trashed.length}/${paths.length}]`, 'SUCCESS')
 
   return sendSuccess(event, {
     trashed: trashed.length,

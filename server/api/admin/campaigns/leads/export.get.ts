@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
     // UTF-8 BOM 让 Excel 正确识别中文
     const csvContent = '\uFEFF' + csvLines.join('\r\n')
 
-    await logAuditEvent(event, admin, `LEADS_EXPORTED: ${subdomain || 'all'} (${rows.length} rows)`, 'SUCCESS')
+    await logAuditEvent(event, admin, `CAMPAIGN_LEADS_EXPORTED: ${subdomain || 'all'} (${rows.length} rows)`, 'SUCCESS')
 
     const filename = `leads_${subdomain || 'all'}_${new Date().toISOString().slice(0, 10)}.csv`
     setResponseHeader(event, 'Content-Type', 'text/csv; charset=utf-8')

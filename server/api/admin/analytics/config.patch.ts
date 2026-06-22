@@ -93,7 +93,7 @@ export default defineEventHandler(async (event) => {
 
   // 记录审计日志
   const changedFields = Object.keys(input).join(', ')
-  await logAuditEvent(event, user, `ANALYTICS_CONFIG_UPDATE: ${changedFields}`, 'SUCCESS')
+  await logAuditEvent(event, user, `ANALYTICS_CONFIG_UPDATED: ${changedFields}`, 'SUCCESS')
 
   return sendSuccess(event, { updated: true }, 'Analytics configuration updated successfully')
 })

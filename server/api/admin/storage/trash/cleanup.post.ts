@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   // 记录审计日志（cron 触发时 user 为 null）
   const operatorUser = isCronTrigger ? null : (event.context.user || null)
   if (cleaned > 0) {
-    await logAuditEvent(event, operatorUser, `STORAGE_TRASH_CLEANUP: ${cleaned} files`, 'SUCCESS')
+    await logAuditEvent(event, operatorUser, `STORAGE_TRASH_CLEANED: ${cleaned} files`, 'SUCCESS')
   }
 
   return sendSuccess(event, { cleaned }, `Cleaned up ${cleaned} expired files`)
