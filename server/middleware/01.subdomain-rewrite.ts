@@ -1,4 +1,4 @@
-import { defineEventHandler, getHeader, sendRedirect } from 'h3'
+import { defineEventHandler, getHeader, sendRedirect, setResponseHeader } from 'h3'
 
 /**
  * 从请求 Host 头动态提取根域名，无需环境变量。
@@ -51,6 +51,8 @@ export default defineEventHandler((event) => {
     if (!path.startsWith('/admin')) {
       event.node.req.url = `/admin${path}`
     }
+    // 告诉 CDN 按 Host 区分缓存，避免 admin 子域名被缓存的官网首页覆盖
+    setResponseHeader(event, 'Vary', 'Host')
     return
   }
 
@@ -72,6 +74,7 @@ export default defineEventHandler((event) => {
       if (!path.startsWith(`/h5/${subdomain}`)) {
         event.node.req.url = `/h5/${subdomain}${path === '/' ? '' : path}`
       }
+      setResponseHeader(event, 'Vary', 'Host')
     }
   }
 })
