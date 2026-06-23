@@ -1242,14 +1242,9 @@ onBeforeUnmount(() => {
       <h3>Webhook 安全验证</h3>
       <div class="code-block">
         <div class="code-header"><span class="code-lang">TypeScript · server/utils/payments.ts</span><div class="code-dots"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div></div></div>
-        <pre><span class="cm">// Stripe Webhook 签名验证（防止伪造请求）</span>
-<span class="kw">export function</span> <span class="fn">verifyWebhookSignature</span>(rawBody, signature) {
-  <span class="kw">const</span> event = stripe.webhooks.<span class="fn">constructEvent</span>(
-    rawBody, signature, process.env.<span class="cm">STRIPE_WEBHOOK_SECRET</span>
-  )
-  <span class="kw">return</span> event
-}
-
+        <pre><span class="cm">// Stripe Webhook 签名验证（策略层自动从 DB 读取密钥）</span>
+<span class="kw">const</span> <span class="ident">strategy</span> = <span class="fn">getPaymentStrategy</span>(<span class="str">'stripe'</span>)
+<span class="kw">const</span> <span class="ident">result</span> = <span class="kw">await</span> <span class="ident">strategy</span>.<span class="fn">verifyWebhook</span>(<span class="ident">rawBody</span>, <span class="ident">signature</span>)
 <span class="cm">// 支持事件类型：checkout.session.completed / charge.refunded</span></pre>
       </div>
     </div>

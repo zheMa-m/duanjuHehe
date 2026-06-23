@@ -1,6 +1,7 @@
 // @api-auth: public
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
+import { getPaymentConfigCache, setPaymentConfigCache } from '~~/server/utils/cache'
 
 defineRouteMeta({
   openAPI: {
@@ -18,6 +19,10 @@ defineRouteMeta({
  * GET /api/v1/payments/config
  */
 export default defineEventHandler(async (event) => {
+  // 缓存命中直接返回
+  const cached = getPaymentConfigCache()
+  if (cached) return cached.data
+
   const db = getDB(event)
 
   const { data: configs } = await db
@@ -36,5 +41,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return sendSuccess(event, formattedConfigs, 'Active payment configurations retrieved')
+  const result = sendSuccess(event, formattedConfigs, 'Active payment configurations retrieved')
+  setPaymentConfigCache(result)
+  return result
 })

@@ -69,6 +69,8 @@ export default defineEventHandler(async (event) => {
     // 修改订单状态
     await db.from('orders').update({
       status: 'refunded',
+      refund_reason: 'requested_by_customer',
+      refunded_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }).eq('id', id)
 
@@ -85,74 +87,138 @@ export default defineEventHandler(async (event) => {
         updated_at: new Date().toISOString()
       }).eq('user_id', order.user_id).eq('status', 'active')
     }
+
+    // Log refund transaction
+    const { logPaymentTransaction } = await import('~~/server/utils/payment-transaction')
+    await logPaymentTransaction(event, {
+      orderId: id,
+      provider,
+      type: 'refund',
+      gatewayTransactionId: order.payment_intent_id,
+      amount: order.amount,
+      currency: order.currency || 'USD',
+      status: 'refunded',
+    })
   } else {
     // 4. 真实支付渠道退款闭环
-    if (provider !== 'stripe') {
-      throw createError({
-        statusCode: 400,
-        statusMessage: `Refund for channel [${provider}] is currently not supported via automated API.`
-      })
-    }
+    // Stripe: native refund API
+    // PayPal: REST refund API via strategy
+    // Manual: confirmManualRefund via strategy
+    // Google Pay / Apple IAP: refund through associated gateway or strategy
+    if (provider === 'stripe') {
+      // 从 system_configs 读取 Stripe 私钥
+      const { data: secretsRow } = await db
+        .from('system_configs')
+        .select('value')
+        .eq('key', 'payment_secrets')
+        .single()
 
-    // 从 system_configs 读取 Stripe 私钥
-    const { data: secretsRow } = await db
-      .from('system_configs')
-      .select('value')
-      .eq('key', 'payment_secrets')
-      .single()
+      const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
+      const stripe = getStripeClient(stripeSecretKey)
 
-    const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
-    const stripe = getStripeClient(stripeSecretKey)
-
-    if (!stripe) {
-      throw createError({ statusCode: 500, statusMessage: 'Stripe client is not configured' })
-    }
-
-    try {
-      // (1) 向 Stripe 发起原路退款
-      await stripe.refunds.create({
-        payment_intent: order.payment_intent_id,
-        reason: 'requested_by_customer'
-      })
-
-      // (2) 联动检索并取消该用户的活跃订阅（若存在）
-      if (order.user_id) {
-        const { data: activeSub } = await db
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', order.user_id)
-          .eq('status', 'active')
-          .single()
-
-        if (activeSub) {
-          // 在 Stripe 端停用订阅
-          await stripe.subscriptions.cancel(activeSub.stripe_subscription_id)
-
-          // 本地更新订阅表为已取消
-          await db.from('subscriptions').update({
-            status: 'canceled',
-            updated_at: new Date().toISOString()
-          }).eq('id', activeSub.id)
-        }
+      if (!stripe) {
+        throw createError({ statusCode: 500, statusMessage: 'Stripe client is not configured' })
       }
 
-      // (3) 本地订单设为已退款，用户 plan 状态降级为 free
+      try {
+        // (1) 向 Stripe 发起原路退款
+        await stripe.refunds.create({
+          payment_intent: order.payment_intent_id,
+          reason: 'requested_by_customer'
+        })
+
+        // (2) 联动检索并取消该用户的活跃订阅（若存在）
+        if (order.user_id) {
+          const { data: activeSub } = await db
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', order.user_id)
+            .eq('status', 'active')
+            .single()
+
+          if (activeSub) {
+            await stripe.subscriptions.cancel(activeSub.stripe_subscription_id)
+            await db.from('subscriptions').update({
+              status: 'canceled',
+              updated_at: new Date().toISOString()
+            }).eq('id', activeSub.id)
+          }
+        }
+
+        // (3) 本地订单设为已退款
+        await db.from('orders').update({
+          status: 'refunded',
+          refund_reason: 'requested_by_customer',
+          refunded_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).eq('id', id)
+
+        if (order.user_id) {
+          await db.from('profiles').update({
+            plan_status: 'free',
+            updated_at: new Date().toISOString()
+          }).eq('id', order.user_id)
+        }
+
+        // Log refund transaction
+        const { logPaymentTransaction: logTx } = await import('~~/server/utils/payment-transaction')
+        await logTx(event, {
+          orderId: id,
+          provider: 'stripe',
+          type: 'refund',
+          gatewayTransactionId: order.payment_intent_id,
+          amount: order.amount,
+          currency: order.currency || 'USD',
+          status: 'refunded',
+        })
+      } catch (err: any) {
+        console.error('[Stripe Refund] Action failed:', err.message)
+        throw createError({
+          statusCode: 500,
+          statusMessage: `Gateway refund failed: ${err.message}`
+        })
+      }
+    } else if (provider === 'paypal' && order.payment_intent_id) {
+      // PayPal refund via strategy
+      const { PayPalPaymentStrategy } = await import('~~/server/utils/payment-strategies/paypal')
+      const paypal = new PayPalPaymentStrategy()
+      await paypal.refundPayment(order.payment_intent_id)
+
       await db.from('orders').update({
         status: 'refunded',
+        refund_reason: 'requested_by_customer',
+        refunded_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }).eq('id', id)
 
-      if (order.user_id) {
-        await db.from('profiles').update({
-          plan_status: 'free',
-          updated_at: new Date().toISOString()
-        }).eq('id', order.user_id)
-      }
-    } catch (err: any) {
-      console.error('[Stripe Refund] Action failed:', err.message)
+      const { logPaymentTransaction: logTx } = await import('~~/server/utils/payment-transaction')
+      await logTx(event, {
+        orderId: id,
+        provider: 'paypal',
+        type: 'refund',
+        gatewayTransactionId: order.payment_intent_id,
+        amount: order.amount,
+        currency: order.currency || 'USD',
+        status: 'refunded',
+      })
+    } else if (provider === 'manual') {
+      // Manual refund via strategy
+      const { ManualPaymentStrategy } = await import('~~/server/utils/payment-strategies/manual')
+      const manual = new ManualPaymentStrategy()
+      await manual.recordManualRefund(id, adminUser.id, 'requested_by_admin')
+
+      // Manual strategy already updates orders + audit log
+      const { logPaymentTransaction: logTx } = await import('~~/server/utils/payment-transaction')
+      await logTx(event, {
+        orderId: id,
+        provider: 'manual',
+        type: 'refund',
+        status: 'refunded',
+      })
+    } else {
       throw createError({
-        statusCode: 500,
-        statusMessage: `Gateway refund failed: ${err.message}`
+        statusCode: 400,
+        statusMessage: `Automated refund for provider [${provider}] is not yet supported. Use manual refund for this order.`
       })
     }
   }

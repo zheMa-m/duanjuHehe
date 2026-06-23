@@ -47,8 +47,8 @@ Layer 5: API 安全扫描 (@api-auth 声明)
 | 密钥 | 风险 |
 |------|------|
 | `SUPABASE_SERVICE_ROLE_KEY` | 绕过 RLS，可读写所有数据 |
-| `STRIPE_SECRET_KEY` | 创建 PaymentIntent，发起扣款 |
-| `STRIPE_WEBHOOK_SECRET` | 伪造 Webhook 事件 |
+
+> Stripe 密钥已迁移至 DB：私钥 → `system_configs.payment_secrets`，公钥 → `payment_configs`，不再通过环境变量传递。
 
 ### 密钥存储位置
 

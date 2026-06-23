@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const emit = defineEmits<{ toast: [msg: string, type: 'success' | 'error' | 'info'] }>()
 
-const runtimeConfig = useRuntimeConfig()
-
 // ── 状态定义 ────────────────────────────────────────────
-const activeSubTab = ref('health') // 'health' | 'payments' | 'notifications' | 'analytics'
+const activeSubTab = ref('health') // 'health' | 'notifications' | 'analytics'
 const loading = ref(false)
 const saving = ref(false)
 const lastUpdated = ref('')
@@ -21,20 +19,7 @@ interface StatusData {
 }
 const status = ref<StatusData | null>(null)
 
-// 2. 支付通道配置数据
-interface PaymentConfig {
-  provider: string
-  isEnabled: boolean
-  publicKeys: Record<string, any>
-  extraMeta: Record<string, any>
-  secrets: Record<string, string>
-  updatedAt?: string
-}
-const paymentConfigs = ref<PaymentConfig[]>([])
-const showPaymentModal = ref(false)
-const editingPayment = ref<PaymentConfig | null>(null)
-
-// 3. 通知网关数据
+// 2. 通知网关数据
 interface WebhookItem {
   platform: 'feishu' | 'wechat' | 'dingtalk' | 'slack'
   url: string
@@ -97,18 +82,6 @@ async function fetchStatus() {
   }
 }
 
-async function fetchPaymentConfigs() {
-  loading.value = true
-  try {
-    const res = await $fetch<{ data: PaymentConfig[] }>('/api/admin/config/payment')
-    paymentConfigs.value = res.data
-  } catch (e: any) {
-    emit('toast', '支付配置获取失败: ' + (e.message || '未知错误'), 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
 async function fetchNotifications() {
   loading.value = true
   try {
@@ -136,46 +109,8 @@ async function fetchAnalytics() {
 // 全局刷新
 async function handleRefresh() {
   if (activeSubTab.value === 'health')         await fetchStatus()
-  if (activeSubTab.value === 'payments')       await fetchPaymentConfigs()
   if (activeSubTab.value === 'notifications')  await fetchNotifications()
   if (activeSubTab.value === 'analytics')      await fetchAnalytics()
-}
-
-// ── 支付配置保存 ──────────────────────────────────────────
-function openEditPayment(cfg: PaymentConfig) {
-  // 深拷贝，避免直接修改列表
-  editingPayment.value = JSON.parse(JSON.stringify(cfg))
-  // 补齐 secrets
-  if (!editingPayment.value!.secrets) {
-    editingPayment.value!.secrets = cfg.provider === 'stripe' 
-      ? { secretKey: '', webhookSecret: '' } 
-      : { clientSecret: '' }
-  }
-  showPaymentModal.value = true
-}
-
-async function savePaymentSettings() {
-  if (!editingPayment.value) return
-  saving.value = true
-  try {
-    await $fetch('/api/admin/config/payment', {
-      method: 'PATCH',
-      body: {
-        provider: editingPayment.value.provider,
-        isEnabled: editingPayment.value.isEnabled,
-        publicKeys: editingPayment.value.publicKeys,
-        extraMeta: editingPayment.value.extraMeta,
-        secrets: editingPayment.value.secrets
-      }
-    })
-    emit('toast', `[${editingPayment.value.provider}] 通道配置已成功更新`, 'success')
-    showPaymentModal.value = false
-    await fetchPaymentConfigs()
-  } catch (e: any) {
-    emit('toast', '支付通道配置更新失败: ' + (e.data?.statusMessage || e.message), 'error')
-  } finally {
-    saving.value = false
-  }
 }
 
 // ── 通知网关操作 ──────────────────────────────────────────
@@ -268,7 +203,6 @@ function formatUptime(sec: number) {
 
 onMounted(() => {
   fetchStatus()
-  fetchPaymentConfigs()
   fetchNotifications()
   fetchAnalytics()
 })
@@ -310,7 +244,7 @@ async function saveAnalytics() {
     <div class="flex items-start justify-between">
       <div>
         <h1 class="text-[28px] font-bold text-white tracking-tight">系统与网关配置</h1>
-        <p class="text-white/40 text-sm mt-1">可视化配置与管理HeHe平台底层支付、通知告警网关及健康监控</p>
+        <p class="text-white/40 text-sm mt-1">可视化配置与管理 HeHe 平台通知告警网关、多平台埋点及健康监控</p>
       </div>
       <button
         @click="handleRefresh"
@@ -332,16 +266,6 @@ async function saveAnalytics() {
         <span class="flex items-center gap-2">
           <span class="i-lucide-activity text-sm"></span>
           系统健康监控
-        </span>
-      </button>
-      <button
-        @click="activeSubTab = 'payments'"
-        class="px-5 py-2.5 text-sm font-medium border-b-2 transition-all cursor-pointer bg-transparent border-t-0 border-x-0 outline-none"
-        :class="activeSubTab === 'payments' ? 'border-indigo-500 text-white' : 'border-transparent text-white/40 hover:text-white/70'"
-      >
-        <span class="flex items-center gap-2">
-          <span class="i-lucide-credit-card text-sm"></span>
-          支付网关管理
         </span>
       </button>
       <button
@@ -447,63 +371,7 @@ async function saveAnalytics() {
       </div>
     </div>
 
-    <!-- TAB 2: 支付网关管理 -->
-    <div v-else-if="activeSubTab === 'payments'" class="space-y-6 animate-fade-in">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div
-          v-for="cfg in paymentConfigs" :key="cfg.provider"
-          class="bg-white/[0.03] border border-white/[0.05] rounded-2xl p-6 shadow-xl relative group flex flex-col justify-between"
-        >
-          <div>
-            <div class="flex justify-between items-start">
-              <div class="flex items-center gap-3">
-                <span class="text-[26px] font-bold text-white font-mono tracking-wide capitalize">{{ cfg.provider }}</span>
-                <span
-                  class="px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase"
-                  :class="cfg.isEnabled
-                    ? 'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/20'
-                    : 'bg-white/5 text-white/40 border-white/10'"
-                >
-                  {{ cfg.isEnabled ? '已启用' : '已禁用' }}
-                </span>
-              </div>
-              <button
-                @click="openEditPayment(cfg)"
-                class="text-xs bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 font-semibold px-4 py-2 rounded-full border border-indigo-500/20 transition-all cursor-pointer"
-              >
-                配置网关
-              </button>
-            </div>
-            
-            <p class="text-white/40 text-xs mt-3 leading-relaxed">
-              {{ cfg.provider === 'stripe' ? '主流国际信用卡支付、订阅与周期账单网关。' : '支持国际主流电子钱包及订阅账单支持。' }}
-            </p>
-
-            <div class="mt-6 space-y-2.5 text-xs font-mono bg-black/25 p-4 rounded-xl border border-white/[0.02]">
-              <div class="flex justify-between">
-                <span class="text-white/35">前端公钥 ID</span>
-                <span class="text-white/80 truncate max-w-[200px]" :title="JSON.stringify(cfg.publicKeys)">
-                  {{ cfg.publicKeys?.publicKey || cfg.publicKeys?.clientId || '未配置' }}
-                </span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-white/35">后端私钥状态</span>
-                <span class="font-medium" :class="Object.keys(cfg.secrets || {}).length > 0 ? 'text-[#30d158]' : 'text-white/20'">
-                  {{ Object.keys(cfg.secrets || {}).length > 0 ? '🔒 已安全加密归集' : '⚠️ 未配置' }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="text-[10px] text-white/25 mt-4 border-t border-white/[0.04] pt-3 flex justify-between">
-            <span>最后更新</span>
-            <span>{{ cfg.updatedAt ? new Date(cfg.updatedAt).toLocaleString() : 'N/A' }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: 告警通知网关 -->
+    <!-- TAB 2: 告警通知网关 -->
     <div v-else-if="activeSubTab === 'notifications'" class="space-y-6 animate-fade-in">
       <div class="flex justify-between items-center">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-white/35 pl-1">动态即时通信机器人列表</h2>
@@ -570,100 +438,7 @@ async function saveAnalytics() {
       </div>
     </div>
 
-    <!-- ── 弹窗 1: 支付渠道配置 Modal ── -->
-    <Transition name="dropdown">
-      <div v-if="showPaymentModal && editingPayment" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="w-full max-w-lg bg-[#0e0e12] border border-white/[0.08] rounded-2xl p-6 shadow-2xl animate-fade-in relative">
-          <h3 class="text-lg font-bold text-white mb-4">配置 {{ editingPayment.provider.toUpperCase() }} 支付网关</h3>
-          
-          <div class="space-y-4">
-            <!-- 开启/禁用 -->
-            <div class="flex justify-between items-center bg-white/[0.02] p-3 rounded-xl border border-white/[0.04]">
-              <span class="text-sm font-medium">启用此支付通道</span>
-              <input
-                type="checkbox"
-                v-model="editingPayment.isEnabled"
-                class="w-10 h-5 bg-white/10 border-white/20 rounded-full cursor-pointer focus:ring-0 checked:bg-indigo-600 appearance-none relative before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] checked:before:translate-x-5 before:transition-transform"
-              />
-            </div>
-
-            <!-- 公钥配置 -->
-            <div class="space-y-1.5" v-if="editingPayment.provider === 'stripe'">
-              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">前端 Publishable Key (pk_...)</label>
-              <input
-                type="text"
-                v-model="editingPayment.publicKeys.publicKey"
-                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
-                placeholder="请输入以 pk_ 开头的公钥"
-              />
-            </div>
-            
-            <div class="space-y-1.5" v-if="editingPayment.provider === 'paypal'">
-              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">前端 Client ID</label>
-              <input
-                type="text"
-                v-model="editingPayment.publicKeys.clientId"
-                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
-                placeholder="请输入 PayPal Client ID"
-              />
-            </div>
-
-            <!-- 私钥配置 (Stripe) -->
-            <template v-if="editingPayment.provider === 'stripe'">
-              <div class="space-y-1.5">
-                <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">后端 Secret Key (sk_...)</label>
-                <input
-                  type="password"
-                  v-model="editingPayment.secrets.secretKey"
-                  class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
-                  placeholder="未修改请留空或显示掩码"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">后端 Webhook Secret (whsec_...)</label>
-                <input
-                  type="password"
-                  v-model="editingPayment.secrets.webhookSecret"
-                  class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
-                  placeholder="未修改请留空或显示掩码"
-                />
-              </div>
-            </template>
-
-            <!-- 私钥配置 (PayPal) -->
-            <template v-if="editingPayment.provider === 'paypal'">
-              <div class="space-y-1.5">
-                <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">后端 Client Secret</label>
-                <input
-                  type="password"
-                  v-model="editingPayment.secrets.clientSecret"
-                  class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
-                  placeholder="未修改请留空或显示掩码"
-                />
-              </div>
-            </template>
-          </div>
-
-          <div class="mt-6 flex justify-end gap-3 border-t border-white/[0.06] pt-4">
-            <button
-              @click="showPaymentModal = false"
-              class="text-xs bg-white/5 hover:bg-white/10 text-white/70 font-semibold px-5 py-2.5 rounded-full transition-all cursor-pointer"
-            >
-              取消
-            </button>
-            <button
-              @click="savePaymentSettings"
-              :disabled="saving"
-              class="text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-full transition-all active:scale-[0.98] cursor-pointer"
-            >
-              {{ saving ? '保存中...' : '确认保存' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- ── 弹窗 2: Webhook 告警机器人配置 Modal ── -->
+    <!-- ── 弹窗 1: Webhook 告警机器人配置 Modal ── -->
     <Transition name="dropdown">
       <div v-if="showWebhookModal && editingWebhook" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="w-full max-w-lg bg-[#0e0e12] border border-white/[0.08] rounded-2xl p-6 shadow-2xl animate-fade-in relative">
@@ -735,7 +510,7 @@ async function saveAnalytics() {
       </div>
     </Transition>
 
-    <!-- TAB 4: 多平台埋点 -->
+    <!-- TAB 3: 多平台埋点 -->
     <div v-if="activeSubTab === 'analytics'" class="space-y-6 animate-fade-in">
       <!-- 加载中 -->
       <div v-if="analyticsLoading" class="flex items-center justify-center py-16">

@@ -1,16 +1,25 @@
 // ── 站点 URL 自动探测（本地 / Vercel 统一） ──
 // 优先级：显式 NUXT_PUBLIC_BASE_URL > Vercel VERCEL_URL > 本地默认值
 // Vercel 会自动注入 VERCEL_URL：Preview 为分支 URL，Production 为绑定的自定义域名
+import { resolve } from 'path'
 const _resolveBaseUrl = (): string => {
   if (process.env.NUXT_PUBLIC_BASE_URL) return process.env.NUXT_PUBLIC_BASE_URL
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   return 'http://localhost:3000'
 }
 
+// Sentry 模块仅在配置了有效 DSN 时才启用
+const _hasSentry = !!(process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_DSN)
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
+
+  // StarPath #shell/http 兼容别名
+  alias: {
+    '#shell/http': resolve(__dirname, './app/utils/http-client.ts'),
+  },
 
   app: {
     head: {
@@ -35,10 +44,24 @@ export default defineNuxtConfig({
     rootDomain: process.env.ROOT_DOMAIN || (() => {
       try { return new URL(_resolveBaseUrl()).hostname } catch { return 'localhost' }
     })(),
+    // Sentry DSN（服务器端，不暴露给浏览器）
+    sentryDSN: process.env.SENTRY_DSN || '',
     public: {
       baseUrl: _resolveBaseUrl(),
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
       supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      // 支付渠道公开密钥已迁移至 DB payment_configs，
+      // 前端通过 /api/v1/payments/config 获取，不再通过 env var
+      // Sentry SDK 初始化参数（v10 必须放在 runtimeConfig.public.sentry，而非模块选项）
+      ...(_hasSentry ? {
+        sentry: {
+          dsn: process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_DSN || '',
+          environment: process.env.NODE_ENV || 'development',
+          tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0.0,
+          replaysSessionSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0.0,
+          replaysOnErrorSampleRate: process.env.NODE_ENV === 'production' ? 1.0 : 0.0,
+        },
+      } : {}),
     },
   },
   
@@ -53,6 +76,8 @@ export default defineNuxtConfig({
     // 营销 H5 页面走 ISR 短间隔，后台修改配置后前端秒级热更新
     '/h5/**': { isr: 600 },
     '/h5-v2/**': { isr: 600 },
+    // 智能问卷 (StarPath) 独立路由
+    '/starpath/**': { isr: 600 },
     // ── 客户端页面：ISR 3600s（(client) route group 不出现在 URL 中）──
     // 新增客户端页面时需同步注册到此列表
     '/': { isr: 3600 },
@@ -92,7 +117,15 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ['@unocss/nuxt', '@nuxt/image', '@nuxtjs/i18n', '@vite-pwa/nuxt'],
+  modules: [
+    '@pinia/nuxt',
+    '@unocss/nuxt',
+    '@nuxt/image',
+    '@nuxtjs/i18n',
+    '@vite-pwa/nuxt',
+    '@nuxt/eslint',
+    ...(_hasSentry ? ['@sentry/nuxt/module'] : []),
+  ],
 
   // Bundle 分析：ANALYZE=true npm run build 生成可视化报告
   build: {
@@ -148,4 +181,13 @@ export default defineNuxtConfig({
       installPrompt: true,
     },
   },
+
+  // ── Sentry 模块配置（SDK 初始化参数已移至 runtimeConfig.public.sentry）──
+  ...(_hasSentry ? {
+    sentry: {
+      sourceMapsUploadOptions: {
+        enabled: false,
+      },
+    },
+  } : {}),
 })

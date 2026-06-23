@@ -1,180 +1,135 @@
 # AGENTS.md
 
-> Solo full-stack scaffold — Nuxt 4 + Supabase + Vercel. One developer owns the entire lifecycle.
+> Nuxt 4 + Supabase + Vercel — 单人全栈独立闭环脚手架
 >
-> **Version**: 1.0.0 | **Last Updated**: 2026-06-17
-
-## Project
-
-Single-developer full-stack monorepo: marketing site (SSR), H5 campaign pages (SWR), admin dashboard (SPA), and REST APIs — all in one Nuxt 4 codebase deployed on Vercel with Supabase PostgreSQL. Supports i18n (Chinese/English) for client and H5 platforms.
+> **Version**: 1.3.0 | **Last Updated**: 2026-06-23
 
 ## Commands
 
-- Install: `npm install`
-- Dev server (Mock DB): `npm run dev`
-- Dev with Supabase: `npm run dev:all`
-- Type check: `npm run check` (vue-tsc)
-- Build: `npm run build`
-- Generate DB types: `npm run gen:types`
-- API safety scan: `npm run test:api-safety`
-- Supabase connection test: `npm run test:supabase`
-- Storage integration test: `npm run test:storage`
-- Generate CRUD API: `npm run gen:crud <resource>`
-- Generate RLS SQL: `npm run gen:rls <table> [--admin]`
-- Scaffold API + Page: `npm run scaffold <name>`
+| 命令 | 说明 |
+|---|---|
+| `npm run dev` | Mock DB 开发 |
+| `npm run dev:all` | Supabase 本地实例 |
+| `npm run check` | TypeScript 类型检查 (vue-tsc) |
+| `npm run build` | 生产构建 |
+| `npm run lint` / `lint:fix` | ESLint 检查/修复 |
+| `npm run format` / `format:check` | Prettier 格式化/检查 |
+| `npm run gen:crud <res>` | CRUD API 生成器 |
+| `npm run gen:rls <table> [--admin]` | RLS 策略生成器 |
+| `npm run scaffold <name>` | API + 页面脚手架 |
+| `npm run gen:types` | 生成 Supabase TypeScript 类型 |
+| `npm run seed:demo` | 演示数据填充 |
+| `npm run test:api-safety` | API 安全扫描 |
+| `npm run test:supabase` | 数据库健康检查 |
+| `npm run test:storage` | Storage 集成测试 |
+| `npm run test:payment-strategies` | 支付策略测试 |
+| `npm run test:unit` / `test:e2e` | 单元/E2E 测试 |
+| `npm run deps:check` | 依赖更新检查 |
 
-## Project Structure
+## Project Structure (Key Paths)
 
 ```
 app/
-  components/
-    admin/       # Admin-only components (local imports, no auto-import)
-    client/      # Public site components
-    h5/          # H5 marketing page components (login modal, user bar, review section)
-    shared/      # Cross-context shared components (social share, language switcher)
-  composables/   # Vue composables — auto-imported (useAuth, usePayment, useAdSlot, useAppSEO, useLocaleDetect)
-  pages/
-    (admin)/     # Admin dashboard (SPA, ssr: false)
-    (client)/    # Public site: homepage + /architecture whitepaper + /help docs (ISR 3600s)
-    (h5)/        # Campaign landing pages (SWR 600s)
-  plugins/       # Nuxt plugins (supabase-auth.client.ts)
-  utils/         # Client-side utilities (supabase-client.ts)
-locales/         # i18n translation files (zh.json, en.json)
+  components/   admin/ client/ h5/ shared/ starpath/
+  composables/  auth/ payments/ seo/ storage/ + useAdmin*/useStarpathFlow/useLocaleDetect/useExport
+  pages/        (admin)/ (client)/ (h5)/
+  plugins/      supabase-auth.client.ts
+  utils/        http-client.ts (含 #shell/http 类型声明)
 server/
-  api/
-    admin/       # Admin-only endpoints — 03.admin.ts middleware enforces assertAdmin
-    v1/          # Public/user endpoints — auth via Bearer header or Cookie
-  middleware/     # Numbered chain: 00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 06.api-security
-  utils/         # Server utilities: db.ts, auth.ts, payments.ts, ads.ts, ip.ts, logger.ts, response.ts, api-security.ts
-supabase/migrations/  # Versioned SQL migrations (0001_core → 0006_system)
-docs/            # Core architecture documentation (9 files, incl. Supabase, Vercel, GitHub & Cloudflare guides)
-DESIGN.md          # Unified design system (Client/Admin/H5 three-platform specs)
-scripts/         # CLI generators and test probes (shared via _shared.mjs)
-  _shared.mjs    # Shared .env loader + colored output helpers
-  gen-crud-api.mjs       # CRUD controller generator (defineRouteMeta + Zod + sendSuccess)
-  scaffolder.mjs         # API + Page scaffold generator
-  generate-rls-sql.mjs   # RLS policy SQL generator (--admin for admin policies)
-  test-api-safety.mjs    # API auth safety scanner
-  test-signature.mjs     # HMAC-SHA256 signature algorithm test (offline + online)
-  test-supabase-connection.mjs  # DB connection + table + bucket health check
-  test-storage.mjs       # Supabase Storage full-chain integration test
+  api/          admin/ starpath/ v1/
+  middleware/   00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.api-security
+  utils/        db.ts auth.ts payments.ts logger.ts response.ts
+                payment-strategies/ (stripe/paypal/google-pay/apple-iap/manual + factory + types)
+supabase/migrations/  0001_core → 0099_cron_jobs (顺序编号)
+scripts/        gen-crud-api / scaffolder / generate-rls-sql / seed-demo-data / test-* / _shared.mjs
+docs/           10 篇中文文档 + plan-payment-closure.md
 ```
 
 ## Rendering Strategy
 
 | Route | Strategy | Rationale |
 |-------|----------|-----------|
-| `/` `/architecture` `/help` | ISR 3600s | SEO-friendly, incremental regeneration |
-| `/h5/**` | SWR 600s | Campaign pages update fast from admin |
-| `/admin/**` | SPA (ssr: false) | No SSR leak, pure client |
-| `/api/**` | no-store | Real-time, zero cache |
+| `/` `/architecture` `/help` | ISR 3600s | SEO 友好 |
+| `/h5/**` `/starpath/**` | ISR 600s | 营销页快速更新 |
+| `/admin/**` | SPA (ssr: false) | 纯客户端，隔离 SSR |
+| `/api/**` | no-store | 实时，零缓存 |
 
-## Code Style
+## Code Style (Mandatory)
 
-- **Composition API** with `<script setup lang="ts">` — no Options API
-- **Zod** for all API input validation — never trust client body
-- **sendSuccess()** for all success responses, **throwError()** for all errors (renamed from sendError to avoid h3 conflict)
-- Error messages in English on server; translate at frontend display layer via `t()`
-- User-facing text in client/H5 must use i18n `t()` — never hardcode Chinese strings
-- Use `<NuxtImg>` instead of native `<img>` for all images
-- Preload above-fold images with `fetchpriority="high"` and `loading="eager"`
+- **Composition API** `<script setup lang="ts">` — 禁止 Options API
+- **Zod** 校验所有 API 入参
+- **`sendSuccess()`** / **`throwError()`** 统一响应（注意：非 sendError，避免 h3 冲突）
+- 服务端错误消息用英文，前端通过 `t()` 翻译
+- 用户可见文案用 i18n `t()`，禁止硬编码中文（admin 和 help 页面除外）
+- `<NuxtImg>` 替代原生 `<img>`，首屏图加 `fetchpriority="high"` + `loading="eager"`
 
-## Security Boundaries
+## Security (Critical)
 
-**NEVER expose to frontend (no `NUXT_PUBLIC_` prefix):**
+**禁止 `NUXT_PUBLIC_` 前缀的密钥：**
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
 
-**Authentication:**
-- Frontend Supabase client uses anon key only (`NUXT_PUBLIC_SUPABASE_ANON_KEY`)
-- Server middleware reads token: Bearer header > Cookie (`sb-access-token`) > device-id (anonymous)
-- Payment/order endpoints reject anonymous users (04.auth-guard returns 403)
-- OAuth `client_secret` lives in Supabase Dashboard, never in code
+> Stripe 密钥已全部迁移至 DB（`system_configs.payment_secrets` + `payment_configs`），不再通过环境变量管理。
 
-**API auth declarations** (read by `test:api-safety` scanner):
-- `// @api-auth: admin` — admin-only
-- `// @api-auth: user` — authenticated user required
-- `// @api-auth: public` — no auth needed
+**鉴权：**
+- 前端 Supabase 客户端仅用 anon key
+- 服务端中间件读 token: Bearer header > Cookie (`sb-access-token`) > device-id
+- 支付/订单端点拒绝匿名用户 (04.auth-guard 返回 403)
+- OAuth `client_secret` 存在 Supabase Dashboard，永不在代码中出现
 
-## Database
+**API 安全声明（`test:api-safety` 扫描依据）：**
+```
+// @api-auth: admin   → 仅管理员
+// @api-auth: user    → 需认证用户
+// @api-auth: public  → 无需认证
+```
 
-- All tables **must** have RLS enabled and forced (`ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY`)
-- Admin check in RLS policies **must** use `is_admin(auth.uid())` — never inline `EXISTS` subqueries on profiles (causes infinite recursion)
-- SQL migrations in `supabase/migrations/`, numbered sequentially (0001, 0002, ...)
-- List queries capped at `pageSize <= 100`
-- Stats APIs must use Materialized Views or pre-aggregated tables — no in-memory aggregation on >1000 rows
-- Money fields use `NUMERIC` type — never floating point
+## Database (Critical)
 
-## Audit
-
-- Every admin write/delete/status-change must call `logAuditEvent()` before response
-- `activity_logs` table is append-only — never delete
-
-## i18n (Internationalization)
-
-Client site and H5 pages support Chinese/English via `@nuxtjs/i18n`. Admin dashboard and help docs page are Chinese-only.
-
-- **Module config** in `nuxt.config.ts` — strategy `prefix_except_default`, default locale `zh`
-- **Translation files**: `locales/zh.json`, `locales/en.json` — sections: common, nav, header, home, architecture, hero, h5, userBar, login, review, share
-- **Language detection**: URL path > Cookie (`i18n_locale`) > browser language > timezone > fallback `zh`
-- **Composable**: `useLocaleDetect()` wraps detection logic and toggle
-- **UI component**: `<LanguageSwitcher />` in shared components
-
-**When adding new pages/components:**
-1. Extract all user-facing text to `locales/*.json` with namespaced keys (e.g. `h5.title`)
-2. Use `const { t } = useI18n()` in `<script setup>` then `t('key')` in template
-3. Use `() => t('key')` for `useSeoMeta` title/description (reactive)
-4. Admin pages (`(admin)/`) and help docs (`/help`) — keep hardcoded Chinese, no i18n needed
+- 所有表**必须** ENABLE + FORCE ROW LEVEL SECURITY
+- RLS 管理员检查**必须**用 `is_admin(auth.uid())` — 禁止内联 EXISTS 子查询（导致无限递归）
+- SQL 迁移顺序编号，不修改已有迁移文件
+- 列表查询 `pageSize <= 100`
+- 统计 API 用 Materialized Views，禁止内存聚合 >1000 行
+- 金额字段用 `NUMERIC`，禁止浮点数
 
 ## Platform Rules
 
-- Database: Supabase PG only — never Vercel Postgres
-- API routes: `/server/api/` only — never Supabase Edge Functions
-- Rate limiting: Vercel KV — never simulate with DB tables
-- Static assets: `public/` dir; user uploads: Supabase Storage — never Vercel Blob
-- Stripe SDK: lazy-loaded only when `MOCK_DB=false`; Mock mode returns fake data
+- 数据库：仅 Supabase PG — 不用 Vercel Postgres
+- API：仅 `/server/api/` — 不用 Supabase Edge Functions
+- 限流：Vercel KV — 不用 DB 模拟
+- 静态资源：`public/`；用户上传：Supabase Storage — 不用 Vercel Blob
+- Stripe SDK：仅 `MOCK_DB=false` 时懒加载
+- 支付策略：通过 `server/utils/payment-strategies/factory.ts` 获取 — 禁止硬编码 Stripe
 
-## Testing
+## Audit
 
-- API safety scan: `npm run test:api-safety` — validates `@api-auth` declarations match actual middleware behavior
-- Signature test: `node scripts/test-signature.mjs` — HMAC-SHA256 signature algorithm offline + online verification
-- Storage test: `npm run test:storage` — full-chain Storage integration test (upload, public URL, signed URL, RLS)
-- Supabase health: `npm run test:supabase` — connection, table, bucket, migration status check
-- Any endpoint returning 200 without proper auth is a FAIL (blocks merge)
+- 每次 admin 写/删/状态变更前调用 `logAuditEvent()`
+- `activity_logs` 表仅追加，永不删除
 
-## OpenAPI Documentation
+## i18n
 
-Nitro's built-in OpenAPI 3.1.0 support is enabled for **both dev and production**. Every route handler has a `defineRouteMeta` block with full JSON Schema metadata.
+- 策略：`prefix_except_default`，默认 `zh`
+- 检测链：URL path > Cookie > 浏览器语言 > 时区 > fallback `zh`
+- admin 页面和 help 页面保持纯中文
 
-**Endpoints (auto-generated):**
-- `/_openapi.json` — Raw OpenAPI 3.1.0 spec
-- `/_scalar` — Scalar interactive API reference (purple theme)
-- `/_swagger` — Swagger UI
+## OpenAPI
 
-**Authentication:**
-- OpenAPI 接口支持开发环境与生产环境直接访问。
-
-**Example:** `https://hehe-app-tau.vercel.app/_swagger`
-
-**Tag groups:** Auth, Products, Tasks, Payments, Orders, Ads, Campaigns, Feedback, User, Admin Tasks, Admin Orders, Admin Campaigns, Admin Ad Slots, Admin APM, Admin Audit, Admin Revenue, Admin Profile, Admin Security
-
-**When adding new endpoints:**
-1. Add `defineRouteMeta({ openAPI: { tags, summary, description, parameters, requestBody, responses } } as any)` above `export default`
-2. Use `as any` cast to avoid Nitro’s strict OpenAPI type constraints
-3. Keep `@api-auth` comment for the safety scanner
+- 每个路由需 `defineRouteMeta({ openAPI: { ... } } as any)`
+- 端点：`/_openapi.json` / `/_scalar` / `/_swagger`（开发+生产均可访问）
+- 保留 `@api-auth` 注释供安全扫描器读取
 
 ## Do Not Modify
 
-- `.env` — contains secrets, never commit real values
-- `node_modules/` — managed by npm
-- `supabase/migrations/` existing files — create new numbered files instead
-- `server/middleware/` numbering — order matters (00→01→02→03→04→06)
-- Mock DB adapter (`server/utils/db.ts`) chain API — fragile, extend carefully
+- `.env` — 含密钥，不提交
+- `supabase/migrations/` 已有文件 — 创建新编号文件
+- `server/middleware/` 编号 — 顺序不可变
+- `server/utils/db.ts` Mock DB 适配器链式 API
+- `server/utils/payment-strategies/` — types.ts 和 factory.ts 接口必须一致
 
 ## Mock DB Development
 
-Set `MOCK_DB=true` for offline development. The in-memory adapter (`server/utils/db.ts`) supports:
-- Chain queries: `.eq().order().single()`
-- Insert with select: `.insert(data).select('*')` returns inserted row(s)
-- Aggregation: `{ count: 'exact', head: true }`
-- Auth simulation: `signUp / signInWithPassword / signInWithOAuth / signOut`
+`MOCK_DB=true` 离线开发，内存适配器支持：
+- 链式查询 `.eq().order().single()`
+- 插入返回 `.insert(data).select('*')`
+- 聚合 `{ count: 'exact', head: true }`
+- Auth 模拟 `signUp / signInWithPassword / signInWithOAuth / signOut`

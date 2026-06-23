@@ -68,6 +68,9 @@ npm run dev
 
 # 4. 启动开发服务 + 本地 Supabase 实例（需本地安装 Docker 并启动，且已安装 Supabase CLI）
 npm run dev:all
+
+# 5. Docker 部署运行（需安装 Docker）
+docker compose up -d
 ```
 
 浏览器访问：
@@ -125,7 +128,7 @@ npm run dev:all
 请求进入后依次经过编号中间件，形成清晰的安全管道：
 
 ```
-00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 06.api-security
+00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 05.api-security
   │              │                  │           │             │                │
   │              │                  │           │             │                │
   性能监控     子域名路由         Bearer/      管理员        用户态          API安全
@@ -159,8 +162,9 @@ npm run dev:all
 | **图片** | @nuxt/image 2 | 图片优化与缓存 |
 | **支付** | Stripe | 懒加载，Mock 模式返回假数据 |
 | **PWA** | @vite-pwa/nuxt | 管理后台 PWA 离线支持 |
-| **监控** | Vercel Analytics + Speed Insights | 前端性能与分析 |
+| **监控** | Vercel Analytics + Speed Insights + Sentry | 前端性能 + 错误追踪 |
 | **API 文档** | Nitro OpenAPI 3.1 + Scalar + Swagger | 自动生成交互式文档 |
+| **测试** | Vitest + Playwright | 单元测试 + E2E 测试 |
 
 ---
 
@@ -168,7 +172,7 @@ npm run dev:all
 
 | 路由 | 策略 | 缓存 | 理由 |
 |---|---|---|---|
-| `/` `/architecture` `/help` `/tasks` | **SSR + ISR** | 3600s | SEO 友好，首屏秒开 |
+| `/` `/architecture` `/help` | **SSR + ISR** | 3600s | SEO 友好，首屏秒开 |
 | `/h5/**` | **SSR + SWR** | 600s | 营销页需快速更新 |
 | `/admin/**` | **SPA** | `ssr: false` | 纯客户端，隔离 SSR 泄露 |
 | `/api/**` | **no-store** | 无 | 实时数据，零缓存 |
@@ -184,31 +188,51 @@ hehe-app/
 │   │   ├── admin/                  # 管理后台组件（本地导入）
 │   │   ├── client/                 # 主站组件
 │   │   ├── h5/                     # H5 营销组件
-│   │   └── shared/                 # 跨端共享组件
+│   │   ├── shared/                 # 跨端共享组件
+│   │   └── starpath/               # StarPath 智能问卷组件（8 个）
 │   ├── composables/                # 自动导入的组合式函数
+│   │   ├── useAuth / usePayment / useStorage / useAppSEO
+│   │   ├── useExport / useAdminMenu / useAdminNav / useAdminTheme / useAnalytics
+│   │   ├── useLocaleDetect / useStarpathFlow
 │   ├── pages/
-│   │   ├── (client)/               # 主站页面 → /、/tasks、/architecture
+│   │   ├── (client)/               # 主站页面 → /、/architecture、/help
 │   │   ├── (admin)/admin/          # 管理后台 → /admin
-│   │   └── (h5)/h5/[subdomain]/    # H5 营销页 → /h5/:subdomain
-│   └── plugins/                    # Nuxt 插件
+│   │   └── (h5)/h5/[subdomain]/    # H5 营销页 → /h5/:subdomain（含 StarPath 智能问卷完整链路）
+│   ├── plugins/                    # Nuxt 插件
+│   └── utils/                      # 客户端工具（http-client.ts 含 #shell/http 类型）
 ├── server/                         # 服务端层
 │   ├── api/
 │   │   ├── admin/                  # 管理员 API（03.admin 保护）
+│   │   │   ├── analytics/ audit-logs/ auth/ campaigns/ config/
+│   │   │   ├── orders/ products/ profile/ revenue/ security/
+│   │   │   ├── starpath/ storage/ subscriptions/ tasks/ users/
+│   │   ├── starpath/               # StarPath 智能问卷公开 API（questionnaire/payment/email/report/subscribe）
 │   │   └── v1/                     # 公开/用户 API
 │   ├── middleware/                  # 编号中间件链（00 → 06）
 │   └── utils/                      # 服务端工具函数
-├── supabase/migrations/            # 版本化 SQL 迁移（0001 → 0005）
+│       ├── payment-strategies/     # 多支付策略工厂（Stripe/PayPal/Google Pay/Apple IAP/Manual）
+│       ├── db.ts auth.ts payments.ts logger.ts response.ts
+│       ├── api-security.ts apm.ts cache.ts email.ts export.ts
+│       ├── ip.ts starpath-service.ts storage.ts payment-transaction.ts
+├── supabase/migrations/            # 版本化 SQL 迁移（0001 → 0099，连续编号）
 ├── locales/                        # i18n 翻译文件（zh.json / en.json）
-├── scripts/                        # AI 辅助工具链脚本
+├── scripts/                        # 工具链脚本
 │   ├── _shared.mjs                 # 共享 .env 加载 + 彩色输出
 │   ├── gen-crud-api.mjs            # CRUD 控制器生成器
 │   ├── scaffolder.mjs              # API + 页面脚手架
 │   ├── generate-rls-sql.mjs        # RLS 策略生成器
 │   ├── test-api-safety.mjs         # API 安全扫描器
 │   ├── test-supabase-connection.mjs # 数据库健康检查
-│   └── test-storage.mjs            # Storage 全链路集成测试
-├── docs/                           # 详细技术文档（9 篇）
-├── design/                         # 设计系统规范
+│   ├── test-storage.mjs            # Storage 全链路集成测试
+│   ├── test-signature.mjs          # HMAC-SHA256 签名算法测试
+│   ├── test-payment-strategies.mjs # 支付策略测试
+│   ├── seed-demo-data.mjs          # 演示数据填充（用户/商品/活动/订单/订阅/反馈/日志/留资）
+├── tests/                          # 测试文件
+│   ├── unit/                       # Vitest 单元测试（composables/api/utils）
+│   └── e2e/                        # Playwright E2E 测试
+├── docs/                           # 详细技术文档（10 篇）
+├── DESIGN.md                       # 三端设计系统规范
+├── eslint.config.mjs               # ESLint Flat Config
 ├── nuxt.config.ts                  # Nuxt 配置
 ├── tsconfig.json                   # TypeScript 配置
 └── uno.config.ts                   # UnoCSS 配置
@@ -221,9 +245,22 @@ hehe-app/
 ### 🛡️ 管理后台
 
 - **苹果极简风格登录**：毛玻璃卡片，`localStorage` 持久化会话
+- **双因素认证（2FA）**：TOTP 一次性密码 + 备用恢复码，管理员安全加固
 - **系统健康监控 (APM)**：P95/P99 时延、CPU/内存占用、异常告警（800ms Warning / 2000ms Critical）
-- **审计日志**：动态条件筛选、模糊搜索、UTF-8 BOM 防乱码 CSV 导出
+- **审计日志**：动态条件筛选、模糊搜索、服务端 stats API 驱动统计、UTF-8 BOM 防乱码 CSV 导出
 - **密码修改**：毛玻璃 Modal，调用受保护 API，自动记入审计流
+- **数据分析**：概览仪表盘、营收统计、用户分析（`/api/admin/analytics/`）
+- **多支付管理**：Stripe / PayPal / Google Pay / Apple IAP / Manual 五大渠道切换（`/api/admin/config/payment`）
+- **安全中心**：API Key 管理、IP 速率限制（`/api/admin/security/`）
+
+### 🎯 StarPath 智能问卷 H5
+
+- **问卷答题流程**：多步问卷 + 滚轮选择器（WheelPicker）+ 选项卡片，`useStarpathFlow` 管理状态
+- **智能问卷引擎**：根据答题结果生成个性化分析报告
+- **支付闭环**：信用卡格式化输入 + PayPal 集成，`/api/starpath/payment/` 处理
+- **邮件报告**：问卷结果自动生成邮件报告（`/api/starpath/email/`）
+- **多支付策略**：`server/utils/payment-strategies/` 策略工厂，统一 `PaymentStrategy` 接口
+- **完整 H5 页面**：25 个 Vue 页面覆盖 StarPath 智能问卷全流程（答题/支付/结果）
 
 ### 📱 营销 H5 矩阵
 
@@ -249,16 +286,16 @@ hehe-app/
 
 ### 迁移文件
 
-`supabase/migrations/` 下按版本号递增的 SQL 文件，最小部署仅需 `0001_core.sql`（含核心表 + Storage Bucket + RLS 策略）：
+`supabase/migrations/` 下按版本号连续递增的 SQL 文件，每个文件为自包含逻辑单元，最小部署仅需 `0001_core.sql`：
 
 | 迁移 | 内容 | 状态 |
 |---|---|---|
-| `0001_core.sql` | 核心表（profiles、tasks、activity_logs）+ Storage Bucket + RLS + 回收站 | **必选** |
-| `0002_campaign.sql` | 营销活动 campaigns + 留资 | 可选 |
-| `0003_feedback.sql` | 用户反馈 feedbacks | 可选 |
-| `0004_payment.sql` | 商品 products + 订单 orders + 支付配置 + 订阅 | 可选 |
-| `0005_api_security.sql` | API 安全策略（速率限制 / IP / API Key） | 可选 |
-| `0006_system.sql` | 系统通用配置 + 埋点种子数据 | 可选 |
+| `0001_core.sql` | 核心表（profiles / tasks / activity_logs）+ Storage（4 Bucket）+ 回收站 + 通用函数 | **必选** |
+| `0002_iap.sql` | 商品 products + 订单 orders（多渠道统一 Schema）+ 支付配置 + 交易日志 + 订阅 | 可选 |
+| `0003_campaign.sql` | 营销活动 campaigns + campaign_registrations + 智能问卷 questionnaire_sessions/answers + AI 报告 ai_reports + 活动订单关联 campaign_orders | 可选 |
+| `0004_feedback.sql` | 用户反馈 feedbacks（星级评分 + 审批） | 可选 |
+| `0005_system.sql` | 系统 KV 配置 + API 安全策略（速率/IP/Key）+ 管理员 2FA（TOTP） | 可选 |
+| `0099_cron_jobs.sql` | pg_cron 定时任务（审计归档 + 回收站清理） | 可选 |
 
 ### RLS 设计原则
 
@@ -284,14 +321,15 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 
 项目在 [server/utils/db.ts](server/utils/db.ts) 中实现了一个功能完备的内存 Mock PostgreSQL 适配器，支持在无物理数据库时进行绝大部分业务开发与调试：
 
-#### 1. 覆盖 9 张核心业务表
+#### 1. 覆盖 10+ 张核心业务表
 适配器内置了对以下物理表的内存数组映射，支持查询（`select`）、插入（`insert`）、更新（`update`）与删除（`delete`）的完整增删改查逻辑：
 *   `profiles`：用户个人档案表（支持匿名与注册用户角色管理）。
 *   `tasks`：任务列表，支持基于租户标识 `tenant_id` 的行级过滤。
 *   `activity_logs`：管理员操作及身份验证的安全审计日志表。
 *   `campaigns`：营销活动配置（支持在管理后台热修改，前台 H5 秒级渲染生效）。
-*   `products` 与 `orders`：Stripe 支付所依赖的商品列表及订单流转记录。
+*   `products` 与 `orders`：Stripe 等支付所依赖的商品列表及订单流转记录。
 *   `feedbacks`：用户的动态反馈与评价收集表。
+*   `admin_2fa`：管理员双因素认证（TOTP 密钥 + 恢复码）。
 
 #### 2. 全量 Auth 模块模拟
 支持对 `supabase.auth` 所有核心 API 的模拟：
@@ -326,8 +364,8 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 | 密钥 | 用途 |
 |---|---|
 | `SUPABASE_SERVICE_ROLE_KEY` | 服务端数据库操作 |
-| `STRIPE_SECRET_KEY` | Stripe 支付密钥 |
-| `STRIPE_WEBHOOK_SECRET` | Stripe Webhook 验证 |
+
+> 支付密钥（Stripe/PayPal/Apple IAP）已迁移至 DB，通过管理后台配置。
 
 ### 鉴权流程
 
@@ -382,7 +420,7 @@ Mock DB 适配器完全兼容 Supabase JS Client 链式调用 API（`.eq().order
 
 ### API 分组
 
-Auth · Products · Tasks · Payments · Orders · Ads · Campaigns · Feedback · User · Admin Tasks · Admin Orders · Admin Campaigns · Admin Ad Slots · Admin APM · Admin Audit · Admin Revenue · Admin Profile
+Auth · Products · Tasks · Payments · Orders · Campaigns · Feedback · User · StarPath Questionnaire · StarPath Payment · StarPath Email · Admin Tasks · Admin Orders · Admin Campaigns · Admin APM · Admin Audit · Admin Revenue · Admin Profile · Admin Security · Admin Analytics · Admin StarPath Questionnaire · Admin Storage · Admin Subscriptions · Admin Users
 
 ---
 
@@ -484,13 +522,11 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
 NUXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
 NUXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 
-# ── Stripe（可选）──
-STRIPE_SECRET_KEY=<stripe_secret>
-STRIPE_WEBHOOK_SECRET=<stripe_webhook>
-
 # ── 站点 ──
+APP_NAME=HeHe App                                # 应用名称（邮件/通知等场景使用）
 NUXT_PUBLIC_BASE_URL=https://yourdomain.com     # 站点 URL（可选，自动探测）
 ROOT_DOMAIN=yourdomain.com                      # 根域名（子域名路由用）
+SITE_ACCESS_PASSWORD=                           # 站点访问密码（可选，设置后全局需要密码访问）
 ```
 
 > `.env` 文件包含密钥，已加入 `.gitignore`，永不提交。
@@ -512,15 +548,28 @@ ROOT_DOMAIN=yourdomain.com                      # 根域名（子域名路由用
 | `npm run check` | TypeScript + Vue SFC 类型检查 |
 | `npm run gen:types` | 生成 Supabase TypeScript 类型 |
 | `npm run apm:monitor` | APM 系统健康监控（依赖真实 Supabase） |
+| `npm run lint` | ESLint 代码规范检查 |
+| `npm run lint:fix` | ESLint 自动修复 |
+| `npm run format` | Prettier 格式化所有文件 |
+| `npm run format:check` | 检查代码格式是否符合 Prettier 规范 |
+| `npm run seed:demo` | 填充演示数据 |
+| `npm run deps:check` | 检查依赖更新 |
+| `npm run test:unit` | 运行单元测试（Vitest） |
+| `npm run test:unit:watch` | 监听模式运行单元测试 |
+| `npm run test:e2e` | 运行 Playwright E2E 测试 |
+| `npm run test:coverage` | 生成测试覆盖率报告 |
+| `npm run test:all` | 运行全部测试（单元 + E2E） |
 
 ### 代码规范
 
 - **Composition API** + `<script setup lang="ts">` — 禁止 Options API
 - **Zod** 校验所有 API 入参 — 永不信客户端数据
 - **`sendSuccess()`** / **`throwError()`** — 统一 API 响应格式
+- **ESLint Flat Config** + **Prettier** — 自动化代码格式化与规范检查
 - 服务端错误消息用英文，前端通过 `t()` 翻译展示
 - 图片使用 `<NuxtImg>` 替代原生 `<img>`
 - 首屏图片添加 `fetchpriority="high"` + `loading="eager"`
+- CI Pipeline: type-check + lint + unit tests（`.github/workflows/ci.yml`）
 
 ### 新增功能工作流
 
@@ -563,15 +612,87 @@ npm run check
 |---|---|
 | [AGENTS.md](./AGENTS.md) | AI Agent 开发手册 |
 | [DESIGN.md](./DESIGN.md) | 三端设计系统规范 |
-| [docs/01-scaffold-basics.md](./docs/01-scaffold-basics.md) | 脚手架基础 |
-| [docs/02-supabase-integration.md](./docs/02-supabase-integration.md) | Supabase 集成指南 |
-| [docs/03-vercel-deployment.md](./docs/03-vercel-deployment.md) | Vercel 部署指南 |
-| [docs/04-github-integration.md](./docs/04-github-integration.md) | GitHub 集成 |
-| [docs/05-user-auth.md](./docs/05-user-auth.md) | 用户认证 |
-| [docs/06-payment-integration-optional.md](./docs/06-payment-integration-optional.md) | 支付集成 |
-| [docs/07-ad-monetization-optional.md](./docs/07-ad-monetization-optional.md) | 广告变现 |
-| [docs/08-social-feedback-optional.md](./docs/08-social-feedback-optional.md) | 社交反馈 |
-| [docs/09-cloudflare-optional.md](./docs/09-cloudflare-optional.md) | Cloudflare 接入 |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本更新日志 |
+| [docs/01-快速开始.md](./docs/01-快速开始.md) | 快速入门、环境变量、Mock DB、FAQ |
+| [docs/02-项目架构.md](./docs/02-项目架构.md) | 技术栈、目录结构、路由与渲染策略 |
+| [docs/03-渲染策略.md](./docs/03-渲染策略.md) | ISR/SWR/SSR 渲染策略深度对比 |
+| [docs/04-Supabase数据库集成.md](./docs/04-Supabase数据库集成.md) | Supabase 数据库集成与迁移 |
+| [docs/05-Vercel部署.md](./docs/05-Vercel部署.md) | Vercel 部署与域名配置 |
+| [docs/06-GitHub与CI-CD.md](./docs/06-GitHub与CI-CD.md) | GitHub 代码托管与 CI/CD |
+| [docs/07-用户认证.md](./docs/07-用户认证.md) | 用户认证体系 |
+| [docs/08-支付集成.md](./docs/08-支付集成.md) | Stripe 支付集成 |
+| [docs/09-社交分享与反馈.md](./docs/09-社交分享与反馈.md) | 社交分享与用户反馈 |
+| [docs/10-Cloudflare配置.md](./docs/10-Cloudflare配置.md) | Cloudflare DNS 与安全（可选） |
+| [docs/plan-payment-closure.md](./docs/plan-payment-closure.md) | StarPath 支付闭环计划 |
+
+---
+
+## Docker 部署
+
+项目提供完整的 Docker 化支持，适合生产级容器化部署。
+
+### 构建与启动
+
+```bash
+# 构建并启动（生产模式）
+docker compose up -d
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 启动时附加本地 PostgreSQL 数据库（开发用）
+docker compose --profile db up -d
+```
+
+### 环境变量
+
+参考 `.env.example` 创建 `.env` 文件，Docker Compose 会自动加载。
+
+### 健康检查
+
+容器内嵌健康检查端点（`/api/health`），Docker 自动监控容器状态。
+
+---
+
+## 测试体系
+
+项目提供三层测试覆盖：
+
+### 单元测试（Vitest）
+
+```bash
+# 运行全部单元测试
+npm run test:unit
+
+# 监听模式（开发时使用）
+npm run test:unit:watch
+
+# 生成覆盖率报告
+npm run test:coverage
+```
+
+测试文件位于 `tests/unit/`，涵盖 `server/utils` 中的核心工具函数。
+
+### E2E 测试（Playwright）
+
+```bash
+# 运行 E2E 测试（自动启动开发服务器）
+npm run test:e2e
+
+# 交互式 UI 模式
+npm run test:e2e:ui
+```
+
+测试文件位于 `tests/e2e/`。
+
+### 全部测试
+
+```bash
+npm run test:all
+```
 
 ---
 

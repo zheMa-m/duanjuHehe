@@ -9,10 +9,29 @@ interface ActivityLog {
   created_at: string
 }
 
+interface CategoryStat {
+  category: string
+  count: number
+  percentage: number
+}
+
+interface UserStat {
+  operator: string
+  count: number
+}
+
+interface AuditStats {
+  totalCount: number
+  todayCount: number
+  categoryDistribution: CategoryStat[]
+  topActiveUsers: UserStat[]
+}
+
 const props = defineProps<{
   logs: ActivityLog[] | null
   revenue: any | null
   isLoading: boolean
+  stats: AuditStats | null
 }>()
 
 const emit = defineEmits<{
@@ -38,8 +57,9 @@ const displayLogs = computed(() => {
   return showAllLogs.value ? filteredLogs.value : filteredLogs.value.slice(0, 5)
 })
 
-// ── 从真实数据计算统计指标 ──
-const totalLogs = computed(() => props.logs?.length ?? 0)
+// ── 从 stats API 获取全量统计（非当前页估算） ──
+const totalLogs = computed(() => props.stats?.totalCount ?? 0)
+const todayOps = computed(() => props.stats?.todayCount ?? 0)
 const revenueAmount = computed(() => {
   if (props.revenue?.total_revenue) return `$${Number(props.revenue.total_revenue).toLocaleString()}`
   if (props.revenue?.data?.total_revenue) return `$${Number(props.revenue.data.total_revenue).toLocaleString()}`
@@ -50,22 +70,13 @@ const revenueChange = computed(() => {
   return pct != null ? `${pct > 0 ? '↑' : '↓'} ${Math.abs(pct)}%` : null
 })
 
-const exportActivityLogs = () => {
-  if (!props.logs) return
-  const csvHeaders = 'ID,类型,行为 (Action),用户ID,IP,元数据,时间\n'
-  const rows = props.logs.map(log =>
-    `"${log.id}","${log.category}","${log.action}","${log.user_id || ''}","${log.ip}","${JSON.stringify(log.metadata || {})}","${new Date(log.created_at).toLocaleString()}"`
-  ).join('\n')
-  const blob = new Blob(['\uFEFF' + csvHeaders + rows], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', `activity_logs_${new Date().toISOString().slice(0,10)}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+const { isExporting, exportCSV } = useExport()
+const exportActivityLogs = async () => {
+  try {
+    await exportCSV('/api/admin/audit-logs/export', {}, `activity_logs_${new Date().toISOString().slice(0, 10)}.csv`)
+  } catch {
+    // silent
+  }
 }
 </script>
 
@@ -96,8 +107,9 @@ const exportActivityLogs = () => {
         <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-3 font-mono">审计日志总量</div>
         <div class="flex items-baseline gap-2 relative z-10">
           <div class="text-4xl font-bold tracking-tight text-white font-mono">{{ totalLogs.toLocaleString() }}</div>
+          <span v-if="todayOps > 0" class="text-xs text-[#30d158] font-mono ml-1">+{{ todayOps }} 今日</span>
         </div>
-        <div class="text-xs text-white/30 mt-3 font-light">全模块操作链路审计流水条数</div>
+        <div class="text-xs text-white/30 mt-3 font-light">全模块操作链路审计流水条数（全量统计）</div>
       </div>
       
       <!-- 卡片 2: 项目营收 -->

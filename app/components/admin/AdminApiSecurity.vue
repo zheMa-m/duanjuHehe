@@ -50,6 +50,7 @@ const subTabs = [
   { key: 'keys', label: 'API Key', iconClass: 'i-lucide-key' },
   { key: 'endpoints', label: '端点覆盖', iconClass: 'i-lucide-link' },
   { key: 'logs', label: '安全日志', iconClass: 'i-lucide-clipboard-list' },
+  { key: 'twofa', label: '双因素认证', iconClass: 'i-lucide-smartphone' },
 ]
 
 // ── 数据状态 ──────────────────────────────────────────────────
@@ -209,7 +210,7 @@ const loadLogs = async () => {
 
 onMounted(async () => {
   isLoading.value = true
-  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview()])
+  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview(), loadTwoFAStatus()])
   isLoading.value = false
 })
 
@@ -338,19 +339,84 @@ const removeEndpointOverride = (key: string) => {
 }
 
 // ── 日志导出 ──────────────────────────────────────────────────
+const { isExporting: isExportingLogs, exportCSV } = useExport()
 const exportLogs = async () => {
   try {
-    const params = new URLSearchParams()
-    if (logEventFilter.value) params.set('eventType', logEventFilter.value)
-    if (logDateFrom.value) params.set('from', new Date(logDateFrom.value).toISOString())
-    if (logDateTo.value) params.set('to', new Date(logDateTo.value).toISOString())
-    const url = `/api/admin/security/logs/export?${params.toString()}`
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `security-logs-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
+    const params: Record<string, string> = {}
+    if (logEventFilter.value) params.eventType = logEventFilter.value
+    if (logDateFrom.value) params.from = new Date(logDateFrom.value).toISOString()
+    if (logDateTo.value) params.to = new Date(logDateTo.value).toISOString()
+    await exportCSV('/api/admin/security/logs/export', params, `security-logs-${new Date().toISOString().slice(0, 10)}.csv`)
     emit('toast', '日志导出已开始', 'success')
   } catch { emit('toast', '导出失败', 'error') }
+}
+
+// ── 2FA ────────────────────────────────────────────────────────
+interface TwoFAStatus {
+  enabled: boolean
+  verifiedAt: string | null
+  createdAt: string | null
+}
+
+const twoFAStatus = ref<TwoFAStatus | null>(null)
+const twoFASetupData = ref<{ secret: string; qrCode: string; backupCodes: string[] } | null>(null)
+const twoFASetupCode = ref('')
+const twoFADisableCode = ref('')
+const twoFASaving = ref(false)
+const twoFAShowSetup = ref(false)
+const twoFAShowDisable = ref(false)
+
+const loadTwoFAStatus = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: TwoFAStatus }>('/api/admin/auth/2fa/status')
+    twoFAStatus.value = res.data
+  } catch { /* 2FA 未配置属于正常状态 */ }
+}
+
+const handleTwoFASetup = async () => {
+  twoFASaving.value = true
+  try {
+    const res = await $fetch<{ success: boolean; data: { secret: string; qrCode: string; backupCodes: string[] } }>('/api/admin/auth/2fa/setup', { method: 'POST' })
+    twoFASetupData.value = res.data
+    twoFAShowSetup.value = true
+    twoFASetupCode.value = ''
+  } catch (e: any) {
+    emit('toast', '2FA 设置失败: ' + (e.data?.statusMessage || e.message || ''), 'error')
+  } finally { twoFASaving.value = false }
+}
+
+const handleTwoFAVerify = async () => {
+  if (!twoFASetupCode.value || twoFASetupCode.value.length !== 6) {
+    emit('toast', '请输入 6 位验证码', 'error')
+    return
+  }
+  twoFASaving.value = true
+  try {
+    await $fetch('/api/admin/auth/2fa/verify', { method: 'POST', body: { code: twoFASetupCode.value } })
+    emit('toast', '2FA 已启用', 'success')
+    twoFAShowSetup.value = false
+    twoFASetupData.value = null
+    await loadTwoFAStatus()
+  } catch (e: any) {
+    emit('toast', '验证失败: ' + (e.data?.statusMessage || e.message || ''), 'error')
+  } finally { twoFASaving.value = false }
+}
+
+const handleTwoFADisable = async () => {
+  if (!twoFADisableCode.value) {
+    emit('toast', '请输入验证码或恢复码', 'error')
+    return
+  }
+  twoFASaving.value = true
+  try {
+    await $fetch('/api/admin/auth/2fa/disable', { method: 'POST', body: { code: twoFADisableCode.value } })
+    emit('toast', '2FA 已关闭', 'success')
+    twoFAShowDisable.value = false
+    twoFADisableCode.value = ''
+    await loadTwoFAStatus()
+  } catch (e: any) {
+    emit('toast', '操作失败: ' + (e.data?.statusMessage || e.message || ''), 'error')
+  } finally { twoFASaving.value = false }
 }
 
 // ── 批量 Key 操作 ─────────────────────────────────────────────
@@ -399,7 +465,7 @@ const codeLabel = (action: string) => action.replace('api_security_', '').toUppe
 
 const refreshAll = async () => {
   isLoading.value = true
-  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview()])
+  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview(), loadTwoFAStatus()])
   isLoading.value = false
 }
 </script>
@@ -895,9 +961,10 @@ const refreshAll = async () => {
               class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/60 px-4 py-2 rounded-xl transition-all cursor-pointer">
               重置
             </button>
-            <button @click="exportLogs"
-              class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/60 px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1">
-              <span class="i-lucide-download text-xs" />导出
+            <button @click="exportLogs" :disabled="isExportingLogs"
+              class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/60 px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50">
+              <span :class="isExportingLogs ? 'i-lucide-loader animate-spin' : 'i-lucide-download'" class="text-xs" />
+              {{ isExportingLogs ? '导出中...' : '导出' }}
             </button>
           </div>
         </div>
@@ -978,6 +1045,113 @@ const refreshAll = async () => {
               class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none">上一页</button>
             <button @click="handleLogsPageChange(logsPage + 1)" :disabled="logsPage >= logTotalPages"
               class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none">下一页</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 2FA ═══ -->
+    <div v-if="subTab === 'twofa'" class="space-y-6">
+      <div class="bg-white/[0.04] rounded-2xl p-6 space-y-6 shadow-lg shadow-black/20">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-sm font-semibold text-white">双因素认证 (TOTP)</h2>
+            <p class="text-xs text-white/40 mt-1">使用 Google Authenticator 或 Authy 等 TOTP 应用生成一次性验证码，提升账户安全性。</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] px-2.5 py-1 rounded-full border flex items-center gap-1.5"
+              :class="twoFAStatus?.enabled
+                ? 'bg-[#30d158]/10 text-[#30d158] border-[#30d158]/20'
+                : 'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/20'">
+              <span class="w-1.5 h-1.5 rounded-full" :class="twoFAStatus?.enabled ? 'bg-[#30d158]' : 'bg-[#ff9f0a]'"></span>
+              {{ twoFAStatus?.enabled ? '已启用' : '未启用' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 已启用状态 -->
+        <div v-if="twoFAStatus?.enabled" class="space-y-4">
+          <div class="bg-[#30d158]/[0.04] rounded-xl p-4 border border-[#30d158]/10">
+            <div class="flex items-center gap-2 text-[#30d158] text-xs font-semibold mb-1">
+              <span class="i-lucide-shield-check text-sm" /> 2FA 已激活
+            </div>
+            <p class="text-xs text-white/40">
+              {{ twoFAStatus.verifiedAt ? `启用时间: ${new Date(twoFAStatus.verifiedAt).toLocaleString()}` : '' }}
+            </p>
+          </div>
+          <div>
+            <button @click="twoFAShowDisable = !twoFAShowDisable"
+              class="text-xs font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-5 py-2.5 rounded-xl border border-[#ff453a]/20 transition-all active:scale-[0.97] cursor-pointer">
+              关闭 2FA
+            </button>
+
+            <!-- 关闭确认 -->
+            <div v-if="twoFAShowDisable" class="mt-4 bg-[#ff453a]/[0.04] rounded-xl p-4 border border-[#ff453a]/10 space-y-3">
+              <p class="text-xs text-white/60">请输入当前 TOTP 验证码或备用恢复码来关闭 2FA：</p>
+              <div class="flex items-center gap-3">
+                <input v-model="twoFADisableCode" type="text" maxlength="6" placeholder="验证码或恢复码"
+                  class="flex-1 bg-white/[0.03] border border-white/[0.08] focus:border-[#ff453a]/50 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none placeholder:text-white/20" />
+                <button @click="handleTwoFADisable" :disabled="twoFASaving"
+                  class="text-xs font-semibold bg-[#ff453a]/20 hover:bg-[#ff453a]/30 text-[#ff453a] px-5 py-2.5 rounded-xl transition-all cursor-pointer disabled:opacity-50">
+                  {{ twoFASaving ? '处理中...' : '确认关闭' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 未启用状态 -->
+        <div v-else>
+          <button @click="handleTwoFASetup" :disabled="twoFASaving"
+            class="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white px-6 py-2.5 rounded-xl transition-all active:scale-[0.97] cursor-pointer shadow-[0_4px_12px_rgba(99,102,241,0.15)] disabled:opacity-50">
+            {{ twoFASaving ? '生成中...' : '设置 2FA' }}
+          </button>
+
+          <!-- 设置流程 -->
+          <div v-if="twoFASetupData && twoFAShowSetup" class="mt-6 space-y-6">
+            <div class="bg-indigo-500/[0.04] rounded-xl p-5 border border-indigo-500/10 space-y-4">
+              <h3 class="text-xs font-semibold text-white">第一步：扫描二维码</h3>
+              <p class="text-xs text-white/40">使用 TOTP 应用扫描以下二维码：</p>
+              <div class="flex justify-center">
+                <img :src="twoFASetupData.qrCode" alt="2FA QR Code" class="w-48 h-48 rounded-xl bg-white p-2" />
+              </div>
+              <div>
+                <p class="text-xs text-white/40 mb-1">或手动输入密钥：</p>
+                <code class="block bg-white/[0.03] rounded-lg px-3 py-2 text-xs font-mono text-[#30d158] select-all break-all">{{ twoFASetupData.secret }}</code>
+              </div>
+            </div>
+
+            <div class="bg-[#ff9f0a]/[0.04] rounded-xl p-5 border border-[#ff9f0a]/10 space-y-3">
+              <h3 class="text-xs font-semibold text-[#ff9f0a]">第二步：保存备用恢复码</h3>
+              <p class="text-xs text-white/40">请务必安全保存以下 8 个恢复码。每个恢复码只能使用一次，用于在丢失 TOTP 设备时登录。</p>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div v-for="code in twoFASetupData.backupCodes" :key="code"
+                  class="bg-white/[0.03] rounded-lg px-3 py-2 text-xs font-mono text-white/70 text-center select-all border border-white/[0.06]">
+                  {{ code }}
+                </div>
+              </div>
+              <button @click="copyText(twoFASetupData!.backupCodes.join('\n'))"
+                class="text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer bg-transparent border-0">
+                <span class="i-lucide-copy text-xs mr-1" />复制全部恢复码
+              </button>
+            </div>
+
+            <div class="bg-white/[0.02] rounded-xl p-5 border border-white/[0.06] space-y-3">
+              <h3 class="text-xs font-semibold text-white">第三步：验证并启用</h3>
+              <p class="text-xs text-white/40">在 TOTP 应用中输入当前显示的 6 位验证码：</p>
+              <div class="flex items-center gap-3">
+                <input v-model="twoFASetupCode" type="text" maxlength="6" placeholder="000000"
+                  class="w-40 bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white font-mono text-center text-2xl tracking-[0.5em] focus:outline-none placeholder:text-white/10" />
+                <button @click="handleTwoFAVerify" :disabled="twoFASaving || twoFASetupCode.length !== 6"
+                  class="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white px-6 py-2.5 rounded-xl transition-all active:scale-[0.97] cursor-pointer disabled:opacity-50">
+                  {{ twoFASaving ? '验证中...' : '验证并启用' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-[#ff453a]/[0.04] rounded-xl p-4 border border-[#ff453a]/10">
+              <p class="text-xs text-white/60">⚠️ 在验证成功之前，2FA 不会生效。如果关闭此窗口，未验证的密钥将被覆盖。</p>
+            </div>
           </div>
         </div>
       </div>

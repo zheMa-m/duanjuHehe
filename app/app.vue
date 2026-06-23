@@ -8,7 +8,6 @@ if (import.meta.client && import.meta.env.PROD) {
   injectSpeedInsights()
 }
 
-// ── 客户端站点访问密码门控已废除 ──
 </script>
 
 <template>

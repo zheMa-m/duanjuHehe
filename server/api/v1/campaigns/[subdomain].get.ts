@@ -2,6 +2,7 @@
 // @api-auth: public
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
+import { getCampaignCache, setCampaignCache } from '~~/server/utils/cache'
 
 defineRouteMeta({
   openAPI: {
@@ -49,6 +50,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Subdomain parameter is required' })
   }
 
+  // 缓存命中直接返回
+  const cached = getCampaignCache(subdomain)
+  if (cached) return cached.data
+
   const db = getDB(event)
 
   const { data: campaign, error } = await db
@@ -61,5 +66,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: `Campaign not found for subdomain: ${subdomain}` })
   }
 
-  return sendSuccess(event, campaign, 'Fetched campaign successfully')
+  const result = sendSuccess(event, campaign, 'Fetched campaign successfully')
+  setCampaignCache(subdomain, result)
+  return result
 })

@@ -64,7 +64,14 @@ export default defineEventHandler(async (event) => {
     paymentIntentId = `pi_mock_${order.id}`
   } else {
     // 真实模式：必须向 Stripe API 发送检索请求，确保并非前端伪造
-    const stripe = getStripeClient()
+    // 从 system_configs 读取 Stripe 私钥（已迁移至 DB 管理）
+    const { data: secretsRow } = await db
+      .from('system_configs')
+      .select('value')
+      .eq('key', 'payment_secrets')
+      .single()
+    const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
+    const stripe = getStripeClient(stripeSecretKey)
     if (!stripe) {
       throw createError({ statusCode: 500, statusMessage: 'Stripe client is not initialized' })
     }

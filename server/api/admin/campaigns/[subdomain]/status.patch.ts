@@ -5,6 +5,7 @@ import { getDB } from '~~/server/utils/db'
 import { assertAdmin } from '~~/server/utils/auth'
 import { sendSuccess } from '~~/server/utils/response'
 import { logAuditEvent } from '~~/server/utils/logger'
+import { invalidateCampaignCache } from '~~/server/utils/cache'
 
 defineRouteMeta({
   openAPI: {
@@ -64,6 +65,7 @@ export default defineEventHandler(async (event) => {
 
   const action = isActive ? 'ONLINE' : 'OFFLINE'
   await logAuditEvent(event, admin, `CAMPAIGN_${action}: ${subdomain}`, 'SUCCESS')
+  invalidateCampaignCache(subdomain)
 
   return sendSuccess(event, { subdomain, is_active: isActive }, `Campaign ${isActive ? 'activated' : 'deactivated'}`)
 })

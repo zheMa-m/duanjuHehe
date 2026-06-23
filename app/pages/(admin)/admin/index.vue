@@ -4,6 +4,7 @@ import AdminCampaigns from '~/components/admin/AdminCampaigns.vue'
 import AdminOrders from '~/components/admin/AdminOrders.vue'
 import AdminSubscriptions from '~/components/admin/AdminSubscriptions.vue'
 import AdminRevenue from '~/components/admin/AdminRevenue.vue'
+import AdminPayments from '~/components/admin/AdminPayments.vue'
 import AdminToast from '~/components/admin/AdminToast.vue'
 import AdminOverview from '~/components/admin/AdminOverview.vue'
 import AdminTasks from '~/components/admin/AdminTasks.vue'
@@ -15,19 +16,18 @@ import AdminMedia from '~/components/admin/AdminMedia.vue'
 import AdminApiSecurity from '~/components/admin/AdminApiSecurity.vue'
 import AdminProducts from '~/components/admin/AdminProducts.vue'
 import AdminFeedback from '~/components/admin/AdminFeedback.vue'
+import AdminStarpath from '~/components/admin/AdminStarpath.vue'
 import AdminAudit from '~/components/admin/AdminAudit.vue'
 import AdminSidebarGrouped from '~/components/admin/AdminSidebarGrouped.vue'
 import AdminSidebarTabbed from '~/components/admin/AdminSidebarTabbed.vue'
-import AdminSidebarCompact from '~/components/admin/AdminSidebarCompact.vue'
-import AdminCommandPalette from '~/components/admin/AdminCommandPalette.vue'
 import { useAdminNav, navModeOptions } from '~/composables/useAdminNav'
 import { useAdminMenu, tabDomains } from '~/composables/useAdminMenu'
-import { useAdminTheme, adminThemeOptions } from '~/composables/useAdminTheme'
+import { useAdminTheme } from '~/composables/useAdminTheme'
 
 const { user, isAdmin, signInAsAdmin, signOut, refreshUser } = useAuth()
 const { mode, sidebarCollapsed, switchMode, toggleSidebar, trackRecent } = useAdminNav()
 const { getItemByKey, getDomainForItem, getGroupLabel } = useAdminMenu()
-const { theme: adminTheme, resolvedTheme, colorScheme, switchTheme } = useAdminTheme()
+const { resolvedTheme, colorScheme } = useAdminTheme()
 
 useSeoMeta({ title: '项目管理后台' })
 
@@ -38,7 +38,7 @@ const toast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => toas
 // ── 类型定义 ──────────────────────────────────────────────────
 interface ActivityLog { id: number; category: string; user_id: string | null; action: string; ip: string | null; metadata: Record<string, any>; created_at: string }
 interface Task { id: string; title: string; completed: boolean; created_at: string }
-interface Campaign { id: string; subdomain: string; title: string; subtitle: string; badge: string; color_from: string; color_to: string; is_active: boolean; cta_text: string; cta_url: string | null; cover_image: string | null; description: string | null; features: any[]; sort_order: number; leads_count?: number; created_at: string; updated_at: string }
+interface Campaign { id: string; subdomain: string; title: string; subtitle: string; badge: string; color_from: string; color_to: string; is_active: boolean; cta_text: string; cta_url: string | null; cover_image: string | null; description: string | null; features: any[]; config: Record<string, any> | null; sort_order: number; leads_count?: number; ga_measurement_id?: string | null; meta_pixel_id?: string | null; tiktok_pixel_id?: string | null; created_at: string; updated_at: string }
 
 interface LogsResponse { success: boolean; data: { items: ActivityLog[]; pagination: { page: number; pageSize: number; total: number } } }
 interface TasksResponse { success: boolean; data: { items: Task[]; pagination: { page: number; pageSize: number; total: number } } }
@@ -115,11 +115,26 @@ const deferUnless = (...tabs: string[]) => isLoggedIn.value && tabs.includes(act
 // 审计日志分页状态
 const auditPage = ref(1)
 const auditPageSize = ref(20)
+const auditCategory = ref('ALL')
+const auditDateFrom = ref('')
+const auditDateTo = ref('')
 const auditUrl = computed(() => {
   const params = new URLSearchParams()
   params.set('page', String(auditPage.value))
   params.set('pageSize', String(auditPageSize.value))
+  if (auditCategory.value !== 'ALL') params.set('category', auditCategory.value)
+  if (auditDateFrom.value) params.set('dateFrom', auditDateFrom.value)
+  if (auditDateTo.value) params.set('dateTo', auditDateTo.value)
   return `/api/admin/audit-logs?${params.toString()}`
+})
+
+// 审计日志统计 URL（与列表共用筛选条件）
+const auditStatsUrl = computed(() => {
+  const params = new URLSearchParams()
+  if (auditCategory.value !== 'ALL') params.set('category', auditCategory.value)
+  if (auditDateFrom.value) params.set('dateFrom', auditDateFrom.value)
+  if (auditDateTo.value) params.set('dateTo', auditDateTo.value)
+  return `/api/admin/audit-logs/stats?${params.toString()}`
 })
 
 // 任务分页状态
@@ -188,6 +203,7 @@ const subsUrl = computed(() => {
 
 // ── Dashboard 首屏（lazy 不阻塞挂载，登录即取）──
 const { data: logRes, refresh: refreshLogs } = useFetch<LogsResponse>(auditUrl, { ...fetchOpts.value, watch: [auditUrl] })
+const { data: auditStatsRes, refresh: refreshAuditStats } = useFetch<any>(auditStatsUrl, { ...fetchOpts.value, watch: [auditStatsUrl] })
 const { data: revenueRes, refresh: refreshRevenue } = useFetch<RevenueResponse>('/api/admin/revenue', { ...fetchOpts.value, lazy: true })
 // ── 非首屏 Tab（immediate 受 activeTab 控制，切换时由 watcher 触发）──
 const { data: tasksRes, refresh: refreshTasks } = useFetch<TasksResponse>(tasksUrl, { ...fetchOpts.value, immediate: deferUnless('tasks'), watch: [tasksUrl] })
@@ -267,7 +283,7 @@ const handleRefresh = async () => {
   refreshing.value[key] = true
   try {
     const refreshMap: Record<string, () => Promise<void>> = {
-      dashboard: refreshLogs,
+      dashboard: async () => { await Promise.all([refreshLogs(), refreshAuditStats()]) },
       tasks: refreshTasks,
       campaigns: async () => { await Promise.all([refreshCampaigns(), refreshLeads()]) },
       health: refreshApm,
@@ -276,7 +292,7 @@ const handleRefresh = async () => {
       revenue: refreshRevenue,
       users: async () => { await Promise.all([refreshUsers(), refreshUserStats()]) },
       media: async () => { mediaRef.value?.refresh() },
-      audit: refreshLogs,
+      audit: async () => { await Promise.all([refreshLogs(), refreshAuditStats()]) },
     }
     await refreshMap[activeTab.value]?.()
   } catch (err: any) {
@@ -389,6 +405,20 @@ const handleFilterUsersPlan = (plan: string) => {
 const handleChangeAuditPage = (page: number) => {
   auditPage.value = page
 }
+const handleChangeAuditCategory = (category: string) => {
+  auditCategory.value = category
+  auditPage.value = 1
+}
+const handleChangeAuditDateRange = (dateFrom: string, dateTo: string) => {
+  // 将 local date (YYYY-MM-DD) 转换为 UTC date，避免跨时区偏移
+  const toUtcDate = (localDate: string) => {
+    if (!localDate) return ''
+    return new Date(localDate + 'T00:00:00').toISOString().slice(0, 10)
+  }
+  auditDateFrom.value = toUtcDate(dateFrom)
+  auditDateTo.value = toUtcDate(dateTo)
+  auditPage.value = 1
+}
 const handleChangeTasksPage = (page: number) => {
   tasksPage.value = page
 }
@@ -434,8 +464,6 @@ const handleDeleteUser = async (id: string) => {
   } catch (e: any) { toast('删除用户失败: ' + (e.data?.statusMessage || e.message || '未知错误'), 'error') }
 }
 
-// ── Cmd+K 命令面板 ──────────────────────────────────────────
-const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
 </script>
 
 <template>
@@ -470,12 +498,6 @@ const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
         :active-domain="activeDomain"
         @navigate="handleNavigate"
       />
-      <AdminSidebarCompact
-        v-else-if="mode === 'compact'"
-        :active-tab="activeTab"
-        @navigate="handleNavigate"
-        @open-palette="paletteRef?.open()"
-      />
 
       <!-- 右侧主工作区 -->
       <main class="flex-1 flex flex-col min-w-0 relative z-10 bg-[#08080f]/60 backdrop-blur-3xl">
@@ -509,17 +531,6 @@ const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
                 {{ domain.label }}
               </button>
             </div>
-
-            <!-- Cmd+K 按钮（Compact 模式） -->
-            <button
-              v-if="mode === 'compact'"
-              @click="paletteRef?.open()"
-              class="admin-header__cmdk"
-            >
-              <span class="i-lucide-search text-[11px]" />
-              <span class="text-[11px]">搜索</span>
-              <kbd class="admin-header__cmdk-kbd">⌘K</kbd>
-            </button>
           </div>
 
           <!-- 右侧区域 -->
@@ -576,25 +587,6 @@ const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
                   </div>
                   <div class="admin-user-dropdown__divider" />
 
-                  <!-- 外观主题 -->
-                  <div class="admin-user-dropdown__section-title">
-                    <span :class="adminThemeOptions.find(o => o.theme === adminTheme)?.icon" class="text-[11px]" />
-                    外观主题
-                  </div>
-                  <div class="admin-user-dropdown__theme-opts">
-                    <button
-                      v-for="opt in adminThemeOptions" :key="opt.theme"
-                      @click="switchTheme(opt.theme)"
-                      class="admin-user-dropdown__theme-btn"
-                      :class="{ 'admin-user-dropdown__theme-btn--active': adminTheme === opt.theme }"
-                      :title="opt.desc"
-                    >
-                      <span :class="opt.icon" class="admin-user-dropdown__theme-icon" />
-                      <span class="admin-user-dropdown__theme-label">{{ opt.label }}</span>
-                    </button>
-                  </div>
-                  <div class="admin-user-dropdown__divider" />
-
                   <!-- 操作项 -->
                   <button class="admin-user-dropdown__item" @click="showProfileModal = true; showUserDropdown = false">
                     <span class="i-lucide-user text-[14px]" />
@@ -612,20 +604,22 @@ const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
 
         <!-- Tab 内容区 -->
         <div class="p-10 space-y-10 overflow-y-auto flex-1 scrollbar-none max-w-[1400px] w-full mx-auto">
-          <AdminOverview v-if="activeTab === 'dashboard'" :logs="logRes?.data?.items ?? null" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.dashboard" @refresh="handleRefresh" />
+          <AdminOverview v-if="activeTab === 'dashboard'" :logs="logRes?.data?.items ?? null" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.dashboard" :stats="auditStatsRes?.data ?? null" @refresh="handleRefresh" />
           <AdminProducts v-else-if="activeTab === 'products'" :is-loading="!!refreshing.products" @refresh="handleRefresh" @toast="toast" />
           <!-- 注意：tasks 已迁移至右上角全局面板，不再在主内容区渲染 -->
           <AdminOrders v-else-if="activeTab === 'orders'" :orders="ordersRes?.data?.items ?? null" :orders-total="ordersRes?.data?.pagination?.total ?? 0" :orders-page="ordersPage" :orders-page-size="ordersPageSize" :is-loading="!!refreshing.orders" @refresh="handleRefresh" @update-status="handleOrderStatusUpdate" @change-page="handleChangeOrdersPage" @toast="toast" />
           <AdminSubscriptions v-else-if="activeTab === 'subscriptions'" :subscriptions="subsRes?.data?.items ?? null" :subscriptions-total="subsRes?.data?.pagination?.total ?? 0" :subscriptions-page="subsPage" :subscriptions-page-size="subsPageSize" :is-loading="!!refreshing.subscriptions" @refresh="handleRefresh" @change-page="handleChangeSubsPage" @toast="toast" />
           <AdminRevenue v-else-if="activeTab === 'revenue'" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.revenue" @refresh="handleRefresh" />
+          <AdminPayments v-else-if="activeTab === 'payments'" />
           <AdminCampaigns v-else-if="activeTab === 'campaigns'" ref="campaignsRef" :campaigns="campaignsRes?.data?.items ?? null" :campaigns-total="campaignsRes?.data?.pagination?.total ?? 0" :campaigns-page="campaignsPage" :campaigns-page-size="campaignsPageSize" :leads="leadsRes?.data?.items ?? null" :leads-total="leadsRes?.data?.total ?? 0" :leads-page="leadsPage" :leads-page-size="leadsPageSize" :is-loading="!!refreshing.campaigns" @refresh="handleRefresh" @save="saveCampaignConfig" @toggle-status="handleToggleCampaignStatus" @create="createCampaign" @delete-campaign="deleteCampaign" @delete-lead="deleteCampaignLead" @export-leads="exportLeads" @change-leads-page="handleChangeLeadsPage" @filter-leads="handleFilterLeads" @change-campaigns-page="handleChangeCampaignsPage" />
           <AdminFeedback v-else-if="activeTab === 'feedback'" :is-loading="!!refreshing.feedback" @refresh="handleRefresh" />
+          <AdminStarpath v-else-if="activeTab === 'starpath'" />
           <AdminUsers v-else-if="activeTab === 'users'" :users="usersRes?.data?.items ?? null" :users-total="usersRes?.data?.pagination?.total ?? 0" :users-page="usersPage" :users-page-size="usersPageSize" :stats="userStatsRes?.data ?? null" :is-loading="!!refreshing.users" @refresh="handleRefresh" @update-user="handleUpdateUser" @delete-user="handleDeleteUser" @change-page="handleChangeUsersPage" @filter-role="handleFilterUsersRole" @filter-plan="handleFilterUsersPlan" />
           <AdminMedia v-else-if="activeTab === 'media'" ref="mediaRef" :is-loading="!!refreshing.media" />
           <AdminApiSecurity v-else-if="activeTab === 'security'" @toast="toast" />
           <AdminApm v-else-if="activeTab === 'health'" :apm-data="apmRes?.data ?? null" :is-loading="!!refreshing.health" :is-simulating="isSimulating" @refresh="handleRefresh" @simulate="handleSimulateAlert" />
           <AdminConfig v-else-if="activeTab === 'settings'" @toast="toast" />
-          <AdminAudit v-else-if="activeTab === 'audit'" :logs="logRes?.data?.items ?? null" :logs-total="logRes?.data?.pagination?.total ?? 0" :logs-page="auditPage" :logs-page-size="auditPageSize" :is-loading="!!refreshing.audit" @refresh="handleRefresh" @change-page="handleChangeAuditPage" />
+          <AdminAudit v-else-if="activeTab === 'audit'" :logs="logRes?.data?.items ?? null" :logs-total="logRes?.data?.pagination?.total ?? 0" :logs-page="auditPage" :logs-page-size="auditPageSize" :category="auditCategory" :date-from="auditDateFrom" :date-to="auditDateTo" :is-loading="!!refreshing.audit" :stats="auditStatsRes?.data ?? null" @refresh="handleRefresh" @change-page="handleChangeAuditPage" @change-category="handleChangeAuditCategory" @change-date-range="handleChangeAuditDateRange" />
         </div>
       </main>
 
@@ -664,9 +658,6 @@ const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
       <!-- 个人设置 Modal -->
       <AdminProfileModal v-if="showProfileModal" :avatar-url="user?.avatarUrl" @close="showProfileModal = false" @saved="handleProfileSaved" />
     </template>
-
-    <!-- 全局命令面板（所有模式通用） -->
-    <AdminCommandPalette ref="paletteRef" :active-tab="activeTab" @navigate="handleNavigate" />
   </div>
 </template>
 
@@ -1515,9 +1506,8 @@ const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
 }
 
 /* ── Sidebar 组件（scoped 穿透，使用后代选择器） ── */
-/* AdminSidebarGrouped / Compact / Tabbed 背景层 */
+/* AdminSidebarGrouped / Tabbed 背景层 */
 .admin-dashboard-root [class*="nav-sidebar__bg"],
-.admin-dashboard-root [class*="sidebar-compact__bg"],
 .admin-dashboard-root [class*="sidebar-tabbed__bg"] {
   background: var(--admin-bg) !important;
   border-right-color: var(--admin-border-subtle) !important;
@@ -1555,12 +1545,5 @@ const paletteRef = ref<InstanceType<typeof AdminCommandPalette> | null>(null)
 .admin-dashboard-root [class*="nav-sidebar__search-hint"] {
   background: var(--admin-bg-input) !important;
   border-color: var(--admin-border-subtle) !important;
-}
-/* Compact sidebar expand button */
-.admin-dashboard-root [class*="nav-sidebar__expand"],
-.admin-dashboard-root [class*="sidebar-compact__expand"] {
-  background: var(--admin-bg-dropdown) !important;
-  border-color: var(--admin-border-medium) !important;
-  color: var(--admin-text-muted) !important;
 }
 </style>

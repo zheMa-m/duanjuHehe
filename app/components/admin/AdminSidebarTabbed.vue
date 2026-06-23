@@ -123,17 +123,17 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
   border-radius: 8px; border: none; outline: none;
   background: transparent; cursor: pointer; text-align: left;
   font-size: 14px; font-weight: 450;
-  color: rgba(255,255,255,0.38);
+  color: var(--admin-text-muted, rgba(255,255,255,0.38));
   letter-spacing: -0.008em;
   transition: all 0.15s ease;
   margin-bottom: 2px;
 }
 .nav-tab-item:hover {
-  color: rgba(255,255,255,0.78);
+  color: var(--admin-text-secondary, rgba(255,255,255,0.78));
   background: rgba(255,255,255,0.03);
 }
 .nav-tab-item--active {
-  color: #fff !important;
+  color: var(--admin-text-primary, #fff) !important;
   background: rgba(99,102,241,0.08) !important;
 }
 .nav-tab-item--active:hover {
@@ -155,11 +155,12 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 /* 图标 */
 .nav-tab-item__icon {
   font-size: 16px; flex-shrink: 0;
-  opacity: 0.45; transition: opacity 0.15s, color 0.15s;
+  color: var(--admin-text-muted, rgba(255,255,255,0.40));
+  transition: opacity 0.15s, color 0.15s;
 }
-.nav-tab-item:hover .nav-tab-item__icon { opacity: 0.8; }
+.nav-tab-item:hover .nav-tab-item__icon { color: var(--admin-text-secondary, rgba(255,255,255,0.65)); }
 .nav-tab-item__icon--active {
-  opacity: 1 !important; color: var(--brand-accent-soft);
+  color: var(--brand-accent-soft) !important;
 }
 
 /* 标签 */

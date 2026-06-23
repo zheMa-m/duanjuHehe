@@ -313,7 +313,7 @@
         "Notes"
       ],
       "securityAlert": "Security Red Line",
-      "securityAlertDesc": "SUPABASE_SERVICE_ROLE_KEY and STRIPE_SECRET_KEY must never have the NUXT_PUBLIC_ prefix.",
+      "securityAlertDesc": "SUPABASE_SERVICE_ROLE_KEY must never have the NUXT_PUBLIC_ prefix. Payment keys are now managed in the DB.",
       "mockDb": "Mock DB Offline Development",
       "mockDbDesc": "The project includes a complete in-memory Mock PostgreSQL adapter. Set MOCK_DB=true for fully offline development without a physical Supabase database."
     },
@@ -338,7 +338,7 @@
       "executeMethod1": "Method 1: Execute migration files in order via Supabase Dashboard → SQL Editor.",
       "executeMethod2": "Method 2: Use Supabase CLI:",
       "seedData": "Seed Data",
-      "seedDataDesc": "Migrations only create table structures. H5 pages depend on the campaigns table. See docs/02-supabase-integration.md section 5.",
+      "seedDataDesc": "Migrations only create table structures. H5 pages depend on the campaigns table. See docs/04-Supabase数据库集成.md section 5.",
       "createAdmin": "Create Admin",
       "migrationRules": "Migration Standards"
     },
@@ -494,6 +494,326 @@
       "faqPerfA1": "Use ISR pre-rendering, NuxtImg lazy loading, Lazy component imports, Vercel edge caching.",
       "faqPerfQ2": "How to troubleshoot slow API responses?",
       "faqPerfA2": "Check Vercel Function Logs, Supabase query indexes, APM dashboard, use SWR caching."
+    }
+  },
+  "starpath": {
+    "title": "智能问卷 Astrology",
+    "seo": {
+      "title": "智能问卷 — AI Astrology Report",
+      "description": "Get your personalized AI astrology and growth report"
+    },
+    "welcome": {
+      "title": "Navigate Your Fate. Get Your Personalized AI Astrology & Growth Report",
+      "subtitle": "Trusted by over 10,000+ personal growth profiles",
+      "prompt": "I'am",
+      "male": "Male",
+      "female": "Female",
+      "tos": "By selecting your gender, you agree to our Terms of Service and acknowledge our Privacy Policy and Cookie policy. For entertainment purposes only."
+    },
+    "common": {
+      "continue": "Continue",
+      "loading": "Loading...",
+      "processing": "Processing...",
+      "save": "Save",
+      "submit": "Submit",
+      "back": "Back",
+      "confidential": "Your answers are confidential",
+      "yourAnswers": "Your answers will be kept confidential",
+      "viewAll": "View All",
+      "share": "Share"
+    },
+    "familiarity": {
+      "question": "How familiar are you with astrology?",
+      "options": [
+        "Very familiar",
+        "Somewhat familiar",
+        "Not very familiar",
+        "Not at all"
+      ],
+      "subtitle": "Beginners are welcome, let's explore together"
+    },
+    "intro": {
+      "title": "That's great! 智能问卷 analyzes your birth chart to reveal\nyour personality traits and growth opportunities",
+      "features": [
+        "AI Birth Chart Analysis",
+        "Personality Traits Decoded",
+        "Relationship Compatibility Insights",
+        "Key Opportunity Windows"
+      ],
+      "subtitle": "An astrology reading dives into your unique natal placements to provide guidance on various life aspects"
+    },
+    "focus": {
+      "title": "What's your main focus for today?",
+      "options": [
+        "Love & Relationships",
+        "Career & Wealth",
+        "Personal Growth",
+        "Family & Community",
+        "Health & Spirituality",
+        "General Forecast"
+      ],
+      "custom": "Custom..."
+    },
+    "goal": {
+      "title": "Great! What's your main goal?",
+      "desc": "The more information you provide, the more accurate your reading will be",
+      "options": [
+        "Find Soulmate",
+        "Career Breakthrough",
+        "Explore Life Direction",
+        "Wealth Growth",
+        "Break Self-Limitations"
+      ]
+    },
+    "relationship": {
+      "title": "What's your current relationship status?",
+      "options": [
+        "Single",
+        "In a relationship",
+        "Married",
+        "It's complicated"
+      ],
+      "question": "Want to discover your strengths in relationships?"
+    },
+    "birthday": {
+      "title": "What's your date of birth?",
+      "desc": "The more information you provide, the more accurate your reading will be",
+      "month": "Month",
+      "day": "Day",
+      "year": "Year"
+    },
+    "birthTime": {
+      "title": "What's your birth time?",
+      "hour": "Hour",
+      "minute": "Minute",
+      "unknown": "I don't know",
+      "desc": "If you don't know the exact time, select unknown and we'll still provide a general analysis"
+    },
+    "birthCity": {
+      "title": "What city were you born in?",
+      "placeholder": "Enter your birth city",
+      "desc": "E.g. New York, London, Beijing"
+    },
+    "name": {
+      "title": "What's your full name?",
+      "placeholder": "Enter your name",
+      "desc": "For your personalized astrology report"
+    },
+    "alignment": {
+      "title": "Cosmic Alignment Complete!",
+      "desc": "Your astral energy is aligned",
+      "badge": "Ready for your personalized report"
+    },
+    "questions": {
+      "q1": "How satisfied are you with the direction your life is taking?",
+      "q1_options": [
+        "Thriving",
+        "Just getting by",
+        "Completely lost"
+      ],
+      "q2": "When facing major decisions, how do you usually respond?",
+      "q2_options": [
+        "Follow intuition",
+        "Rational analysis",
+        "Seek advice",
+        "Procrastinate"
+      ],
+      "q3": "What makes you feel truly alive?",
+      "q3_options": [
+        "Creative expression",
+        "Deep connection",
+        "Learning & growth",
+        "Helping others"
+      ],
+      "q4": "How would you describe your social style?",
+      "q4_options": [
+        "Social butterfly",
+        "Selective socializer",
+        "Quiet introvert",
+        "Depends on mood"
+      ],
+      "q5": "What challenge do you face most in relationships?",
+      "q5_options": [
+        "Communication",
+        "Trust issues",
+        "Boundaries",
+        "Emotional expression"
+      ],
+      "q6": "What's your current career status?",
+      "q6_options": [
+        "Pursuing passion",
+        "Stable growth",
+        "Seeking change",
+        "Exploring"
+      ],
+      "q7": "How would you describe your relationship with money?",
+      "q7_options": [
+        "Abundant",
+        "Building steadily",
+        "Occasionally anxious",
+        "Laid back"
+      ],
+      "q8": "How do you usually handle stress?",
+      "q8_options": [
+        "Exercise",
+        "Meditation",
+        "Talk it out",
+        "Keep to myself"
+      ],
+      "q9": "What matters most to you in life?",
+      "q9_options": [
+        "Love & relationships",
+        "Achievement & career",
+        "Freedom & adventure",
+        "Peace & stability"
+      ],
+      "q10": "Do you believe in fate or free will?",
+      "q10_options": [
+        "Fate",
+        "Free will",
+        "Both",
+        "Not sure"
+      ],
+      "q11": "How do you view personal growth?",
+      "q11_options": [
+        "Lifelong learner",
+        "Go with the flow",
+        "As needed",
+        "Life is already full"
+      ],
+      "q12": "What role do you usually play in a team?",
+      "q12_options": [
+        "Leader",
+        "Collaborator",
+        "Brain trust",
+        "Executor"
+      ],
+      "q13": "What affects your mood the most?",
+      "q13_options": [
+        "Relationships",
+        "Work pressure",
+        "Inner state",
+        "External environment"
+      ],
+      "q14": "How do you approach new things?",
+      "q14_options": [
+        "Curious",
+        "Cautious",
+        "Wait and see",
+        "Prefer familiar"
+      ],
+      "q15": "Which area do you want to break through in?",
+      "q15_options": [
+        "Career success",
+        "Relationship happiness",
+        "Inner peace",
+        "Health & fitness"
+      ],
+      "q16": "How do you feel about your intuition?",
+      "q16_options": [
+        "Trust it fully",
+        "Occasionally consult it",
+        "Need verification",
+        "Don't trust it"
+      ],
+      "q17": "What do you think is most important in life?",
+      "q17_options": [
+        "Enjoy the moment",
+        "Create value",
+        "Gather experiences",
+        "Protect loved ones"
+      ],
+      "q18": "What do you expect AI astrology to bring you?",
+      "q18_options": [
+        "Direction & guidance",
+        "Self-awareness",
+        "Emotional comfort",
+        "Fun experience"
+      ],
+      "title": "Deep Dive Questions",
+      "subtitle": "Answer these questions for a more precise analysis"
+    },
+    "calculating": {
+      "title": "[{name}], your stars are aligning",
+      "desc": "We are calculating your exclusive cosmic blueprint...",
+      "steps": [
+        "Calculating Natal Placements",
+        "Decoding Behavioral Patterns",
+        "Analyzing Relationship & Career Houses",
+        "Finalizing Your Monthly Forecast"
+      ]
+    },
+    "email": {
+      "title": "Where should we send your roadmap?",
+      "subtitle": "We'll send your complete AI astrology reading to your email",
+      "placeholder": "Enter your email address",
+      "invalid": "Please enter a valid email address",
+      "terms": "I agree to the Privacy Policy and would like to receive my personalized astrology report",
+      "submit": "Send My Report",
+      "success": "Your report is on its way!",
+      "error": "Submission failed, please try again later",
+      "eta": "Expected delivery in {minutes} minutes"
+    },
+    "subscribe": {
+      "title": "Claim Your Personal Cosmic Roadmap",
+      "badge": "Join 120k+ seekers",
+      "stars": "5 Stars",
+      "features": [
+        "Soul Blueprint: Solve career blocks with natal analysis",
+        "Golden Window: Your peak dates for wealth & love",
+        "Shadow Work: Break self-sabotaging patterns",
+        "Unlimited Synastry: Match with anyone, anytime"
+      ],
+      "todayPrice": "Today's Price",
+      "originalPrice": "$ 115.99",
+      "currentPrice": "$ 7.99",
+      "trialDesc": "Get 7 days of full access for $ 7.99. Thereafter $ 29.99/mo. Cancel at any time.",
+      "paypal": "PayPal",
+      "googlePay": "Google Pay",
+      "card": "Credit / Debit Card",
+      "processing": "Processing payment...",
+      "error": "Subscribe failed, please try again",
+      "noPaymentMethods": "No payment methods available. Please contact support."
+    },
+    "success": {
+      "title": "You're Premium!",
+      "desc": "Welcome to your premium astrology journey",
+      "viewReport": "View My Report"
+    },
+    "cardPayment": {
+      "title": "Card Payment",
+      "cardNumber": "Card Number",
+      "cardNumberPlaceholder": "1234 5678 9012 3456",
+      "expiry": "Expiry",
+      "expiryPlaceholder": "MM/YY",
+      "cvc": "CVC",
+      "cardholderName": "Cardholder Name",
+      "pay": "Pay {amount}",
+      "success": "Payment successful!",
+      "error": "Payment failed, please try again"
+    },
+    "report": {
+      "title": "Personal Birth Chart Reading",
+      "hello": "Hello, {name}",
+      "bornAt": "Born {date}",
+      "inCity": "In {city}",
+      "loading": "Loading...",
+      "error": "Report temporarily unavailable, showing sample data.",
+      "birthChart": "Birth chart visualization",
+      "coreInterpretations": "Core Interpretations",
+      "aspect": "Aspect",
+      "professionalData": "Professional Data",
+      "planetPositions": "Planet Positions",
+      "houseStarts": "House Cusps",
+      "aspectList": "Full Aspect List",
+      "technicalParams": "Technical Parameters",
+      "summary": "You are a curious explorer with strong intuition and insight."
+    },
+    "sent": {
+      "title": "Your Report is on Its Way",
+      "desc": "We've sent your exclusive astrology reading to your email",
+      "checkInbox": "Please check your inbox (including spam folder)",
+      "backToHome": "Back to Home"
     }
   }
 }

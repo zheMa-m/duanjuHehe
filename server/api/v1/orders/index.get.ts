@@ -56,12 +56,15 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const page = Math.min(Math.max(parseInt(query.page as string) || 1, 1), 100)
   const pageSize = Math.min(parseInt(query.pageSize as string) || 20, 100)
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
 
   const { data: orders, error, count } = await db
     .from('orders')
     .select('*', { count: 'exact', head: false })
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    .range(from, to)
 
   if (error) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch orders' })

@@ -6,13 +6,13 @@ import { getClientRealIP } from './ip'
  * 统一审计日志记录器
  */
 export async function logAuditEvent(
-  event: H3Event,
+  event: H3Event | null,
   user: { id: string; username: string; role?: string } | null,
   action: string,
   status: 'SUCCESS' | 'WARNING' | 'FAILED' | 'INFO' = 'SUCCESS',
   ipAddress?: string
 ) {
-  const ip = ipAddress || getClientRealIP(event)
+  const ip = ipAddress || (event ? getClientRealIP(event) : 'system')
   const operatorName = user ? user.username : 'anonymous'
   
   // 打印美化的控制台结构化日志

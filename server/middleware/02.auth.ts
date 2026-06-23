@@ -142,8 +142,7 @@ export default defineEventHandler(async (event) => {
         }
       }
     } else {
-      // 无 token：检查是否有 device_id cookie（匿名用户标识）
-      const cookies = parseCookies(event)
+      // 无 token：检查是否有 device_id cookie（匿名用户标识），复用已解析的 cookies
       const deviceId = cookies['device-id']
       if (deviceId) {
         event.context.user = {

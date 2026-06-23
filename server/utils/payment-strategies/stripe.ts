@@ -23,7 +23,7 @@ export class StripePaymentStrategy implements PaymentStrategy {
 
     const stripe = getStripeClient(stripeSecretKey)
     if (!stripe) {
-      throw new Error('Stripe client not initialized. Check STRIPE_SECRET_KEY.')
+      throw new Error('Stripe client not initialized. Check payment_secrets in system_configs.')
     }
 
     // 检查是订阅制模式还是一次性模式

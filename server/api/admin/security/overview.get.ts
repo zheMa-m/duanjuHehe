@@ -38,107 +38,63 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getDB(event)
-
-  // ── 1. 安全策略配置 ──────────────────────────────────
-  const { data: policy } = await db
-    .from('api_security_settings')
-    .select('*')
-    .limit(1)
-    .single()
-
-  // ── 2. 今日安全事件统计（activity_logs） ─────────────
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
-
-  // 今日拦截总数
-  const { count: todayBlocked } = await db
-    .from('activity_logs')
-    .select('*', { count: 'exact', head: true })
-    .eq('category', 'system')
-    .like('action', 'api_security_%')
-    .gte('created_at', todayStart.toISOString())
-
-  // 排除速率限制的非限流威胁数
-  const { count: threatsCount } = await db
-    .from('activity_logs')
-    .select('*', { count: 'exact', head: true })
-    .eq('category', 'system')
-    .like('action', 'api_security_%')
-    .not('action', 'like', '%rate_limited%')
-    .gte('created_at', todayStart.toISOString())
-
-  // 近期威胁 Top 5（非限流）
-  const { data: recentThreats } = await db
-    .from('activity_logs')
-    .select('id, action, ip, metadata, created_at')
-    .eq('category', 'system')
-    .like('action', 'api_security_%')
-    .not('action', 'like', '%rate_limited%')
-    .gte('created_at', todayStart.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(5)
-
-  // ── 3. API Key 统计 ─────────────────────────────────
-  const { count: totalKeys } = await db
-    .from('api_keys')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: activeKeys } = await db
-    .from('api_keys')
-    .select('*', { count: 'exact', head: true })
-    .eq('is_active', true)
-
-  // 已过期 Key
+  const todayISO = todayStart.toISOString()
   const now = new Date().toISOString()
-  const { data: expiredKeysData } = await db
-    .from('api_keys')
-    .select('id, name, key_prefix, expires_at')
-    .eq('is_active', true)
-    .lt('expires_at', now)
-
-  // 7天内到期 Key
   const sevenDaysLater = new Date()
   sevenDaysLater.setDate(sevenDaysLater.getDate() + 7)
   const sevenDaysLaterISO = sevenDaysLater.toISOString()
 
-  const { data: expiringKeysData } = await db
-    .from('api_keys')
-    .select('id, name, key_prefix, expires_at')
-    .eq('is_active', true)
-    .gte('expires_at', now)
-    .lt('expires_at', sevenDaysLaterISO)
+  // ── 所有独立查询并行执行 ────────────────────────────
+  const [
+    policyResult,
+    todayBlockedResult,
+    threatsCountResult,
+    recentThreatsResult,
+    totalKeysResult,
+    activeKeysResult,
+    expiredKeysResult,
+    expiringKeysResult,
+    rateEventsResult,
+  ] = await Promise.all([
+    db.from('api_security_settings').select('*').limit(1).single(),
+    db.from('activity_logs').select('*', { count: 'exact', head: true }).eq('category', 'system').like('action', 'api_security_%').gte('created_at', todayISO),
+    db.from('activity_logs').select('*', { count: 'exact', head: true }).eq('category', 'system').like('action', 'api_security_%').not('action', 'like', '%rate_limited%').gte('created_at', todayISO),
+    db.from('activity_logs').select('id, action, ip, metadata, created_at').eq('category', 'system').like('action', 'api_security_%').not('action', 'like', '%rate_limited%').gte('created_at', todayISO).order('created_at', { ascending: false }).limit(5),
+    db.from('api_keys').select('*', { count: 'exact', head: true }),
+    db.from('api_keys').select('*', { count: 'exact', head: true }).eq('is_active', true),
+    db.from('api_keys').select('id, name, key_prefix, expires_at').eq('is_active', true).lt('expires_at', now),
+    db.from('api_keys').select('id, name, key_prefix, expires_at').eq('is_active', true).gte('expires_at', now).lt('expires_at', sevenDaysLaterISO),
+    db.from('activity_logs').select('ip, metadata').eq('category', 'system').like('action', '%rate_limited%').gte('created_at', todayISO).limit(200),
+  ])
+
+  // ── 解构结果 ─────────────────────────────────────────
+  const policy = policyResult.data
+  const todayBlocked = todayBlockedResult.count
+  const threatsCount = threatsCountResult.count
+  const recentThreats = recentThreatsResult.data
+  const totalKeys = totalKeysResult.count
+  const activeKeys = activeKeysResult.count
+  const expiredKeysData = expiredKeysResult.data
+  const expiringKeysData = expiringKeysResult.data
+  const rateEvents = rateEventsResult.data
 
   // ── 4. 安全评分计算 ─────────────────────────────────
   let score = 100
   const scoreDetails: string[] = []
 
   if (policy) {
-    if (!policy.rate_limit?.enabled) {
-      score -= 20
-      scoreDetails.push('速率限制未启用')
-    }
-    if (!policy.ip_policy || policy.ip_policy.mode === 'disabled') {
-      score -= 15
-      scoreDetails.push('IP 访问控制未配置')
-    }
-    if (!policy.country_policy?.enabled) {
-      score -= 15
-      scoreDetails.push('国家限制未启用')
-    }
-    if (!policy.signature_required) {
-      score -= 20
-      scoreDetails.push('全局请求签名未启用')
-    }
+    if (!policy.rate_limit?.enabled) { score -= 20; scoreDetails.push('速率限制未启用') }
+    if (!policy.ip_policy || policy.ip_policy.mode === 'disabled') { score -= 15; scoreDetails.push('IP 访问控制未配置') }
+    if (!policy.country_policy?.enabled) { score -= 15; scoreDetails.push('国家限制未启用') }
+    if (!policy.signature_required) { score -= 20; scoreDetails.push('全局请求签名未启用') }
   } else {
     score = 0
     scoreDetails.push('安全策略未初始化')
   }
 
-  if (activeKeys === 0) {
-    score = Math.max(0, score - 10)
-    scoreDetails.push('无活跃 API Key')
-  }
-
+  if (activeKeys === 0) { score = Math.max(0, score - 10); scoreDetails.push('无活跃 API Key') }
   score = Math.max(0, score)
 
   const grade = score >= 80 ? 'excellent' : score >= 60 ? 'good' : 'needs_improvement'
@@ -153,16 +109,7 @@ export default defineEventHandler(async (event) => {
     endpoint_overrides_count: Object.keys(policy?.endpoint_overrides || {}).length,
   }
 
-  // ── 6. 限流 Top IP / Key（今日） ─────────────────────
-  const { data: rateEvents } = await db
-    .from('activity_logs')
-    .select('ip, metadata')
-    .eq('category', 'system')
-    .like('action', '%rate_limited%')
-    .gte('created_at', todayStart.toISOString())
-    .limit(200)
-
-  // 按 IP 聚合
+  // ── 6. 限流 Top IP / Key（今日）聚合 ─────────────────
   const ipCountMap = new Map<string, number>()
   const keyCountMap = new Map<string, number>()
   ;(rateEvents || []).forEach((e: any) => {
@@ -174,15 +121,8 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const topIps = [...ipCountMap.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([ip, count]) => ({ ip, count }))
-
-  const topKeys = [...keyCountMap.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([keyPrefix, count]) => ({ keyPrefix, count }))
+  const topIps = [...ipCountMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([ip, count]) => ({ ip, count }))
+  const topKeys = [...keyCountMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([keyPrefix, count]) => ({ keyPrefix, count }))
 
   const result = sendSuccess(event, {
     score,

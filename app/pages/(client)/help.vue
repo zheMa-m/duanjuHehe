@@ -170,10 +170,11 @@ const toggleFaq = (key: string) => {
 // ── Navigation ──
 const navSections = computed(() => [
   { group: 'overview', items: ['s0', 's1', 's2', 's3', 's4'] },
-  { group: 'infrastructure', items: ['s5', 's7', 's8', 's9'] },
-  { group: 'business', items: ['s10', 's11', 's12'] },
-  { group: 'optional', items: ['s13'] },
-  { group: 'faq', items: ['s14', 's15', 's16', 's17'] },
+  { group: 'infrastructure', items: ['s5', 's6', 's7', 's8'] },
+  { group: 'business', items: ['s9', 's10'] },
+  { group: 'optional', items: ['s11'] },
+  { group: 'engineering', items: ['s12', 's13', 's14'] },
+  { group: 'faq', items: ['s15'] },
 ])
 
 const sectionLabelMap: Record<string, string> = {
@@ -182,18 +183,17 @@ const sectionLabelMap: Record<string, string> = {
   's2': '目录结构与路由',
   's3': '环境变量',
   's4': '渲染策略对比',
-  's5': 'Supabase 集成',
-  's7': 'Supabase OAuth 体系',
-  's8': 'Vercel 部署',
-  's9': 'GitHub 集成',
-  's10': '支付系统',
-  's11': '管理后台',
-  's12': '社交分享与反馈',
-  's13': 'Cloudflare 接入',
-  's14': '本地开发',
-  's15': 'API 规范',
-  's16': '国际化配置',
-  's17': '常见问题'
+  's5': 'Supabase 数据库集成',
+  's6': '用户认证',
+  's7': 'Vercel 部署',
+  's8': 'GitHub 与 CI/CD',
+  's9': '支付集成',
+  's10': '社交分享与反馈',
+  's11': 'Cloudflare 配置',
+  's12': '本地开发',
+  's13': 'API 规范',
+  's14': '国际化配置',
+  's15': '常见问题'
 }
 const sectionLabel = (key: string) => sectionLabelMap[key] || key
 const navGroupLabelMap: Record<string, string> = {
@@ -201,7 +201,8 @@ const navGroupLabelMap: Record<string, string> = {
   'infrastructure': '基础设施',
   'business': '业务模块',
   'optional': '可选增强',
-  'faq': '开发规范与FAQ'
+  'engineering': '工程规范',
+  'faq': '常见问题'
 }
 const navGroupLabel = (group: string) => navGroupLabelMap[group] || group
 
@@ -224,10 +225,10 @@ const techStackRows = computed(() => [
   ['图片优化', '@nuxt/image', '自动压缩、格式转换、懒加载'],
   ['国际化', '@nuxtjs/i18n', '中英文双语，prefix_except_default 策略'],
   ['PWA', '@vite-pwa/nuxt', 'Admin 后台离线可用，Service Worker 缓存'],
-  ['数据库', 'Supabase PostgreSQL', 'RLS 行级安全策略，Supavisor 连接池'],
-  ['认证', 'Supabase Auth', '邮箱 + Google/GitHub OAuth + 匿名登录'],
-  ['支付', 'Stripe（策略模式）', '支持一次性付款 + 订阅制，Mock/生产双模式'],
-  ['分析', 'Vercel Analytics + 多平台埋点', 'GA4 / Meta Pixel / TikTok Pixel 自动分发'],
+  ['数据库', 'Supabase PostgreSQL', 'RLS 行级安全策略，Connection Pooler 连接池'],
+  ['认证', 'Supabase Auth', '邮箱 + Google/Facebook/Apple OAuth + 匿名登录'],
+  ['支付', 'Stripe Checkout + 支付策略工厂', 'stripe/paypal/google-pay/apple-iap/manual，Mock/生产双模式'],
+  ['分析', 'Vercel Analytics + APM 中间件', '请求耗时监控 + Web Vitals'],
   ['部署', 'Vercel', 'Git 推送自动部署，子域名自适应路由'],
 ])
 
@@ -251,7 +252,7 @@ const routingRows = [
 
 const middlewareSteps = [
   '00.apm', '01.subdomain', '02.auth', '03.admin',
-  '04.auth-guard', '06.api-security',
+  '04.auth-guard', '05.api-security',
 ]
 
 const middlewareStepsDetail = [
@@ -260,27 +261,23 @@ const middlewareStepsDetail = [
   ['02.auth', '双模鉴权', 'Mock模式（内存用户表）与生产模式（Supabase JWT验证），支持 Bearer/Cookie/device-id 多通道'],
   ['03.admin', '管理员断言', '拦截 /api/admin/*，验证管理员角色，放行定时任务 x-cron-secret'],
   ['04.auth-guard', '用户认证守卫', '要求支付/订单/存储等敏感端点已登录，匿名用户返回 403'],
-  ['06.api-security', 'API 安全防护', '8层安全检查：IP黑白名单、国家限制、API Key验证、HMAC签名、端点控制、速率限制'],
+  ['05.api-security', 'API 安全防护', '8层安全检查：IP黑白名单、国家限制、API Key验证、HMAC签名、端点控制、速率限制'],
 ]
 
 const envRows = [
   ['NUXT_PUBLIC_SUPABASE_URL', 'Supabase 项目 URL', '是', '前端可访问'],
   ['NUXT_PUBLIC_SUPABASE_ANON_KEY', 'Supabase anon key', '是', '前端可访问'],
   ['SUPABASE_SERVICE_ROLE_KEY', 'Supabase service_role key', '是', '仅服务端，禁止加 NUXT_PUBLIC_ 前缀'],
-  ['STRIPE_SECRET_KEY', 'Stripe 密钥', '否', '仅支付模块'],
-  ['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 密钥', '否', '仅支付模块'],
-  ['STRIPE_PUBLIC_KEY', 'Stripe 公钥', '否', '仅支付模块'],
   ['MOCK_DB', 'Mock 数据库开关', '是', '本地开发 true，生产 false'],
 ]
 
 const migrationRows = [
-  ['0001_core.sql', '核心表（profiles, tasks, activity_logs, storage_trash） + is_admin() + handle_new_user()', '必选'],
-  ['0002_campaign.sql', '营销活动表 campaigns + 留资表 campaign_registrations', '必选（H5依赖）'],
-  ['0003_feedback.sql', '用户评价表 feedbacks（评分1-5 + 管理员审批回复）', '可选'],
-  ['0004_payment.sql', '商品表 products + 订单表 orders + 支付配置 + 订阅表 subscriptions', '可选'],
-  ['0005_api_security.sql', 'API安全策略表 api_security_settings + API Key 表 api_keys（SHA-256哈希）', '必选'],
-  ['0006_system.sql', '系统配置表 system_configs（KV配置） + 埋点种子数据', '必选'],
-  ['0012_archive_audit_logs.sql', '审计日志冷热归档（pg_cron定时任务 + audit-archives 存储桶）', '可选'],
+  ['0001_core.sql', '核心表（profiles, tasks, activity_logs, storage_trash）+ Storage Buckets + is_admin() + handle_new_user()', '必选'],
+  ['0002_iap.sql', 'IAP 模块：products、orders、payment_configs、payment_transactions、subscriptions', '可选（支付依赖）'],
+  ['0003_campaign.sql', '营销活动表 campaigns + 留资表 campaign_registrations', '必选（H5依赖）'],
+  ['0004_feedback.sql', '用户评价表 feedbacks（评分1-5 + 管理员审批回复）', '可选'],
+  ['0005_system.sql', '系统配置表 system_configs（KV配置） + 埋点种子数据', '可选'],
+  ['0099_cron_jobs.sql', 'pg_cron 定时任务（审计归档 + 回收站清理）', '可选'],
 ]
 
 const adminSql = `-- 通过邮箱设置管理员（在 SQL Editor 中执行）
@@ -291,13 +288,13 @@ WHERE id = (
 );`
 
 const seedSql = `-- 插入营销活动种子数据（H5 页面依赖 campaigns 表，迁移后必须执行）
--- 来源：supabase/migrations/0002_campaign.sql
+-- 来源：supabase/migrations/0003_campaign.sql
 INSERT INTO campaigns (subdomain, title, subtitle, badge, color_from, color_to, is_active, cta_text, description, features) VALUES
 ('ai', '🤖 HEHE AI 协作者首发', '基于先进智能体的全自动化提效工作流上线。立即预约，锁定首月免费体验资格。', '限时 10,000 名', 'from-purple-600', 'to-indigo-600', true, '立即预约', '基于先进智能体的全自动化提效工作流', '[{"icon":"⚡","text":"一键生成"},{"icon":"🔒","text":"安全沙盒"},{"icon":"🌐","text":"全球分发"}]'::jsonb),
 ('cloud', '☁️ HEHE 云原生企业私有化', '一键输出物理隔离安全沙盒，专为合规与核心系统容灾设计。首发限时 7 折特惠。', '企业专属首发', 'from-blue-600', 'to-cyan-600', true, '立即预约', '专为合规与核心系统容灾设计', '[{"icon":"🛡️","text":"物理隔离"},{"icon":"📊","text":"实时监控"},{"icon":"🔄","text":"自动容灾"}]'::jsonb),
 ('promo', '🚀 HEHE 全栈单仓极速版', '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。', '开发者特惠季', 'from-rose-600', 'to-orange-600', true, '立即预约', '单人全栈闭环交付', '[{"icon":"🧑‍💻","text":"单人交付"},{"icon":"💰","text":"降本提效"},{"icon":"🚀","text":"极速上线"}]'::jsonb);
 
--- 插入商品种子数据（支付功能可选，来源：supabase/migrations/0004_payment.sql）
+-- 插入商品种子数据（支付功能可选，来源：supabase/migrations/0002_iap.sql）
 INSERT INTO products (name, price, tenant_id) VALUES
 ('HEHE Pro 工具套件', 29.99, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'),
 ('HEHE Enterprise 全套方案', 299.00, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
@@ -308,16 +305,17 @@ const migrationRuleItems = [
   'Admin 检查使用 `is_admin(auth.uid())`，禁止 inline EXISTS 子查询',
   '`is_admin()` 函数使用 SECURITY DEFINER 避免递归权限问题',
   'Money 字段使用 NUMERIC，禁止浮点数',
-  'activity_logs 表只追加不删除，定期归档到 Storage',
-  'API Key 使用 SHA-256 哈希存储，禁止明文',
-  '迁移文件按顺序编号（0001, 0002...），禁止修改已推送的迁移文件',
+  'activity_logs 表只追加不删除，定期归档',
+  '迁移文件按顺序编号（0001, 0002_iap...），禁止修改已推送的迁移文件',
+  'Serverless 环境必须启用 Connection Pooler，避免直连耗尽连接数',
 ]
 
 const loginRows = [
   ['邮箱密码', 'signInWithPassword', 'POST /api/v1/auth/login', '需要注册'],
-  ['Google OAuth', 'signInWithOAuth', 'GET /api/v1/auth/google', 'Supabase Dashboard 配置'],
-  ['GitHub OAuth', 'signInWithOAuth', 'GET /api/v1/auth/github', 'Supabase Dashboard 配置'],
-  ['匿名', 'device-id header', '-', '无需注册，自动分配 UUID'],
+  ['Google OAuth', 'signInWithOAuth', 'provider: google', '海外主流用户'],
+  ['Facebook OAuth', 'signInWithOAuth', 'provider: facebook', '东南亚/拉美用户'],
+  ['Apple OAuth', 'signInWithOAuth', 'provider: apple', 'iOS 用户（App Store 审核要求）'],
+  ['匿名', 'signInAnonymously + device-id', '-', '先浏览后登录，数据可迁移'],
 ]
 
 const profilesRows = [
@@ -338,10 +336,11 @@ const tokenRows = [
 ]
 
 const apiAuthRows = [
-  ['POST', '/api/v1/auth/login', '邮箱密码登录'],
+  ['POST', '/api/v1/auth/login', '统一登录入口（邮箱/OAuth/匿名）'],
   ['POST', '/api/v1/auth/register', '注册新用户'],
-  ['GET', '/api/v1/auth/google', 'Google OAuth 跳转'],
-  ['GET', '/api/v1/auth/github', 'GitHub OAuth 跳转'],
+  ['POST', '/api/v1/auth/link', '匿名用户绑定邮箱'],
+  ['GET', '/api/v1/auth/me', '获取当前用户 profile'],
+  ['PATCH', '/api/v1/auth/profile', '更新用户信息'],
   ['POST', '/api/v1/auth/logout', '登出'],
 ]
 
@@ -349,8 +348,7 @@ const renderingRows = [
   ['/', 'ISR (3600s)', 'SEO 友好的静态生成，首次构建后增量再生'],
   ['/architecture', 'ISR (3600s)', '技术架构白皮书'],
   ['/help', 'ISR (3600s)', '帮助文档中心'],
-  ['/h5/**', 'ISR (600s)', '营销活动页，后台修改后最快 10 分钟更新'],
-  ['/h5-v2/**', 'ISR (600s)', 'H5 v2 活动页'],
+  ['/h5/**', 'SWR (600s)', '营销活动页，后台修改后最快 10 分钟更新'],
   ['/admin/**', 'SPA (ssr: false)', '管理后台纯客户端渲染，隔离 SSR 安全泄露'],
   ['/api/**', 'no-store', '实时 API 零缓存，每次请求实时响应'],
 ]
@@ -507,7 +505,9 @@ const scriptsRows = [
   ['npm run test:api-safety', 'API 鉴权安全扫描（验证 @api-auth 声明与中间件行为一致性）'],
   ['npm run test:supabase', 'Supabase 连接 + 表 + 桶 + 迁移状态健康检查'],
   ['npm run test:storage', 'Storage 全链路集成测试（上传/公开URL/签名URL/RLS）'],
-  ['npm run gen:crud <name>', '生成 CRUD API 控制器（Zod + sendSuccess）'],
+  ['npm run test:payment-strategies', '支付策略工厂测试（stripe/paypal/google-pay/apple-iap/manual）'],
+  ['npm run test:unit', 'Vitest 单元测试'],
+  ['npm run test:e2e', 'Playwright E2E 测试'],
   ['npm run gen:rls <table> [--admin]', '生成 RLS 策略 SQL'],
   ['npm run scaffold <name>', '脚手架生成器：API 路由 + 页面组件'],
   ['npm run seed:demo', '插入演示数据（活动/商品/用户）'],
@@ -597,17 +597,17 @@ const faqData = [
     cat: 'deploy',
     items: [
       { q: '如何部署到 Vercel？', a: '将项目推送到 GitHub，在 Vercel 中导入仓库即可自动部署。确保 .env 中的环境变量已在 Vercel Dashboard → Environment Variables 中配置，尤其是 MOCK_DB=false 和 Supabase 相关密钥。管理员账号通过 Supabase Dashboard 创建。' },
-      { q: '为什么 H5 页面没有内容？', a: 'H5 页面依赖 campaigns 表的数据。切换到真实 Supabase 数据库后，需要执行迁移并插入种子数据。详见本文 Supabase 集成章节。' },
-      { q: '如何配置自定义域名？', a: '在 Vercel Dashboard → Settings → Domains 中添加主域名和通配符域名（*.domain.com），然后在 DNS 提供商处添加对应的 A/CNAME 记录。' },
+      { q: '为什么 H5 页面没有内容？', a: 'H5 页面依赖 campaigns 表的数据。切换到真实 Supabase 数据库后，需要执行迁移（0001_core + 0003_campaign）并插入种子数据。详见本文 Supabase 集成章节。' },
+      { q: '如何配置自定义域名？', a: '在 Vercel Dashboard → Settings → Domains 中添加主域名和通配符域名（*.domain.com），然后在 DNS 提供商处添加对应的 A/CNAME 记录。通配符域名建议使用 Vercel Nameservers。' },
       { q: 'i18n 构建报错 "Cannot read properties of undefined"？', a: '检查所有 t() 调用是否使用了正确的 key 路径。确保 locales/zh.json 和 locales/en.json 的 key 结构完全一致。使用 npm run check 进行类型检查。' },
-      { q: 'build 时 prerender 失败返回 401？', a: '确认没有配置旧的 SITE_ACCESS_PASSWORD 环境变量。项目已移除站点访问密码机制，统一使用管理员账号认证。清除 Vercel 环境变量中的 SITE_ACCESS_PASSWORD。' },
+      { q: 'build 时 prerender 失败？', a: '确认环境变量配置完整；若配置了 SITE_ACCESS_PASSWORD，确保认证相关 API 和 Stripe Webhook 已正确放行；检查 npm run check 是否通过。' },
     ],
   },
   {
     cat: 'database',
     items: [
       { q: '本地开发如何连接 Supabase？', a: '使用 `npm run dev` 默认使用 Mock DB（内存数据库）。使用 `npm run dev:all` 并发启动本地 Supabase 服务和 Nuxt 开发服务器。' },
-      { q: '如何执行数据库迁移？', a: '使用 `supabase login` 登录，然后 `supabase link --project-ref <ref>` 关联项目，最后 `supabase db push` 推送迁移。迁移按编号顺序（0001-0012）执行。' },
+      { q: '如何执行数据库迁移？', a: '使用 `supabase login` 登录，然后 `supabase link --project-ref <ref>` 关联项目，最后 `supabase db push` 推送迁移。迁移按编号顺序（0001、0002_iap、0003_campaign、0004_feedback、0005_system、0006_starpath、0099_cron_jobs）执行。' },
       { q: 'RLS 策略怎么写？', a: '参考 supabase/migrations/ 目录下的迁移文件。Admin 检查必须使用 `is_admin(auth.uid())` SECURITY DEFINER 函数，不要 inline EXISTS 子查询。' },
       { q: '如何从 Mock DB 切换到真实 Supabase？', a: '设置 .env 中 MOCK_DB=false，确保 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY 正确配置。执行 supabase db push 推送迁移。运行 npm run dev:all。' },
       { q: '子域名路由不生效？', a: '确认 DNS 通配符记录已配置（*.example.com → cname.vercel-dns.com）。确认 Vercel Dashboard → Domains 中已添加通配符域名。检查 01.subdomain-rewrite 中间件日志。' },
@@ -616,21 +616,40 @@ const faqData = [
   {
     cat: 'auth',
     items: [
-      { q: '支持哪些登录方式？', a: '支持邮箱密码登录、Google OAuth、GitHub OAuth 和匿名登录。OAuth 需要在 Supabase Dashboard → Authentication → Providers 中配置对应的 Client ID 和 Secret。' },
+      { q: '支持哪些登录方式？', a: '支持邮箱密码登录、Google OAuth、Facebook OAuth、Apple OAuth 和匿名登录。OAuth 需要在 Supabase Dashboard → Authentication → Providers 中配置对应的 Client ID 和 Secret。' },
       { q: 'Token 过期了怎么办？', a: 'Access Token (JWT) 有效期 1 小时，Refresh Token 有效期 30 天。前端 supabase-auth 插件会自动使用 Refresh Token 刷新 Access Token，无需手动处理。' },
-      { q: '如何添加管理员？', a: '通过 Supabase Dashboard → Authentication → Users → Add User 创建用户并勾选 Auto Confirm User，然后在 Table Editor → profiles 中将该用户的 role 字段改为 admin。也可通过 CLI 脚本 node temp-create-admin.mjs 快速创建。' },
+      { q: '如何添加管理员？', a: '通过 Supabase Dashboard → Authentication → Users → Add User 创建用户并勾选 Auto Confirm User，然后在 Table Editor → profiles 中将该用户的 role 字段改为 admin。' },
       { q: '管理后台如何登录？', a: '访问 /admin，使用 Supabase Auth 注册的管理员邮箱和密码登录。登录后会校验用户 role 是否为 admin，非管理员账号将被拒绝。' },
     ],
   },
   {
     cat: 'performance',
     items: [
-      { q: '页面加载慢怎么办？', a: '检查是否使用了 <NuxtImg> 替代原生 <img>；确认图片开启了懒加载和格式转换；检查 ISR 缓存策略是否生效（/ 和 /help 为 3600s，/h5 为 600s）。' },
+      { q: '页面加载慢怎么办？', a: '检查是否使用了 <NuxtImg> 替代原生 <img>；确认图片开启了懒加载和格式转换；检查 ISR/SWR 缓存策略是否生效（/ 和 /help 为 3600s ISR，/h5 为 600s SWR）。' },
       { q: '如何监控线上性能？', a: '项目内置 APM 中间件（00.apm），记录请求耗时和状态码。Admin 后台可查看 APM 监控面板。Vercel Analytics + Speed Insights 提供 Web Vitals 指标。' },
-      { q: 'API 接口有速率限制吗？', a: '是的。06.api-security 中间件实现了固定窗口速率限制，按 IP 或 API Key 限流，返回 X-RateLimit-Limit/Remaining/Reset 头。配置在 api_security_settings 表中。' },
+      { q: 'API 接口有速率限制吗？', a: '是的。05.api-security 中间件实现了多层 API 安全防护，包括 IP 黑白名单、国家限制、API Key 验证、HMAC 签名、端点控制和速率限制。' },
     ],
   },
 ]
+
+// ── 表格数据 ──
+const paymentStrategyRows = [
+  ['types.ts', '策略接口定义', 'PaymentStrategy 接口：createSession + verifyWebhook'],
+  ['factory.ts', '策略工厂', '按 provider 名获取策略实例，支持 stripe / paypal / google-pay / apple-iap / manual'],
+  ['stripe.ts', 'Stripe 策略', 'Stripe Checkout Session + Webhook 签名验证'],
+]
+
+const supabaseStripeRows = [
+  ['Stripe Sync Engine', 'Webhook + 定时回填，将 Stripe 数据同步到本地 Postgres 表（stripe.customers/subscriptions/invoices）', '账单分析、MRR、流失率统计'],
+  ['Stripe FDW', 'Foreign Data Wrapper，实时将 SQL 翻译为 Stripe API 调用', '偶尔的简单查询'],
+]
+
+const paymentComposableRows = [
+  ['createAndRedirect(params)', '创建订单并跳转 Stripe Checkout'],
+  ['checkOrderStatus(orderId)', '查询订单状态'],
+  ['pollOrderStatus(orderId)', '轮询订单状态'],
+]
+
 </script>
 
 <template>
@@ -752,7 +771,7 @@ const faqData = [
             <div class="subsection">
               <h3>{{ '文档结构' }}</h3>
               <div class="doc-grid">
-                <div v-for="(doc, idx) in ([{num:'01', title:'定位与技术栈', desc:'平台边界、技术选型、渲染策略、快速启动、前置条件'},{num:'02', title:'目录结构与路由', desc:'目录结构、多域名路由、中间件执行链（6层）'},{num:'03', title:'环境变量', desc:'变量清单、安全红线、Mock DB 离线开发、管理员配置'},{num:'04', title:'渲染策略对比', desc:'SSR/ISR/SWR 全维度对比、选型决策树、性能数字'},{num:'05', title:'Supabase 集成与数据库迁移', desc:'7个迁移文件、连接池、种子数据、Storage、管理员创建'},{num:'06', title:'Supabase OAuth 体系', desc:'邮箱+社交OAuth、5层纵深防御、Token生命周期、useAuth API'},{num:'08', title:'Vercel 部署', desc:'环境变量、域名配置、渲染策略、检查清单、预览部署'},{num:'09', title:'GitHub 集成', desc:'分支策略、CI/CD、分支保护、Actions 配置、PR 模板'},{num:'10', title:'支付系统', desc:'Stripe策略模式、一次性付款+订阅制、Mock/生产双模式'},{num:'12', title:'社交分享与反馈', desc:'6大平台分享、用户评价系统、审批工作流'},{num:'13', title:'Cloudflare 接入', desc:'DNS配置、SSL/TLS、安全功能、缓存规则'},{num:'14', title:'本地开发', desc:'快速开始、本地Supabase、脚本说明、代码生成器'},{num:'15', title:'API 规范', desc:'统一响应格式、Zod校验、鉴权声明、OpenAPI文档'},{num:'16', title:'国际化配置', desc:'i18n策略、语言检测、翻译文件结构、使用规范'},{num:'17', title:'常见问题', desc:'部署、数据库、认证、性能相关FAQ'}] as any[])" :key="idx" class="doc-card">
+                <div v-for="(doc, idx) in ([{num:'01', title:'快速开始', desc:'项目定位、前置条件、环境变量、Mock DB、快速启动、FAQ'},{num:'02', title:'项目架构', desc:'技术栈、目录结构、多域名路由、中间件链、i18n 国际化'},{num:'03', title:'渲染策略', desc:'SSR/ISR/SWR 全维度对比、选型决策树、性能数字、routeRules 配置'},{num:'04', title:'Supabase 数据库集成', desc:'数据库迁移、RLS 策略、Storage、Seed Data、管理员创建、Connection Pooler'},{num:'05', title:'Vercel 部署', desc:'环境变量、域名配置、子域名路由、SSL、检查清单、预览部署'},{num:'06', title:'GitHub 与 CI/CD', desc:'GitHub 仓库管理、分支策略、Actions CI/CD、PR 流程、分支保护'},{num:'07', title:'用户认证', desc:'Email + Google/Facebook/Apple OAuth + 匿名登录、Token 管理、H5 组件'},{num:'08', title:'支付集成', desc:'Stripe Checkout + 支付策略工厂、Webhook、金额安全、Supabase Stripe 集成'},{num:'09', title:'社交分享与反馈', desc:'6大平台社交分享、用户评价系统、管理员审批工作流'},{num:'10', title:'Cloudflare 配置', desc:'DNS 管理、CDN 加速、安全防护、DNS-only 最佳实践'}] as any[])" :key="idx" class="doc-card">
                   <div class="doc-card-num">{{ doc.num }}</div>
                   <div class="doc-card-body">
                     <h4>{{ doc.title }}</h4>
@@ -888,7 +907,7 @@ const faqData = [
 │   └── utils/             # 服务端工具（db, auth, payment-strategies, storage, api-security）
 ├── supabase/migrations/   # 数据库迁移（0001-0012，7个文件）
 ├── public/                # 静态资源（fonts, favicon, og-image）
-├── scripts/               # 运维脚本（12个 .mjs）
+├── scripts/               # 工具链脚本（10个 .mjs）
 └── docs/                  # 核心架构文档</code></pre>
               </div>
             </div>
@@ -971,7 +990,7 @@ const faqData = [
                 <div class="alert-icon">⚠️</div>
                 <div class="alert-body">
                   <strong>{{ '安全红线' }}</strong>
-                  <p>{{ 'SUPABASE_SERVICE_ROLE_KEY 和 STRIPE_SECRET_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。这些密钥拥有绕过 RLS 的权限。' }}</p>
+                  <p>{{ 'SUPABASE_SERVICE_ROLE_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。支付密钥已迁移至 DB 管理，不再通过环境变量传递。' }}</p>
                 </div>
               </div>
             </div>
@@ -1051,8 +1070,7 @@ const faqData = [
 export default defineNuxtConfig({
   routeRules: {
     '/admin/**': { ssr: false },           // 管理后台 SPA，隔离 SSR 泄露
-    '/h5/**':    { isr: 600 },             // H5 ISR，10min 刷新
-    '/h5-v2/**': { isr: 600 },            // H5 v2 ISR，10min 刷新
+    '/h5/**':    { swr: 600 },             // H5 SWR，10min 刷新
     '/':         { isr: 3600 },            // 首页 ISR，1h 刷新
     '/architecture': { isr: 3600 },        // 架构白皮书 ISR
     '/help':     { isr: 3600 },            // 帮助文档 ISR
@@ -1094,11 +1112,11 @@ export default defineNuxtConfig({
           </div>
         </section>
 
-        <!-- ═══════ S5: Supabase ═══════ -->
+        <!-- ═══════ S5: Supabase 数据库集成 ═══════ -->
         <section id="s5" class="section" v-once>
           <div class="section-header">
             <div class="section-num">05</div>
-            <h2>{{ 'Supabase 集成与数据库迁移' }}</h2>
+            <h2>{{ 'Supabase 数据库集成' }}</h2>
           </div>
           <div class="section-body">
             <div class="subsection">
@@ -1124,19 +1142,19 @@ export default defineNuxtConfig({
                   <div class="schema-box schema-core"><div class="schema-title">activity_logs</div><div class="schema-desc">审计日志 (0001 必选)</div></div>
                 </div>
                 <div class="schema-row">
-                  <div class="schema-box schema-opt"><div class="schema-title">campaigns</div><div class="schema-desc">营销活动 + 留资 (0002)</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">feedbacks</div><div class="schema-desc">用户评价 (0003 可选)</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">products</div><div class="schema-desc">商品 (0004 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">products</div><div class="schema-desc">商品 (0002_iap 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">orders</div><div class="schema-desc">订单 (0002_iap 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">payment_configs</div><div class="schema-desc">支付配置 (0002_iap 可选)</div></div>
                 </div>
                 <div class="schema-row">
-                  <div class="schema-box schema-opt"><div class="schema-title">orders</div><div class="schema-desc">订单 (0004 可选)</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">subscriptions</div><div class="schema-desc">订阅 (0004 可选)</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">api_keys</div><div class="schema-desc">API Key (0005)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">campaigns</div><div class="schema-desc">营销活动 + 留资 (0003)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">feedbacks</div><div class="schema-desc">用户评价 (0004 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">system_configs</div><div class="schema-desc">系统配置 (0005 可选)</div></div>
                 </div>
                 <div class="schema-row">
-                  <div class="schema-box schema-opt"><div class="schema-title">api_security_settings</div><div class="schema-desc">安全策略 (0005)</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">system_configs</div><div class="schema-desc">系统配置 (0006)</div></div>
-                  <div class="schema-box schema-opt"><div class="schema-title">payment_configs</div><div class="schema-desc">支付配置 (0004)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">questionnaire_sessions</div><div class="schema-desc">问卷会话 (0006 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">ai_reports</div><div class="schema-desc">AI 报告 (0006 可选)</div></div>
+                  <div class="schema-box schema-opt"><div class="schema-title">cron</div><div class="schema-desc">定时任务 (0099 可选)</div></div>
                 </div>
               </div>
             </div>
@@ -1406,12 +1424,11 @@ npm run gen:rls &lt;table&gt; [--admin]</code></pre>
           </div>
         </section>
 
-        <!-- ═══════ S5: Migrations ═══════ -->
-        <!-- ═══════ S6: Auth ═══════ -->
-        <section id="s7" class="section" v-once>
+        <!-- ═══════ S6: 用户认证 ═══════ -->
+        <section id="s6" class="section" v-once>
           <div class="section-header">
             <div class="section-num">06</div>
-            <h2>{{ 'Supabase OAuth 体系' }}</h2>
+            <h2>{{ '用户认证' }}</h2>
           </div>
           <div class="section-body">
             <div class="subsection">
@@ -1524,7 +1541,7 @@ CREATE TRIGGER on_auth_user_created
                 <table>
                   <thead><tr><th v-for="col in (['方法', '说明'] as string[])" :key="col">{{ col }}</th></tr></thead>
                   <tbody>
-                    <tr v-for="(row, i) in ([['user', '当前用户信息（响应式 ref）'],['isLoggedIn', '是否已登录（computed）'],['isAdmin', '是否为管理员（computed）'],['signIn(email, password)', '邮箱密码登录'],['signUp(email, password)', '注册新用户'],['signInWithGoogle()', 'Google OAuth 登录'],['signInWithGithub()', 'GitHub OAuth 登录'],['signInAnonymously()', '匿名登录'],['signOut()', '登出']] as string[][])" :key="i">
+                    <tr v-for="(row, i) in ([['user', '当前用户信息（响应式 ref）'],['isLoggedIn', '是否已登录（computed）'],['isAnonymous', '是否匿名用户（computed）'],['isAdmin', '是否为管理员（computed）'],['signUpWithEmail(email, password)', '邮箱注册'],['signInWithEmail(email, password)', '邮箱密码登录'],['signInWithOAuth(provider)', 'OAuth 登录（google/facebook/apple）'],['signInAnonymously()', '匿名登录'],['linkAnonymousToEmail(email, password)', '匿名绑定邮箱'],['signOut()', '登出']] as string[][])" :key="i">
                       <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
                     </tr>
                   </tbody>
@@ -1532,15 +1549,15 @@ CREATE TRIGGER on_auth_user_created
               </div>
             </div>
             <div class="subsection">
-              <h3>{{ '权限守卫（5 层纵深防御）' }}</h3>
-              <p>{{ '服务端中间件链实现分层权限控制：' }}</p>
+              <h3>{{ '中间件身份解析链' }}</h3>
+              <p>{{ '服务端按顺序执行以下中间件，完成身份解析与权限控制：' }}</p>
               <ul>
-                <li><strong>00.apm：</strong>{{ 'APM 性能监控，异步记录请求耗时与状态码' }}</li>
-                <li><strong>01.subdomain：</strong>{{ '子域名自适应路由重写（多域名/单域名模式自动适配）' }}</li>
-                <li><strong>02.auth：</strong>{{ '双模鉴权，解析用户身份（Bearer Header → Cookie → 匿名 device-id）' }}</li>
+                <li><strong>00.apm：</strong>{{ 'APM 性能监控，记录请求耗时与状态码' }}</li>
+                <li><strong>01.subdomain：</strong>{{ '子域名自适应路由重写（主域名→/client，admin→/admin，通配子域名→/h5/{subdomain}）' }}</li>
+                <li><strong>02.auth：</strong>{{ '身份解析，优先级：Bearer Header → Cookie（sb-access-token）→ 匿名 device-id' }}</li>
                 <li><strong>03.admin：</strong>{{ '管理员断言守卫，拦截 /api/admin/*，非 admin 返回 403' }}</li>
-                <li><strong>04.auth-guard：</strong>{{ '用户认证守卫，要求登录用户，匿名用户访问 payments/orders 返回 403' }}</li>
-                <li><strong>06.api-security：</strong>{{ '8 层 API 安全策略：IP黑白名单 → 国家限制 → API Key 验证 → HMAC-SHA256 签名 → 端点控制 → 速率限制' }}</li>
+                <li><strong>04.auth-guard：</strong>{{ '用户认证守卫，支付/订单等敏感端点要求已登录，匿名用户返回 403' }}</li>
+                <li><strong>05.api-security：</strong>{{ 'API 安全策略：IP 黑白名单、国家限制、API Key、HMAC 签名、端点控制、速率限制' }}</li>
               </ul>
             </div>
             <div class="subsection">
@@ -1552,11 +1569,17 @@ CREATE TRIGGER on_auth_user_created
                 <li>{{ '在 Authorized redirect URIs 中添加 Supabase Dashboard 提供的回调 URL' }}</li>
                 <li>{{ '将 Client ID 和 Client Secret 填入 Supabase Dashboard → Authentication → Providers → Google' }}</li>
               </ol>
-              <p><strong>GitHub OAuth：</strong></p>
+              <p><strong>Facebook OAuth：</strong></p>
               <ol>
-                <li>{{ '前往 GitHub → Settings → Developer settings → OAuth Apps → New OAuth App' }}</li>
-                <li>{{ '填写 Application name、Homepage URL、Authorization callback URL' }}</li>
-                <li>{{ '生成 Client Secret 后填入 Supabase Dashboard' }}</li>
+                <li>{{ '前往 Facebook Developers → My Apps → Create App' }}</li>
+                <li>{{ '添加 Facebook Login 产品，配置 Valid OAuth Redirect URIs' }}</li>
+                <li>{{ '将 App ID 和 App Secret 填入 Supabase Dashboard → Authentication → Providers → Facebook' }}</li>
+              </ol>
+              <p><strong>Apple OAuth：</strong></p>
+              <ol>
+                <li>{{ '前往 Apple Developer → Certificates, Identifiers & Profiles → Services IDs' }}</li>
+                <li>{{ '创建 Service ID 并启用 Sign in with Apple' }}</li>
+                <li>{{ '配置回调域名为 Supabase 提供的 auth/v1/callback，下载 Private Key 填入 Supabase Dashboard' }}</li>
               </ol>
             </div>
             <div class="subsection">
@@ -1573,7 +1596,7 @@ CREATE TRIGGER on_auth_user_created
               <p>{{ 'H5 营销页面提供完整的登录/用户组件：' }}</p>
               <ul>
                 <li><code>H5UserBar</code>：{{ '用户状态栏，显示头像/昵称/登出按钮' }}</li>
-                <li><code>H5LoginModal</code>：{{ '登录弹窗，支持邮箱/Google/GitHub/匿名四种方式' }}</li>
+                <li><code>H5LoginModal</code>：{{ '登录弹窗，支持邮箱/Google/Facebook/Apple/匿名五种方式' }}</li>
                 <li>{{ '两个组件均支持 i18n 中英文双语，通过 t() 函数切换语言' }}</li>
               </ul>
             </div>
@@ -1619,10 +1642,10 @@ CREATE TRIGGER on_auth_user_created
           </div>
         </section>
 
-        <!-- ═══════ S7: Vercel Deployment ═══════ -->
-        <section id="s8" class="section" v-once>
+        <!-- ═══════ S7: Vercel 部署 ═══════ -->
+        <section id="s7" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">08</div>
+            <div class="section-num">07</div>
             <h2>{{ 'Vercel 部署' }}</h2>
           </div>
           <div class="section-body">
@@ -1643,7 +1666,7 @@ CREATE TRIGGER on_auth_user_created
                 <table>
                   <thead><tr><th v-for="col in (['变量名', '说明', '是否必须'] as string[])" :key="col">{{ col }}</th></tr></thead>
                   <tbody>
-                    <tr v-for="(row, i) in ([['MOCK_DB', '关闭 Mock 沙盒，设为 false', '必须'],['SUPABASE_URL', 'Supabase 项目 URL（服务端）', '必须'],['SUPABASE_SERVICE_ROLE_KEY', 'Supabase 服务端密钥（禁止加 NUXT_PUBLIC_ 前缀）', '必须'],['NUXT_PUBLIC_SUPABASE_URL', 'Supabase URL（前端公开）', '必须'],['NUXT_PUBLIC_SUPABASE_ANON_KEY', 'Supabase anon 公钥（前端公开）', '必须'],['STRIPE_SECRET_KEY', 'Stripe 密钥（服务端）', '可选'],['STRIPE_WEBHOOK_SECRET', 'Stripe Webhook 签名密钥', '可选'],['STRIPE_PUBLIC_KEY', 'Stripe 公钥', '可选']] as string[][])" :key="i">
+                    <tr v-for="(row, i) in ([['MOCK_DB', '关闭 Mock 沙盒，设为 false', '必须'],['SUPABASE_URL', 'Supabase 项目 URL（服务端）', '必须'],['SUPABASE_SERVICE_ROLE_KEY', 'Supabase 服务端密钥（禁止加 NUXT_PUBLIC_ 前缀）', '必须'],['NUXT_PUBLIC_SUPABASE_URL', 'Supabase URL（前端公开）', '必须'],['NUXT_PUBLIC_SUPABASE_ANON_KEY', 'Supabase anon 公钥（前端公开）', '必须']] as string[][])" :key="i">
                       <td><code>{{ row[0] }}</code></td>
                       <td>{{ row[1] }}</td>
                       <td><span :class="row[2] === '必须' ? 'badge badge-purple' : 'badge badge-cyan'">{{ row[2] }}</span></td>
@@ -1655,7 +1678,7 @@ CREATE TRIGGER on_auth_user_created
                 <div class="alert-icon">🔒</div>
                 <div class="alert-body">
                   <strong>{{ '安全红线' }}</strong>
-                  <p>{{ 'SUPABASE_SERVICE_ROLE_KEY 和 STRIPE_SECRET_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。只有 NUXT_PUBLIC_ 前缀的变量才会暴露给浏览器端。' }}</p>
+                  <p>{{ 'SUPABASE_SERVICE_ROLE_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。只有 NUXT_PUBLIC_ 前缀的变量才会暴露给浏览器端。支付密钥已迁移至 DB。' }}</p>
                 </div>
               </div>
               <p>{{ '⚠️ 环境变量修改后需重新部署才能生效。可推送一个空 commit 触发：' }}</p>
@@ -1777,7 +1800,7 @@ import { SpeedInsights } from '@vercel/speed-insights/nuxt'
                 <li>{{ '在 Stripe Dashboard → Developers → Webhooks → Add endpoint' }}</li>
                 <li>{{ 'Endpoint URL 设置为 ' }}<code>https://your-domain.com/api/v1/payments/webhook</code></li>
                 <li>{{ '选择要监听的事件：' }}<code>payment_intent.succeeded</code>, <code>payment_intent.payment_failed</code></li>
-                <li>{{ '获取 Webhook Signing Secret 并填入 Vercel 环境变量 ' }}<code>STRIPE_WEBHOOK_SECRET</code></li>
+                <li>{{ '获取 Webhook Signing Secret 并填入管理后台「业务运营 → 支付管理」→ Stripe Webhook Secret' }}</li>
                 <li><strong>{{ '本地测试：' }}</strong><code>stripe listen --forward-to localhost:3000/api/v1/payments/webhook</code></li>
               </ol>
             </div>
@@ -1893,11 +1916,11 @@ git push origin feature/new-campaign
           </div>
         </section>
 
-        <!-- ═══════ S8: GitHub ═══════ -->
-        <section id="s9" class="section" v-once>
+        <!-- ═══════ S8: GitHub 与 CI/CD ═══════ -->
+        <section id="s8" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">09</div>
-            <h2>{{ 'GitHub 集成' }}</h2>
+            <div class="section-num">08</div>
+            <h2>{{ 'GitHub 与 CI/CD' }}</h2>
           </div>
           <div class="section-body">
             <div class="subsection">
@@ -2122,19 +2145,19 @@ dist/
           </div>
         </section>
 
-        <!-- ═══════ S9: Stripe Payments ═══════ -->
-        <section id="s10" class="section" v-once>
+        <!-- ═══════ S9: 支付集成 ═══════ -->
+        <section id="s9" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">10</div>
-            <h2>{{ '支付系统' }}</h2>
+            <div class="section-num">09</div>
+            <h2>{{ '支付集成' }}</h2>
           </div>
           <div class="section-body">
             <div class="subsection">
               <h3>{{ '支付流程' }}</h3>
               <div class="flow-steps">
-                <template v-for="(step, i) in (['用户选择商品', '创建 PaymentIntent', 'Stripe Elements 收集支付信息', '确认支付', 'Webhook 回调更新订单状态'] as string[])" :key="i">
+                <template v-for="(step, i) in (['用户点击支付', 'POST /api/v1/payments/create 创建订单', '跳转 Stripe Checkout 托管页', '用户完成支付', '双通道回调更新订单状态'] as string[])" :key="i">
                   <div class="flow-step"><span class="flow-num">{{ i + 1 }}</span>{{ step }}</div>
-                  <div v-if="i < (['用户选择商品', '创建 PaymentIntent', 'Stripe Elements 收集支付信息', '确认支付', 'Webhook 回调更新订单状态'] as string[]).length - 1" class="flow-arrow">→</div>
+                  <div v-if="i < (['用户点击支付', 'POST /api/v1/payments/create 创建订单', '跳转 Stripe Checkout 托管页', '用户完成支付', '双通道回调更新订单状态'] as string[]).length - 1" class="flow-arrow">→</div>
                 </template>
               </div>
             </div>
@@ -2159,20 +2182,35 @@ dist/
               </div>
             </div>
             <div class="subsection">
-              <h3>{{ '支付策略模式' }}</h3>
-              <p>{{ '支付系统采用策略模式设计（server/utils/payment-strategies/），支持多支付渠道扩展：' }}</p>
+              <h3>{{ '支付策略工厂' }}</h3>
+              <p>{{ '支付系统采用策略工厂模式（server/utils/payment-strategies/），统一接口、按需扩展：' }}</p>
               <div class="table-wrap">
                 <table>
                   <thead><tr><th v-for="col in (['文件', '职责', '说明'] as string[])" :key="col">{{ col }}</th></tr></thead>
                   <tbody>
-                    <tr v-for="(row, i) in ([['types.ts', '策略接口定义', 'PaymentStrategy 接口：createSession + verifyWebhook'],['factory.ts', '策略工厂', '按 provider 名获取策略实例，预留 PayPal/WeChat 扩展'],['stripe.ts', 'Stripe 策略', '支持 subscription（订阅制）和 payment（一次性付款）两种模式']] as string[][])" :key="i">
+                    <tr v-for="(row, i) in paymentStrategyRows" :key="i">
                       <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <p><strong>{{ 'Stripe Webhook 事件：' }}</strong>{{ 'checkout.session.completed、customer.subscription.created/updated/deleted、invoice.payment_failed、charge.refunded' }}</p>
-              <p><strong>{{ '支付配置来源：' }}</strong>{{ '生产环境从 ' }}<code>payment_configs</code> {{ '和 ' }}<code>system_configs</code> {{ '表动态读取 Stripe 密钥，无需硬编码。' }}</p>
+              <p><strong>{{ 'Stripe Webhook 事件：' }}</strong>{{ 'checkout.session.completed、charge.refunded' }}</p>
+              <p><strong>{{ '双通道回调：' }}</strong>{{ '前端 success_url 跳转 + 服务端 Webhook 异步通知，双重保障订单状态同步。' }}</p>
+            </div>
+            <div class="subsection">
+              <h3>{{ 'Supabase 内置 Stripe 集成方案' }}</h3>
+              <p>{{ 'Supabase 提供两套官方 Stripe 数据集成方案，定位不同：' }}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th v-for="col in (['方案', '原理', '适用场景'] as string[])" :key="col">{{ col }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(row, i) in supabaseStripeRows" :key="i">
+                      <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>{{ '本项目选择直接调用 Stripe SDK 处理支付流程；如仅需账单数据分析，可使用 Supabase Dashboard → Integrations → Stripe Sync Engine 一键安装。' }}</p>
             </div>
             <div class="subsection">
               <h3>{{ 'orders 表 RLS 策略' }}</h3>
@@ -2187,7 +2225,7 @@ dist/
                 <table>
                   <thead><tr><th v-for="col in (['方法', '说明'] as string[])" :key="col">{{ col }}</th></tr></thead>
                   <tbody>
-                    <tr v-for="(row, i) in ([['createOrder(productId, quantity)', '创建订单，返回 orderId + clientSecret'],['confirmPayment(orderId)', '确认支付，返回订单状态'],['orders', '当前用户的订单列表（响应式 ref）'],['currentOrder', '当前正在处理的订单']] as string[][])" :key="i">
+                    <tr v-for="(row, i) in paymentComposableRows" :key="i">
                       <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
                     </tr>
                   </tbody>
@@ -2264,9 +2302,9 @@ dist/
               <h3>{{ 'Stripe 账号注册与配置' }}</h3>
               <ol>
                 <li>{{ '前往 ' }}<a href="https://dashboard.stripe.com/register" target="_blank">dashboard.stripe.com/register</a> {{ '注册账号' }}</li>
-                <li>{{ '在 Developers → API keys 中获取 Publishable key 和 Secret key' }}</li>
+                <li>{{ '在 Developers → API keys 中获取 Secret key 和 Publishable key' }}</li>
                 <li>{{ '测试模式使用以 sk_test_ 开头的密钥，生产模式使用 sk_live_' }}</li>
-                <li>{{ '将 STRIPE_SECRET_KEY 填入 .env 和 Vercel 环境变量' }}</li>
+                <li>{{ '将密钥配置到管理后台「业务运营 → 支付管理」（已迁移至 DB，无需 .env）' }}</li>
               </ol>
             </div>
             <div class="subsection">
@@ -2274,10 +2312,10 @@ dist/
               <p>{{ '服务端使用 Stripe SDK 的 constructEvent() 方法验证 Webhook 签名，防止伪造回调。关键代码：' }}</p>
               <div class="code-block">
                 <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
-                <pre><code>const sig = getHeader(event, 'stripe-signature')
-const stripeEvent = stripe.webhooks.constructEvent(
-  body, sig, process.env.STRIPE_WEBHOOK_SECRET
-)</code></pre>
+                <pre><code>// Webhook 签名已迁移至策略层（server/utils/payment-strategies/stripe.ts），
+// 从 system_configs.payment_secrets 读取密钥，自动完成签名验证。
+const strategy = getPaymentStrategy('stripe')
+const result = await strategy.verifyWebhook(rawBody, signature)</code></pre>
               </div>
             </div>
             <div class="subsection">
@@ -2297,88 +2335,17 @@ const stripeEvent = stripe.webhooks.constructEvent(
                   Q: {{ 'Webhook 收不到回调？' }}
                 </div>
                 <div class="faq-a" v-show="faqExpanded['pay-trouble-1']">
-                  A: {{ '检查 Stripe Dashboard → Webhooks 中端点 URL 是否正确、事件是否已选择（payment_intent.succeeded）。使用 Stripe CLI 的 stripe trigger 命令手动发送测试事件。确认 Webhook Secret 环境变量配置正确。' }}
+                  A: {{ '检查 Stripe Dashboard → Webhooks 中端点 URL 是否正确、事件是否已选择（checkout.session.completed、charge.refunded）。使用 Stripe CLI 的 stripe trigger 命令手动发送测试事件。确认管理后台 Stripe Webhook Secret 配置正确。' }}
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- ═══════ S11: Admin Dashboard ═══════ -->
-        <section id="s11" class="section" v-once>
+        <!-- ═══════ S10: Social Share & Feedback ═══════ -->
+        <section id="s10" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">11</div>
-            <h2>{{ '管理后台' }}</h2>
-          </div>
-          <div class="section-body">
-            <div class="subsection">
-              <h3>{{ '登录方式' }}</h3>
-              <p>{{ '管理后台通过 ' }}<code>/admin</code> {{ '路径访问（SPA 模式，纯客户端渲染）。使用 Supabase Auth 邮箱密码登录，登录后会校验用户 ' }}<code>role</code> {{ ' 是否为 ' }}<code>admin</code>{{ '，非管理员账号将被拒绝访问。管理员账号通过 Supabase Dashboard 或 ' }}<code>temp-create-admin.mjs</code> {{ '脚本创建。' }}</p>
-            </div>
-            <div class="subsection">
-              <h3>{{ '三种导航模式' }}</h3>
-              <p>{{ '管理员可在 Header 右侧切换器中自由选择三种导航模式，偏好持久化至 ' }}<code>localStorage('admin-nav-mode')</code>{{ '：' }}</p>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th v-for="col in (['模式', '宽度', '特点'] as string[])" :key="col">{{ col }}</th></tr></thead>
-                  <tbody>
-                    <tr v-for="(row, i) in ([['Grouped（分组折叠）', '272px / 64px（折叠）', '菜单按5组分类折叠，激活项左侧3px紫蓝渐变竖线'],['Tabbed（双栏分区）', '192px 子侧栏', '域驱动极简子侧栏，Header内Tab栏 Cmd+1/2/3切换'],['Compact（极简命令）', '64px / 208px（hover展开）', '仅5个高频项，Cmd+K命令面板搜索']] as string[][])" :key="i">
-                      <td v-for="(cell, j) in row" :key="j"><strong v-if="j === 0">{{ cell }}</strong><span v-else>{{ cell }}</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '四种主题' }}</h3>
-              <p>{{ '管理后台支持 4 种主题切换，通过 ' }}<code>useAdminTheme</code> {{ 'composable 管理，CSS Variables 驱动：' }}</p>
-              <ul>
-                <li><strong>Dark：</strong>{{ '默认深靛蓝暗色主题，灵感来自 Linear/Vercel' }}</li>
-                <li><strong>Light：</strong>{{ '亮色主题，适合日间办公' }}</li>
-                <li><strong>Classic Dark：</strong>{{ '经典暗色主题' }}</li>
-                <li><strong>System：</strong>{{ '跟随系统 ' }}<code>prefers-color-scheme</code> {{ '自动切换' }}</li>
-              </ul>
-            </div>
-            <div class="subsection">
-              <h3>{{ '管理后台功能模块' }}</h3>
-              <p>{{ '管理后台包含以下完整功能模块（共 20+ 个管理组件）：' }}</p>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th v-for="col in (['模块', '功能'] as string[])" :key="col">{{ col }}</th></tr></thead>
-                  <tbody>
-                    <tr v-for="(row, i) in ([['概览 (Overview)', '核心指标卡片、收入趋势、活跃用户统计'],['任务管理 (Tasks)', '业务任务 CRUD、状态流转、定时任务触发'],['活动管理 (Campaigns)', '营销活动配置、留资管理（leads）、H5页面动态内容'],['商品管理 (Products)', '商品CRUD、Stripe产品同步'],['订单管理 (Orders)', '订单列表、状态管理、退款处理'],['订阅管理 (Subscriptions)', 'Stripe订阅周期管理'],['用户管理 (Users)', '用户列表、角色管理、统计数据'],['评价管理 (Feedback)', '用户评价审核、回复管理'],['收入统计 (Revenue)', '收入数据看板、趋势分析'],['媒体库 (Media)', 'Storage文件管理、批量删除、回收站、详情预览'],['API 安全 (Security)', 'API Key管理、安全策略配置、安全事件日志'],['审计日志 (Audit)', '管理员操作记录、冷热归档到Storage'],['APM 监控', '请求耗时、状态码、吞吐量实时面板'],['系统配置 (Config)', '系统KV配置、通知设置、支付通道配置'],['管理员账号', '密码修改、头像设置']] as string[][])" :key="i">
-                      <td v-for="(cell, j) in row" :key="j"><strong v-if="j === 0">{{ cell }}</strong><span v-else>{{ cell }}</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="subsection">
-              <h3>{{ '命令面板 (Cmd+K)' }}</h3>
-              <p>{{ '全局 ' }}<code>Cmd+K</code> {{ '（Windows: ' }}<code>Ctrl+K</code>{{ '）唤起命令面板，支持：' }}</p>
-              <ul>
-                <li>{{ '模糊搜索所有菜单项' }}</li>
-                <li>{{ '最近使用记录（localStorage 持久化）' }}</li>
-                <li>{{ '↑↓ 键盘导航 + Enter 确认 + Esc 关闭' }}</li>
-                <li>{{ '分组展示（运营/营销/系统）' }}</li>
-              </ul>
-            </div>
-            <div class="subsection">
-              <h3>{{ 'PWA 离线支持' }}</h3>
-              <p>{{ '管理后台通过 @vite-pwa/nuxt 实现 PWA 功能，配置作用域仅限 ' }}<code>/admin/</code>{{ '：' }}</p>
-              <ul>
-                <li><strong>{{ '缓存策略：' }}</strong>{{ 'NetworkFirst，优先网络请求，失败时回退缓存' }}</li>
-                <li><strong>{{ '离线访问：' }}</strong>{{ '已访问过的管理页面在无网络时可离线查看' }}</li>
-                <li><strong>{{ '安装到桌面：' }}</strong>{{ '支持 Add to Home Screen，像原生 App 一样使用' }}</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══════ S12: Social Share & Feedback ═══════ -->
-        <section id="s12" class="section" v-once>
-          <div class="section-header">
-            <div class="section-num">12</div>
+            <div class="section-num">10</div>
             <h2>{{ '社交分享与反馈' }}</h2>
           </div>
           <div class="section-body">
@@ -2484,11 +2451,11 @@ const stripeEvent = stripe.webhooks.constructEvent(
           </div>
         </section>
 
-        <!-- ═══════ S12: Cloudflare ═══════ -->
-        <section id="s13" class="section" v-once>
+        <!-- ═══════ S11: Cloudflare 配置 ═══════ -->
+        <section id="s11" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">13</div>
-            <h2>{{ 'Cloudflare 接入' }}</h2>
+            <div class="section-num">11</div>
+            <h2>{{ 'Cloudflare 配置' }}</h2>
           </div>
           <div class="section-body">
             <div class="alert alert-info">
@@ -2631,10 +2598,10 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
           </div>
         </section>
 
-        <!-- ═══════ S13: Local Development ═══════ -->
-        <section id="s14" class="section" v-once>
+        <!-- ═══════ S12: Local Development ═══════ -->
+        <section id="s12" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">14</div>
+            <div class="section-num">12</div>
             <h2>{{ '本地开发' }}</h2>
           </div>
           <div class="section-body">
@@ -2684,10 +2651,10 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
           </div>
         </section>
 
-        <!-- ═══════ S14: API Response Format ═══════ -->
-        <section id="s15" class="section" v-once>
+        <!-- ═══════ S13: API Response Format ═══════ -->
+        <section id="s13" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">15</div>
+            <div class="section-num">13</div>
             <h2>{{ 'API 规范' }}</h2>
           </div>
           <div class="section-body">
@@ -2751,10 +2718,10 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
           </div>
         </section>
 
-        <!-- ═══════ S15: i18n Configuration ═══════ -->
-        <section id="s16" class="section" v-once>
+        <!-- ═══════ S14: i18n Configuration ═══════ -->
+        <section id="s14" class="section" v-once>
           <div class="section-header">
-            <div class="section-num">16</div>
+            <div class="section-num">14</div>
             <h2>{{ '国际化配置' }}</h2>
           </div>
           <div class="section-body">
@@ -2807,10 +2774,10 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
           </div>
         </section>
 
-        <!-- ═══════ S16: FAQ ═══════ -->
-        <section id="s17" class="section">
+        <!-- ═══════ S15: FAQ ═══════ -->
+        <section id="s15" class="section">
           <div class="section-header">
-            <div class="section-num">17</div>
+            <div class="section-num">15</div>
             <h2>{{ '常见问题' }}</h2>
           </div>
           <div class="section-body">

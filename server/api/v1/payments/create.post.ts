@@ -5,7 +5,7 @@ import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 import { assertUser } from '~~/server/utils/auth'
 import { logAuditEvent } from '~~/server/utils/logger'
-import { createCheckoutSession, generateOrderNo } from '~~/server/utils/payments'
+import { generateOrderNo } from '~~/server/utils/payments'
 
 defineRouteMeta({
   openAPI: {
@@ -80,7 +80,14 @@ export default defineEventHandler(async (event) => {
     if (process.env.MOCK_DB === 'true') {
       stripeCustomerId = `cus_mock_${user.id}`
     } else {
-      const stripe = getStripeClient()
+      // 从 system_configs 读取 Stripe 私钥（已迁移至 DB 管理）
+      const { data: secretsRow } = await db
+        .from('system_configs')
+        .select('value')
+        .eq('key', 'payment_secrets')
+        .single()
+      const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
+      const stripe = getStripeClient(stripeSecretKey)
       if (stripe) {
         try {
           const customer = await stripe.customers.create({

@@ -41,16 +41,20 @@ export default defineEventHandler(async (event) => {
 
   const items = campaigns || []
   try {
-    // 优化：仅对当前页的 campaigns 并发 count 统计，避免全表拉取
-    await Promise.all(
-      items.map(async (cam: any) => {
-        const { count } = await db
-          .from('campaign_registrations')
-          .select('*', { count: 'exact', head: true })
-          .eq('subdomain', cam.subdomain)
-        cam.leads_count = count || 0
-      })
-    )
+    // 优化：单次批量查询替代 N 次独立 count 查询
+    const subdomains = items.map((c: any) => c.subdomain)
+    const { data: registrations } = await db
+      .from('campaign_registrations')
+      .select('subdomain')
+      .in('subdomain', subdomains)
+
+    const countMap = new Map<string, number>()
+    ;(registrations || []).forEach((r: any) => {
+      countMap.set(r.subdomain, (countMap.get(r.subdomain) || 0) + 1)
+    })
+    for (const cam of items) {
+      (cam as any).leads_count = countMap.get(cam.subdomain) || 0
+    }
   } catch {
     for (const cam of items) {
       (cam as any).leads_count = 0

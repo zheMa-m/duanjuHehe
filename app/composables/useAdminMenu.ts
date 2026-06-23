@@ -1,6 +1,6 @@
 /**
  * 管理后台统一菜单数据层
- * 三种导航模式（grouped / tabbed / compact）共享此数据源
+ * 两种导航模式（grouped / tabbed）共享此数据源
  */
 
 export interface MenuItem {
@@ -36,9 +36,11 @@ export const menuItems: MenuItem[] = [
   { key: 'orders', label: '订单', icon: 'i-lucide-receipt', group: 'commerce', component: 'AdminOrders', shortcut: '⌘3', shortcutKey: '3' },
   { key: 'subscriptions', label: '订阅', icon: 'i-lucide-refresh-cw', group: 'commerce', component: 'AdminSubscriptions' },
   { key: 'revenue', label: '收入', icon: 'i-lucide-trending-up', group: 'commerce', component: 'AdminRevenue', shortcut: '⌘4', shortcutKey: '4' },
+  { key: 'payments', label: '支付', icon: 'i-lucide-credit-card', group: 'commerce', component: 'AdminPayments' },
   // marketing
   { key: 'campaigns', label: '活动', icon: 'i-lucide-megaphone', group: 'marketing', component: 'AdminCampaigns', shortcut: '⌘5', shortcutKey: '5' },
   { key: 'feedback', label: '反馈', icon: 'i-lucide-message-square', group: 'marketing', component: 'AdminFeedback' },
+  { key: 'starpath', label: '问卷', icon: 'i-lucide-star', group: 'marketing', component: 'AdminStarpath' },
   { key: 'users', label: '用户', icon: 'i-lucide-users', group: 'marketing', component: 'AdminUsers' },
   // content
   { key: 'media', label: '媒体库', icon: 'i-lucide-image', group: 'content', component: 'AdminMedia' },

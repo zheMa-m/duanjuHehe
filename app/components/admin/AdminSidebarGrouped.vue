@@ -224,17 +224,17 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   background: transparent; cursor: pointer;
   text-align: left;
   font-size: 14px; font-weight: 450;
-  color: rgba(255,255,255,0.42);
+  color: var(--admin-text-muted, rgba(255,255,255,0.42));
   letter-spacing: -0.008em;
   transition: all 0.15s ease;
   margin-bottom: 2px;
 }
 .nav-item:hover {
-  color: rgba(255,255,255,0.82);
+  color: var(--admin-text-secondary, rgba(255,255,255,0.82));
   background: rgba(255,255,255,0.035);
 }
 .nav-item--active {
-  color: #fff !important;
+  color: var(--admin-text-primary, #fff) !important;
   background: rgba(99,102,241,0.08) !important;
 }
 .nav-item--active:hover {
@@ -255,13 +255,12 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 /* 图标 */
 .nav-item__icon {
   font-size: 17px; flex-shrink: 0;
-  opacity: 0.5;
+  color: var(--admin-text-muted, rgba(255,255,255,0.40));
   transition: opacity 0.15s, color 0.15s, filter 0.15s;
 }
-.nav-item:hover .nav-item__icon { opacity: 0.85; }
+.nav-item:hover .nav-item__icon { color: var(--admin-text-secondary, rgba(255,255,255,0.65)); }
 .nav-item__icon--active {
-  opacity: 1 !important;
-  color: var(--brand-accent-soft);
+  color: var(--brand-accent-soft) !important;
   filter: drop-shadow(0 0 6px rgba(165,180,252,0.4));
 }
 

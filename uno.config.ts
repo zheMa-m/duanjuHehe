@@ -1,10 +1,23 @@
-import { defineConfig, presetUno, presetAttributify, presetIcons } from 'unocss'
+import { defineConfig, presetUno, presetAttributify, presetIcons, transformerDirectives, transformerVariantGroup } from 'unocss'
 
 export default defineConfig({
   presets: [
     presetUno(),
     presetAttributify(),
-    presetIcons({ scale: 1.2 }),
+    presetIcons({
+      scale: 1.2,
+      extraProperties: {
+        'display': 'inline-block',
+        'vertical-align': 'middle',
+      },
+      collections: {
+        lucide: () => import('@iconify-json/lucide/icons.json').then(m => m.default),
+      },
+    }),
+  ],
+  transformers: [
+    transformerDirectives(),
+    transformerVariantGroup(),
   ],
   theme: {
     colors: {
@@ -31,12 +44,38 @@ export default defineConfig({
         card: '#131d35',
         elevated: '#1a2540',
         border: '#1e2d4d',
-      }
+      },
+      // StarPath 命名空间颜色 token
+      'starpath': {
+        // 渐变背景：from #000522 (0.311%) → via #270c4d (37.588%) → to #000522
+        'bg-start': '#000522',
+        'bg-mid': '#270c4d',
+        'bg-end': '#000522',
+        // 主品牌 / 选项边框
+        primary: '#7262a0',
+        'primary-soft': '#d0c7ff',
+        // 主 CTA 渐变
+        'cta-grad-from': '#321cff',
+        'cta-grad-to': '#9a2dff',
+        // CTA 按钮（其它专用色）
+        'cta-paypal': '#ffc43a',
+        'cta-card': '#0a6fde',
+        'cta-pay': '#ffffff',
+        // 文本透明度
+        'text-main': '#ffffff',
+        'text-sub': 'rgba(255,255,255,0.7)',
+        'text-muted': 'rgba(255,255,255,0.6)',
+        'text-disabled': 'rgba(255,255,255,0.4)',
+        // 选项卡片
+        'option-bg': 'rgba(255,255,255,0.1)',
+        'option-bg-active': 'rgba(255,255,255,0.2)',
+      },
     },
     fontFamily: {
       sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
       mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-    }
+      'starpath-display': ['Inter', '"PingFang SC"', 'system-ui', 'sans-serif'],
+    },
   },
   shortcuts: {
     // Apple/Stripe 级别玻璃拟态卡片
@@ -49,6 +88,16 @@ export default defineConfig({
     'badge-blue': 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/15 text-brand-primary border border-brand-primary/25',
     'badge-green': 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-success/15 text-brand-success border border-brand-success/25',
     'badge-red': 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-danger/15 text-brand-danger border border-brand-danger/25',
+    // StarPath shortcuts
+    'starpath-page': 'min-h-dvh w-full relative overflow-x-hidden bg-starpath-bg-start text-white',
+    'starpath-frame': 'min-h-dvh w-full max-w-[375px] mx-auto relative',
+    'starpath-bg-gradient': 'absolute inset-0 bg-gradient-to-b from-starpath-bg-start via-starpath-bg-mid to-starpath-bg-end pointer-events-none',
+    'starpath-card': 'w-[343px] mx-auto h-[53px] rounded-[10px] border border-starpath-primary bg-starpath-option-bg px-4 flex items-center text-xs text-white',
+    'starpath-card-active': 'bg-starpath-option-bg-active border-white',
+    'starpath-btn-primary': 'w-[323px] mx-auto h-[48px] rounded-[110px] bg-gradient-to-r from-starpath-cta-grad-from to-starpath-cta-grad-to text-white text-[16px] font-semibold tracking-[-0.165px] flex items-center justify-center disabled:opacity-50 active:opacity-90',
+    'starpath-btn-paypal': 'w-[323px] mx-auto h-[44px] rounded-[110px] bg-starpath-cta-paypal flex items-center justify-center',
+    'starpath-btn-pay': 'w-[323px] mx-auto h-[44px] rounded-[110px] bg-starpath-cta-pay text-black flex items-center justify-center gap-1.5',
+    'starpath-btn-card': 'w-[323px] mx-auto h-[44px] rounded-[110px] bg-starpath-cta-card flex items-center justify-center gap-2',
   },
   safelist: [
     'glass-card',
@@ -71,6 +120,8 @@ export default defineConfig({
     'i-lucide-file-text',
     'i-lucide-eye',
     'i-lucide-eye-off',
+    'i-lucide-credit-card',
+    'i-lucide-star',
     // 主题切换器图标（动态绑定）
     'i-lucide-moon',
     'i-lucide-sun',
@@ -91,5 +142,20 @@ export default defineConfig({
     'i-lucide-clock',
     'i-lucide-download',
     'i-lucide-info',
-  ]
+    // StarPath safelist
+    'bg-starpath-primary',
+    'bg-starpath-cta-paypal',
+    'bg-starpath-cta-card',
+    'from-starpath-cta-grad-from',
+    'to-starpath-cta-grad-to',
+    'text-starpath-cta-grad-from',
+    'bg-gradient-to-r',
+  ],
+  content: {
+    pipeline: {
+      include: [
+        /\.(vue|ts|tsx|jsx|mdx?|html)($|\?)/,
+      ],
+    },
+  },
 })

@@ -103,11 +103,21 @@ export default defineEventHandler(async (event) => {
   // ── 环境变量配置状态（仅标记是否已配置，不暴露值）────────
   const envKeys = [
     'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
-    'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET',
   ]
   const envConfig: Record<string, boolean> = {}
   for (const key of envKeys) {
     envConfig[key] = !!process.env[key]
+  }
+
+  // ── 支付凭证 DB 配置状态（私钥已迁移至 system_configs）────
+  envConfig['DB: payment_secrets'] = false
+  try {
+    const db = getDB(event)
+    const { data } = await db.from('system_configs').select('value').eq('key', 'payment_secrets').single()
+    const secrets = data?.value || {}
+    envConfig['DB: payment_secrets'] = !!(secrets.stripe?.secretKey || secrets.paypal?.clientSecret || secrets.apple_iap?.sharedSecret)
+  } catch {
+    envConfig['DB: payment_secrets'] = false
   }
 
   return sendSuccess(event, {

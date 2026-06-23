@@ -66,6 +66,18 @@ export const mockCampaignsTable: Array<Record<string, any>> = [
     ga_measurement_id: null,
     meta_pixel_id: null,
     tiktok_pixel_id: null,
+  },
+  {
+    id: 'c-starpath',
+    subdomain: 'starpath',
+    title: 'StarPath — AI 占星报告',
+    subtitle: '个性化 AI 占星分析：认识你的星辰蓝图',
+    badge: 'AI 星盘解读',
+    color_from: 'from-purple-600',
+    color_to: 'to-indigo-600',
+    ga_measurement_id: null,
+    meta_pixel_id: null,
+    tiktok_pixel_id: null,
   }
 ]
 
@@ -91,10 +103,13 @@ export const mockProfilesTable: Array<Record<string, any>> = [
   { id: 'mock-user-101', username: 'charlie_dev', role: 'user', plan_status: 'enterprise', avatar_url: null, display_name: 'Charlie Dev', auth_provider: 'apple', provider_id: 'apple-789', device_id: null, is_anonymous: false, email_verified: true, email: 'charlie@dev.io', phone: '13912345678', created_at: new Date(Date.now() - 86400000 * 60).toISOString(), updated_at: new Date(Date.now() - 86400000).toISOString() },
 ]
 
-// 内存 Mock 支付通道配置表
+// 内存 Mock 支付通道配置表（5 种支付渠道：stripe / paypal / google_pay / apple_iap / manual）
 export const mockPaymentConfigsTable: Array<Record<string, any>> = [
-  { provider: 'stripe', is_enabled: true, public_keys: { publicKey: 'pk_test_mock_hehe' }, extra_meta: {}, updated_at: new Date().toISOString() },
-  { provider: 'paypal', is_enabled: false, public_keys: { clientId: 'mock_paypal_client' }, extra_meta: {}, updated_at: new Date().toISOString() }
+  { provider: 'stripe',    is_enabled: true,  public_keys: { publicKey: 'pk_test_mock_hehe' },      extra_meta: { environment: 'test' },  updated_at: new Date().toISOString() },
+  { provider: 'paypal',    is_enabled: false, public_keys: { clientId: 'mock_paypal_client' },       extra_meta: { environment: 'sandbox' }, updated_at: new Date().toISOString() },
+  { provider: 'google_pay', is_enabled: false, public_keys: { merchantId: 'mock_gpay_merchant' },    extra_meta: { environment: 'TEST' },   updated_at: new Date().toISOString() },
+  { provider: 'apple_iap', is_enabled: false, public_keys: { bundleId: 'com.hehe.app' },              extra_meta: { environment: 'sandbox' }, updated_at: new Date().toISOString() },
+  { provider: 'manual',    is_enabled: true,  public_keys: {},                                        extra_meta: {},                        updated_at: new Date().toISOString() },
 ]
 
 // 内存 Mock 订阅关系表
@@ -138,6 +153,9 @@ export const mockCampaignRegistrationsTable: Array<Record<string, any>> = [
   { id: 'reg-2', campaign_id: 'c-ai', subdomain: 'ai', phone: '13912345678', email: 'lead2@example.com', user_id: null, created_at: new Date(Date.now() - 3600000).toISOString() },
 ]
 
+// 内存 Mock 管理员 2FA 表
+export const mockAdmin2FATable: Array<Record<string, any>> = []
+
 // 内存 Mock 回收站表
 export const mockStorageTrashTable: Array<Record<string, any>> = []
 
@@ -176,6 +194,7 @@ function getLocalMockDB() {
     if (tableName === 'payment_configs') return mockPaymentConfigsTable
     if (tableName === 'subscriptions') return mockSubscriptionsTable
     if (tableName === 'system_configs') return mockSystemConfigsTable
+    if (tableName === 'admin_2fa') return mockAdmin2FATable
     return mockTasksTable
   }
 
@@ -201,6 +220,13 @@ function getLocalMockDB() {
         const filtered = dataset.filter((item: any) => {
           if (item[col] === undefined) return true
           return new Date(item[col]).getTime() >= new Date(val).getTime()
+        })
+        return makeChain(tableName, filtered)
+      },
+      lte: (col: string, val: any) => {
+        const filtered = dataset.filter((item: any) => {
+          if (item[col] === undefined) return true
+          return new Date(item[col]).getTime() <= new Date(val).getTime()
         })
         return makeChain(tableName, filtered)
       },
@@ -621,6 +647,7 @@ function getLocalMockDB() {
           if (tableName === 'subscriptions') pkCol = 'stripe_subscription_id'
           if (tableName === 'profiles') pkCol = 'id'
           if (tableName === 'system_configs') pkCol = 'key'
+          if (tableName === 'admin_2fa') pkCol = 'user_id'
           
           const existingIdx = table.findIndex((x: any) => x[pkCol] === item[pkCol])
           if (existingIdx !== -1) {

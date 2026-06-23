@@ -30,9 +30,14 @@ console.log(`${c.bold}${c.cyan}  HEHE 全量模拟数据种子写入${c.reset}`)
 console.log(`${c.bold}${c.cyan}══════════════════════════════════════════════════${c.reset}`)
 if (CLEAN_MODE) warn('⚠  --clean 模式：将先删除已有模拟数据')
 
+const MOCK_MODE = process.argv.includes('--mock')
+if (MOCK_MODE) {
+  warn('--mock 模式：将输出模拟数据到控制台（Mock DB 环境使用）')
+}
+
 // ─── 前置检查 ────────────────────────────────────────
-if (process.env.MOCK_DB === 'true') {
-  warn('MOCK_DB=true（沙盒模式），请设为 false 后重试')
+if (!MOCK_MODE && process.env.MOCK_DB === 'true') {
+  warn('MOCK_DB=true（沙盒模式），请设为 false 后重试，或使用 --mock 参数输出控制台')
   process.exit(1)
 }
 if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
@@ -286,9 +291,64 @@ for (const p of MOCK_PRODUCTS) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  3. 创建订单
+//  3. 创建营销活动
 // ═══════════════════════════════════════════════════════
-section('3. 创建模拟订单')
+section('3. 创建模拟营销活动')
+
+const MOCK_CAMPAIGNS = [
+  {
+    subdomain: 'h5-v2',
+    title: '🎨 HEHE 营销 H5 v2 新野兽派',
+    subtitle: '采用大胆的新野兽派视觉版式，引入 3D 浮动卡片、扫光粒子与极客跑马灯。',
+    badge: '全新 V2 体验',
+    color_from: 'from-green-400',
+    color_to: 'to-emerald-600',
+    is_active: true,
+    cta_text: '立即体验',
+    sort_order: 10,
+  },
+  {
+    subdomain: 'promo',
+    title: '🔥 限时促销活动',
+    subtitle: '新用户首单立减 50%，老用户推荐有礼。',
+    badge: '限时优惠',
+    color_from: 'from-orange-400',
+    color_to: 'to-red-500',
+    is_active: true,
+    cta_text: '立即抢购',
+    sort_order: 20,
+  },
+]
+
+let campaignCount = 0
+for (const c of MOCK_CAMPAIGNS) {
+  const { data: existing } = await supabase
+    .from('campaigns')
+    .select('id')
+    .eq('subdomain', c.subdomain)
+    .maybeSingle()
+
+  if (existing) {
+    ok(`${c.title} — 已存在`)
+    campaignCount++
+    continue
+  }
+
+  const { error } = await supabase.from('campaigns').insert(c)
+  if (error) {
+    warn(`${c.title} — ${error.message}`)
+  } else {
+    ok(`${c.title} — 已创建`)
+    campaignCount++
+  }
+}
+
+info(`共 ${campaignCount} 个营销活动就绪`)
+
+// ═══════════════════════════════════════════════════════
+//  4. 创建订单
+// ═══════════════════════════════════════════════════════
+section('4. 创建模拟订单')
 
 const orderStatuses = ['paid', 'paid', 'paid', 'paid', 'paid', 'pending', 'failed', 'refunded']
 const paymentProviders = ['stripe', 'stripe', 'stripe', 'paypal', 'manual']
@@ -335,9 +395,9 @@ for (let i = 0; i < Math.min(createdUserIds.length, 8); i++) {
 ok(`已创建 ${orderCount} 笔订单`)
 
 // ═══════════════════════════════════════════════════════
-//  4. 创建订阅
+//  5. 创建订阅
 // ═══════════════════════════════════════════════════════
-section('4. 创建模拟订阅')
+section('5. 创建模拟订阅')
 
 const subStatuses = ['active', 'active', 'active', 'trialing', 'past_due', 'canceled']
 let subCount = 0
@@ -377,9 +437,9 @@ for (let i = 0; i < paidUsers.length && i < createdUserIds.length; i++) {
 ok(`已创建 ${subCount} 条订阅记录`)
 
 // ═══════════════════════════════════════════════════════
-//  5. 创建反馈
+//  6. 创建反馈
 // ═══════════════════════════════════════════════════════
-section('5. 创建模拟反馈')
+section('6. 创建模拟反馈')
 
 let feedbackCount = 0
 for (let i = 0; i < MOCK_FEEDBACKS.length; i++) {
@@ -400,9 +460,9 @@ for (let i = 0; i < MOCK_FEEDBACKS.length; i++) {
 ok(`已创建 ${feedbackCount} 条反馈`)
 
 // ═══════════════════════════════════════════════════════
-//  6. 创建审计日志
+//  7. 创建审计日志
 // ═══════════════════════════════════════════════════════
-section('6. 创建模拟审计日志')
+section('7. 创建模拟审计日志')
 
 const LOG_TEMPLATES = [
   { category: 'auth',   action: 'user.login',            meta: { provider: 'email' } },
@@ -451,9 +511,9 @@ for (let i = 0; i < 35; i++) {
 ok(`已创建 ${logCount} 条审计日志`)
 
 // ═══════════════════════════════════════════════════════
-//  7. 创建留资预约记录
+//  8. 创建留资预约记录
 // ═══════════════════════════════════════════════════════
-section('7. 创建模拟留资预约')
+section('8. 创建模拟留资预约')
 
 // 先查出所有活动，用于关联 campaign_id
 const { data: allCampaigns } = await supabase
@@ -526,8 +586,9 @@ ok(`已创建 ${leadsCount} 条留资预约记录`)
 console.log(`\n${c.bold}${c.cyan}══════════════════════════════════════════════════${c.reset}`)
 const { pass: passCount, fail: failCount } = counts()
 console.log(`${c.bold}${c.green}  写入完成！${c.reset}`)
-console.log(`${c.dim}  用户: ${createdUserIds.length}  |  商品: ${productIds.filter(Boolean).length}  |  订单: ${orderCount}${c.reset}`)
-console.log(`${c.dim}  订阅: ${subCount}  |  反馈: ${feedbackCount}  |  日志: ${logCount}  |  留资: ${leadsCount}${c.reset}`)
+console.log(`${c.dim}  用户: ${createdUserIds.length}  |  商品: ${productIds.filter(Boolean).length}  |  活动: ${campaignCount}${c.reset}`)
+console.log(`${c.dim}  订单: ${orderCount}  |  订阅: ${subCount}  |  反馈: ${feedbackCount}  |  日志: ${logCount}  |  留资: ${leadsCount}${c.reset}`)
+
 if (failCount > 0) {
   console.log(`${c.yellow}  ⚠ ${failCount} 项操作失败，请检查上方日志${c.reset}`)
 }

@@ -1,0 +1,63 @@
+# ──────────────────────────────────────────────
+# HeHe App Docker Compose 开发环境
+#
+# 启动方式：docker compose up -d
+# 访问地址：http://localhost:3000
+#
+# 包含:
+#   - app:  Nuxt 4 应用（支持热重载）
+#   - db:    PostgreSQL 15（可选，用于连接本地 Supabase）
+# ──────────────────────────────────────────────
+
+services:
+  # ── 主应用 ──
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3000
+      - MOCK_DB=${MOCK_DB:-true}
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - NUXT_PUBLIC_SUPABASE_URL=${NUXT_PUBLIC_SUPABASE_URL:-}
+      - NUXT_PUBLIC_SUPABASE_ANON_KEY=${NUXT_PUBLIC_SUPABASE_ANON_KEY:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-HeHe <noreply@heheapp.com>}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ── PostgreSQL 本地数据库（Supabase 本地开发替代） ──
+  # 仅当 MOCK_DB=false 且需要本地数据库时启用
+  # docker compose --profile db up -d
+  db:
+    profile: db
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: heheapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

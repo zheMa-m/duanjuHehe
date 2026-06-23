@@ -3,6 +3,7 @@ import { defineEventHandler } from 'h3'
 import { assertUser } from '~~/server/utils/auth'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
+import { getProductCache, setProductCache } from '~~/server/utils/cache'
 
 defineRouteMeta({
   openAPI: {
@@ -31,6 +32,10 @@ export default defineEventHandler(async (event) => {
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
+  // 缓存命中直接返回
+  const cached = getProductCache(user.tenantId, page, pageSize)
+  if (cached) return cached.data
+
   const { data, error, count } = await db
     .from('products')
     .select('*', { count: 'exact' })
@@ -45,8 +50,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return sendSuccess(event, {
+  const result = sendSuccess(event, {
     items: data || [],
     pagination: { page, pageSize, total: count || 0 },
   }, 'Fetched products successfully')
+
+  setProductCache(user.tenantId, page, pageSize, result)
+  return result
 })

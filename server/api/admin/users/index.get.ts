@@ -65,9 +65,10 @@ export default defineEventHandler(async (event) => {
       // 从 Auth API 构建全量 ID map（分页遍历，避免 listUsers 按位置返回而非按 ID 匹配）
       const authMap: Record<string, any> = {}
       const batchSize = 100
+      const MAX_AUTH_PAGES = 10 // 最多扫描 10 页（1000 用户），超过时停止以防止超长循环
       let authPage = 1
       let hasMore = true
-      while (hasMore) {
+      while (hasMore && authPage <= MAX_AUTH_PAGES) {
         const { data: batch } = await db.auth.admin.listUsers({ page: authPage, perPage: batchSize })
         for (const au of (batch?.users || [])) { authMap[au.id] = au }
         hasMore = (batch?.users || []).length === batchSize

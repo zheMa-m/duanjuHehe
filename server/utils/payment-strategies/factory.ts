@@ -1,11 +1,16 @@
 import { StripePaymentStrategy } from './stripe'
+import { PayPalPaymentStrategy } from './paypal'
+import { GooglePayPaymentStrategy } from './google-pay'
+import { AppleIAPPaymentStrategy } from './apple-iap'
+import { ManualPaymentStrategy } from './manual'
 import type { PaymentStrategy } from './types'
 
 const strategies: Record<string, PaymentStrategy> = {
   stripe: new StripePaymentStrategy(),
-  // 这里可以预留并随时扩展其他三方支付：
-  // paypal: new PayPalPaymentStrategy(),
-  // wechat: new WeChatPaymentStrategy(),
+  paypal: new PayPalPaymentStrategy(),
+  google_pay: new GooglePayPaymentStrategy(),
+  apple_iap: new AppleIAPPaymentStrategy(),
+  manual: new ManualPaymentStrategy(),
 }
 
 export function getPaymentStrategy(provider: string): PaymentStrategy {
@@ -20,3 +25,7 @@ export function getPaymentStrategy(provider: string): PaymentStrategy {
 }
 export * from './types'
 export * from './stripe'
+export * from './paypal'
+export * from './google-pay'
+export * from './apple-iap'
+export * from './manual'

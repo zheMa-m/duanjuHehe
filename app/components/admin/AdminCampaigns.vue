@@ -15,6 +15,7 @@ interface Campaign {
   cover_image: string | null
   description: string | null
   features: any[]
+  config: Record<string, any> | null
   sort_order: number
   leads_count?: number
   ga_measurement_id?: string | null
@@ -60,6 +61,11 @@ const handleCampaignsPageChange = (page: number) => {
 const totalCampaigns = computed(() => props.campaignsTotal || props.campaigns?.length || 0)
 const activeCampaigns = computed(() => props.campaigns?.filter(c => c.is_active).length || 0)
 const totalLeads = computed(() => props.campaigns?.reduce((sum, c) => sum + (c.leads_count || 0), 0) || 0)
+
+// ── 检测活动是否内置智能问卷模块 ────────────────────────────
+const hasQuestionnaire = (cam: Campaign): boolean => {
+  return !!(cam.config?.questionnaire)
+}
 
 // ── 状态筛选 ─────────────────────────────────────────────────
 const statusFilter = ref('all')
@@ -282,6 +288,11 @@ defineExpose({ onSaved: () => {} })
                     <span class="text-indigo-400 font-mono text-xs">{{ cam.subdomain }}</span>
                     <span class="text-white/20">·</span>
                     <span class="px-1.5 py-0.5 bg-white/5 text-white/50 rounded text-[10px] font-mono">{{ cam.badge }}</span>
+                    <span
+                      v-if="hasQuestionnaire(cam)"
+                      class="px-1.5 py-0.5 bg-purple-500/10 text-purple-400 rounded text-[10px] font-mono border border-purple-500/20"
+                      title="内置智能问卷模块"
+                    >问卷</span>
                   </div>
                 </div>
               </td>
@@ -306,16 +317,12 @@ defineExpose({ onSaved: () => {} })
               </td>
               <td class="px-5 py-5 text-right">
                 <div class="flex items-center justify-end gap-2">
+                  <!-- 预览 -->
                   <NuxtLink
-                    :to="`/h5/${cam.subdomain}`"
+                    :to="cam.subdomain === 'starpath' ? '/starpath/welcome' : `/h5/${cam.subdomain}`"
                     target="_blank"
                     class="text-[10px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-3 py-1.5 rounded-full border border-white/15 transition-all no-underline cursor-pointer focus:outline-none"
-                  >V1</NuxtLink>
-                  <NuxtLink
-                    :to="`/h5-v2/${cam.subdomain}`"
-                    target="_blank"
-                    class="text-[10px] font-semibold bg-[#30d158]/5 hover:bg-[#30d158]/12 text-[#30d158] px-3 py-1.5 rounded-full border border-[#30d158]/20 transition-all no-underline cursor-pointer focus:outline-none"
-                  >V2</NuxtLink>
+                  >预览</NuxtLink>
                   <button
                     @click="openEdit(cam)"
                     class="text-[11px] font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-4 py-2 rounded-full border border-indigo-500/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"

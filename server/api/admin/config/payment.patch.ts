@@ -4,6 +4,7 @@ import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 import { assertAdmin } from '~~/server/utils/auth'
 import { logAuditEvent } from '~~/server/utils/logger'
+import { invalidatePaymentConfigCache } from '~~/server/utils/cache'
 
 defineRouteMeta({
   openAPI: {
@@ -95,6 +96,7 @@ export default defineEventHandler(async (event) => {
     `PAYMENT_CONFIG_UPDATE:${provider}:status=${body.isEnabled ? 'ENABLED' : 'DISABLED'}`,
     'SUCCESS'
   )
+  invalidatePaymentConfigCache()
 
   return sendSuccess(event, { provider }, 'Payment configuration updated successfully')
 })

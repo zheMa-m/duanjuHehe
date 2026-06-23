@@ -58,15 +58,17 @@ export default defineEventHandler(async (event) => {
   let authMap: Record<string, any> = {}
 
   if (userIds.length > 0) {
-    // 查 profiles（display_name, role 等）
-    const { data: profiles } = await db.from('profiles').select('*').in('id', userIds)
+    // 并行查询 profiles + auth users（无依赖关系）
+    const [profilesResult, authResult] = await Promise.all([
+      db.from('profiles').select('*').in('id', userIds),
+      db.auth.admin.listUsers({ page: 1, perPage: userIds.length }),
+    ])
+    const profiles = profilesResult.data
     if (profiles) {
       for (const p of profiles as any[]) {
         profilesMap[p.id] = p
       }
     }
-    // 查 auth users（email 仅存于 auth.users，profiles 表无此字段）
-    const { data: authResult } = await db.auth.admin.listUsers({ page: 1, perPage: userIds.length })
     for (const au of (authResult?.users || [])) {
       authMap[au.id] = au
     }

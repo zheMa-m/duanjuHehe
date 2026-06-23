@@ -1,16 +1,16 @@
 /**
  * 管理后台导航模式状态管理
- * 三种模式：grouped（分组折叠）/ tabbed（双栏分区）/ compact（极简命令）
+ * 两种模式：grouped（分组折叠）/ tabbed（双栏分区）
  * 偏好存 localStorage，下次登录自动恢复
  */
 
-export type NavMode = 'grouped' | 'tabbed' | 'compact'
+export type NavMode = 'grouped' | 'tabbed'
 
 const NAV_KEY = 'admin-nav-mode'
 const COLLAPSE_KEY = 'admin-sidebar-collapsed'
 const RECENT_KEY = 'admin-recent-items'
 
-const VALID_MODES: NavMode[] = ['grouped', 'tabbed', 'compact']
+const VALID_MODES: NavMode[] = ['grouped', 'tabbed']
 
 export interface NavModeOption {
   mode: NavMode
@@ -21,7 +21,6 @@ export interface NavModeOption {
 export const navModeOptions: NavModeOption[] = [
   { mode: 'grouped', label: '分组折叠', desc: '经典侧栏分组' },
   { mode: 'tabbed', label: '双栏分区', desc: 'Tab 域切换' },
-  { mode: 'compact', label: '极简命令', desc: '5 项 + Cmd+K' },
 ]
 
 function getStoredMode(): NavMode {

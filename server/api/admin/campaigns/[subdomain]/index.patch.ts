@@ -5,6 +5,7 @@ import { getDB } from '~~/server/utils/db'
 import { assertAdmin } from '~~/server/utils/auth'
 import { sendSuccess } from '~~/server/utils/response'
 import { logAuditEvent } from '~~/server/utils/logger'
+import { invalidateCampaignCache } from '~~/server/utils/cache'
 
 defineRouteMeta({
   openAPI: {
@@ -83,6 +84,7 @@ export default defineEventHandler(async (event) => {
 
   const changedFields = Object.keys(body).join(', ')
   await logAuditEvent(event, user, `CAMPAIGN_UPDATED: ${subdomain} | Fields: ${changedFields}`, 'SUCCESS')
+  invalidateCampaignCache(subdomain)
 
   return sendSuccess(event, { subdomain, ...body }, 'Campaign updated successfully')
 })

@@ -1,0 +1,37 @@
+# ── Git ──
+.git
+.gitignore
+
+# ── 依赖 ──
+node_modules
+.nuxt
+
+# ── 构建产物 ──
+.output
+dist
+
+# ── 环境文件 ──
+.env
+.env.local
+.env.production
+
+# ── IDE/编辑器 ──
+.vscode
+.idea
+*.swp
+*.swo
+
+# ── 测试 ──
+tests
+playwright-report
+test-results
+
+# ── 文档/脚本（非运行时必需） ──
+docs
+scripts
+*.md
+LICENSE
+
+# ── 操作系统 ──
+.DS_Store
+Thumbs.db
