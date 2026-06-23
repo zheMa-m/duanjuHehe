@@ -5,7 +5,7 @@ import { getStarpathIntroData } from '~/utils/starpath-intro-data'
 const { t, locale } = useI18n()
 definePageMeta({
   title: '智能问卷 · Goal Set',
-  alias: ['/starpath/question-page-four'],
+  alias: ['/h5/starpath/question-page-four'],
 })
 useHead({ title: 'Set your goal · 智能问卷' })
 
@@ -35,7 +35,7 @@ const goals = computed(() => {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/intro/goal')"
+    :progress="progressOf('/h5/starpath/intro/goal')"
     bg-variant="image"
     :bg-image="figmaAssets['page-4-bg']"
     data-node-id="1:558"
@@ -56,7 +56,7 @@ const goals = computed(() => {
     </div>
 
     <div class="mx-auto w-[calc(100%-32px)] mt-[36px]">
-      <StarpathPrimaryButton @click="router.push('/starpath/intro/relationship')">
+      <StarpathPrimaryButton @click="router.push('/h5/starpath/intro/relationship')">
         {{ t('starpath.common.continue') }}
       </StarpathPrimaryButton>
     </div>

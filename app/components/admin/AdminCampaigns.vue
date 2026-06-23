@@ -319,7 +319,7 @@ defineExpose({ onSaved: () => {} })
                 <div class="flex items-center justify-end gap-2">
                   <!-- 预览 -->
                   <NuxtLink
-                    :to="cam.subdomain === 'starpath' ? '/starpath/welcome' : `/h5/${cam.subdomain}`"
+                    :to="`/h5/${cam.subdomain}`"
                     target="_blank"
                     class="text-[10px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-3 py-1.5 rounded-full border border-white/15 transition-all no-underline cursor-pointer focus:outline-none"
                   >预览</NuxtLink>

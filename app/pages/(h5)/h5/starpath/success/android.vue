@@ -4,7 +4,7 @@ import { figmaAssets } from '~/components/starpath/_figma-assets'
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Premium Activated (Android)',
-  alias: ['/starpath/订阅成功-安卓'],
+  alias: ['/h5/starpath/订阅成功-安卓'],
 })
 
 const route = useRoute()

@@ -2,7 +2,7 @@
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Email',
-  alias: ['/starpath/问卷页面-填写邮箱'],
+  alias: ['/h5/starpath/问卷页面-填写邮箱'],
 })
 
 import { useStarpathStore } from '~/stores/starpath'
@@ -53,7 +53,7 @@ async function submit() {
   store.setEmail(email.value.trim(), agreed.value)
 
   try {
-    const { data, error } = await useFetch('/api/starpath/email/submit', {
+    const { data, error } = await useFetch('/api/h5/starpath/email/submit', {
       method: 'POST',
       body: {
         bizCode: 'starpath',
@@ -66,11 +66,11 @@ async function submit() {
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
     const isAndroid = /android/i.test(navigator.userAgent)
     if (isIOS) {
-      router.push('/starpath/subscribe/ios')
+      router.push('/h5/starpath/subscribe/ios')
     } else if (isAndroid) {
-      router.push('/starpath/subscribe/android')
+      router.push('/h5/starpath/subscribe/android')
     } else {
-      router.push('/starpath/subscribe')
+      router.push('/h5/starpath/subscribe')
     }
   } catch (e) {
     console.error('Failed to submit email', e)

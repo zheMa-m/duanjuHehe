@@ -2,7 +2,7 @@
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Payment Confirmation',
-  alias: ['/starpath/信用卡支付-2'],
+  alias: ['/h5/starpath/信用卡支付-2'],
 })
 </script>
 

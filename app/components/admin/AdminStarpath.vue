@@ -149,7 +149,7 @@ defineExpose({ refresh: handleRefresh })
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink
-          to="/starpath/welcome"
+          to="/h5/starpath/welcome"
           target="_blank"
           class="text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-white font-semibold px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5 shadow-[0_4px_12px_rgba(245,158,11,0.2)] no-underline"
         >预览 H5</NuxtLink>

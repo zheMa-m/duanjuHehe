@@ -6,7 +6,7 @@ import { getStarpathIntroData } from '~/utils/starpath-intro-data'
 const { t, locale } = useI18n()
 definePageMeta({
   title: '智能问卷 · Focus',
-  alias: ['/starpath/question-page-three'],
+  alias: ['/h5/starpath/question-page-three'],
 })
 useHead({ title: 'Main focus for today · 智能问卷' })
 
@@ -34,7 +34,7 @@ function toggle(label: string) {
 
 function next() {
   store.setAnswer('focus', [...selected.value])
-  router.push('/starpath/intro/goal')
+  router.push('/h5/starpath/intro/goal')
 }
 </script>
 
@@ -42,7 +42,7 @@ function next() {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/intro/focus')"
+    :progress="progressOf('/h5/starpath/intro/focus')"
     data-node-id="1:123"
   >
     <h1 class="mt-[40px] mx-auto w-[301px] text-center text-[16px] font-semibold text-white leading-[normal]">

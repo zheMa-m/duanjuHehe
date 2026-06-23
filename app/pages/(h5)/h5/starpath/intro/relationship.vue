@@ -6,7 +6,7 @@ import { getStarpathIntroData } from '~/utils/starpath-intro-data'
 const { t, locale } = useI18n()
 definePageMeta({
   title: '智能问卷 · Relationship',
-  alias: ['/starpath/question-page-five'],
+  alias: ['/h5/starpath/question-page-five'],
 })
 useHead({ title: 'Relationship status · 智能问卷' })
 
@@ -28,7 +28,7 @@ const spriteH = 149
 
 function pick(val: string) {
   store.setAnswer('relationship', val)
-  router.push('/starpath/birth/date')
+  router.push('/h5/starpath/birth/date')
 }
 </script>
 
@@ -36,7 +36,7 @@ function pick(val: string) {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/intro/relationship')"
+    :progress="progressOf('/h5/starpath/intro/relationship')"
     data-node-id="1:347"
   >
     <h1 class="mx-auto w-[301px] mt-[40px] text-center text-base font-semibold text-white leading-snug">

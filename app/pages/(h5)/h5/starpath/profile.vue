@@ -4,7 +4,7 @@ import { useStarpathStore } from '~/stores/starpath'
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Name',
-  alias: ['/starpath/question-page-nine'],
+  alias: ['/h5/starpath/question-page-nine'],
 })
 useHead({ title: 'Your name · 智能问卷' })
 
@@ -17,7 +17,7 @@ const name = ref('')
 function next() {
   if (name.value.trim()) {
     store.setAnswer('fullName', name.value.trim())
-    router.push('/starpath/intro/alignment')
+    router.push('/h5/starpath/intro/alignment')
   }
 }
 </script>
@@ -26,7 +26,7 @@ function next() {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/profile')"
+    :progress="progressOf('/h5/starpath/profile')"
     data-node-id="1:518"
   >
     <h1 class="mx-auto w-[301px] mt-[40px] text-center text-base font-semibold text-white leading-snug">

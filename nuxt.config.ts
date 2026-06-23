@@ -71,8 +71,6 @@ export default defineNuxtConfig({
     // 营销 H5 页面走 ISR 短间隔 + swr CDN 缓存
     '/h5/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
     '/h5-v2/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
-    // 智能问卷 (StarPath) 独立路由
-    '/starpath/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
     // ── 客户端页面：ISR 3600s + CDN swr 24h，新增页面需同步注册 ──
     '/': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
     '/architecture': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },

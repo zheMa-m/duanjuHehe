@@ -4,7 +4,7 @@ import { getStarpathIntroData } from '~/utils/starpath-intro-data'
 const { t, locale } = useI18n()
 definePageMeta({
   title: '智能问卷 · Calculating',
-  alias: ['/starpath/question-page-twelve'],
+  alias: ['/h5/starpath/question-page-twelve'],
 })
 useHead({ title: `${t('starpath.calculating.desc')} · 智能问卷` })
 
@@ -21,7 +21,7 @@ onMounted(() => {
       currentStep.value++
     } else {
       clearInterval(timer)
-      setTimeout(() => router.push('/starpath/email'), 800)
+      setTimeout(() => router.push('/h5/starpath/email'), 800)
     }
   }, 1200)
 })

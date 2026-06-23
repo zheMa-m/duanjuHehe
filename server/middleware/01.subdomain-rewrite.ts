@@ -64,18 +64,13 @@ export default defineEventHandler((event) => {
     return
   }
 
-  // 4. 营销 H5 子域名重写
+  // 4. 营销 H5 子域名重写 → 统一路由到 /h5/${subdomain}
   const parts = host.split('.')
   if (parts.length >= 3) {
     const subdomain = parts[0] || ''
     if (subdomain && subdomain !== 'admin' && subdomain !== 'api' && subdomain !== 'www') {
-      // 有专用页面目录的子域名直接路由到 /${subdomain}
-      // （例：starpath → /starpath → (h5)/starpath/ 专用页面）
-      // 其他通用活动子域名走 /h5/${subdomain} 通用模板
-      const SPECIALIZED = ['starpath']
-      const basePath = SPECIALIZED.includes(subdomain) ? `/${subdomain}` : `/h5/${subdomain}`
-      if (!path.startsWith(basePath)) {
-        event.node.req.url = `${basePath}${path === '/' ? '' : path}`
+      if (!path.startsWith(`/h5/${subdomain}`)) {
+        event.node.req.url = `/h5/${subdomain}${path === '/' ? '' : path}`
       }
     }
   }

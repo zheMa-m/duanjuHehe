@@ -2,7 +2,7 @@
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Report',
-  alias: ['/starpath/邮箱收到的报告'],
+  alias: ['/h5/starpath/邮箱收到的报告'],
 })
 
 import http from '#shell/http'
@@ -34,7 +34,7 @@ interface ReportData {
 const route = useRoute()
 const reportId = computed(() => route.query.id as string)
 
-const { data, pending, error } = useFetch<ReportData>(`/api/starpath/report?id=${reportId.value}`, {
+const { data, pending, error } = useFetch<ReportData>(`/api/h5/starpath/report?id=${reportId.value}`, {
   immediate: !!reportId.value,
 })
 

@@ -5,7 +5,7 @@ import { getStarpathIntroData } from '~/utils/starpath-intro-data'
 const { t, locale } = useI18n()
 definePageMeta({
   title: '智能问卷 · Intro',
-  alias: ['/starpath/question-page-two'],
+  alias: ['/h5/starpath/question-page-two'],
 })
 useHead({ title: "That's great · 智能问卷" })
 
@@ -28,7 +28,7 @@ const features = computed(() => {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/intro/overview')"
+    :progress="progressOf('/h5/starpath/intro/overview')"
     bg-variant="image"
     :bg-image="figmaAssets['page-2-bg']"
     data-node-id="1:485"
@@ -53,7 +53,7 @@ const features = computed(() => {
     </ul>
 
     <div class="absolute bottom-[44px] inset-x-0 px-4">
-      <StarpathPrimaryButton @click="router.push('/starpath/intro/focus')">
+      <StarpathPrimaryButton @click="router.push('/h5/starpath/intro/focus')">
         {{ t('starpath.common.continue') }}
       </StarpathPrimaryButton>
     </div>

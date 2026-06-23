@@ -6,7 +6,7 @@ import { getStarpathIntroData } from '~/utils/starpath-intro-data'
 const { t, locale } = useI18n()
 definePageMeta({
   title: '智能问卷 · Subscribe (iOS)',
-  alias: ['/starpath/订阅-ios'],
+  alias: ['/h5/starpath/订阅-ios'],
 })
 
 const store = useStarpathStore()
@@ -29,7 +29,7 @@ const features = computed(() => featureLabels.value.map((label, i) => ({
 async function payWithApple() {
   loading.value = true
   try {
-    const res = await $fetch<any>('/api/starpath/subscribe/ios', {
+    const res = await $fetch<any>('/api/h5/starpath/subscribe/ios', {
       method: 'POST',
       body: {
         bizCode: 'starpath',
@@ -48,7 +48,7 @@ async function payWithApple() {
       provider: 'Apple Pay',
       receiptId: `rcpt_${Date.now()}`,
     }).toString()
-    router.push(`/starpath/success/ios?${qs}`)
+    router.push(`/h5/starpath/success/ios?${qs}`)
   } catch (e) {
     console.error('Apple Pay failed', e)
   } finally {
@@ -60,7 +60,7 @@ async function payWithApple() {
 async function handleCardPayment() {
   loading.value = true
   try {
-    const res = await $fetch<any>('/api/starpath/subscribe/ios', {
+    const res = await $fetch<any>('/api/h5/starpath/subscribe/ios', {
       method: 'POST',
       body: {
         bizCode: 'starpath',
@@ -70,13 +70,13 @@ async function handleCardPayment() {
       },
     })
     if (res?.data?.orderId) {
-      router.push(`/starpath/payment/card?orderId=${res.data.orderId}`)
+      router.push(`/h5/starpath/payment/card?orderId=${res.data.orderId}`)
     } else {
-      router.push('/starpath/payment/card')
+      router.push('/h5/starpath/payment/card')
     }
   } catch (e) {
     console.error('Create order failed', e)
-    router.push('/starpath/payment/card')
+    router.push('/h5/starpath/payment/card')
   } finally {
     loading.value = false
   }

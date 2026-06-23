@@ -2,14 +2,14 @@
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Card Payment',
-  alias: ['/starpath/信用卡支付-1'],
+  alias: ['/h5/starpath/信用卡支付-1'],
 })
 
 import http from '#shell/http'
 
 const route = useRoute()
 const router = useRouter()
-const CARD_PAYMENT_ENDPOINT = '/api/starpath/payment/card'
+const CARD_PAYMENT_ENDPOINT = '/api/h5/starpath/payment/card'
 
 // 从 query 参数获取预创建的订单 ID
 const orderId = computed(() => (route.query.orderId as string) || '')
@@ -49,7 +49,7 @@ async function submitPayment() {
       paymentToken,
       cardholderName: cardholderName.value,
     })
-    navigateTo(`/starpath/payment/confirmation?orderId=${orderId.value}`)
+    navigateTo(`/h5/starpath/payment/confirmation?orderId=${orderId.value}`)
   } catch (e: any) {
     errorMsg.value = e?.message || 'Payment failed. Please try again.'
   } finally {

@@ -4,7 +4,7 @@ import { useStarpathStore } from '~/stores/starpath'
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Birth City',
-  alias: ['/starpath/question-page-eight'],
+  alias: ['/h5/starpath/question-page-eight'],
 })
 useHead({ title: 'Birth city · 智能问卷' })
 
@@ -40,7 +40,7 @@ function pick(city: string) {
 function next() {
   if (query.value) {
     store.setAnswer('birthCity', query.value)
-    router.push('/starpath/profile')
+    router.push('/h5/starpath/profile')
   }
 }
 </script>
@@ -49,7 +49,7 @@ function next() {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/birth/city')"
+    :progress="progressOf('/h5/starpath/birth/city')"
     data-node-id="1:517"
   >
     <h1 class="mx-auto w-[301px] mt-[40px] text-center text-base font-semibold text-white leading-snug">

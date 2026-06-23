@@ -5,7 +5,7 @@ import { figmaAssets } from '~/components/starpath/_figma-assets'
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Alignment Complete',
-  alias: ['/starpath/question-page-ten'],
+  alias: ['/h5/starpath/question-page-ten'],
 })
 useHead({ title: 'Alignment Complete · 智能问卷' })
 
@@ -16,7 +16,7 @@ const { progressOf } = useStarpathFlow()
 const name = computed(() => store.answers.fullName || 'Seeker')
 
 function confirm() {
-  router.push('/starpath/questions/1')
+  router.push('/h5/starpath/questions/1')
 }
 </script>
 
@@ -24,7 +24,7 @@ function confirm() {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/intro/alignment')"
+    :progress="progressOf('/h5/starpath/intro/alignment')"
     bg-variant="image"
     :bg-image="figmaAssets['page-10-bg']"
     data-node-id="1:4568"

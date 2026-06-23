@@ -2,7 +2,7 @@
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Birthday',
-  alias: ['/starpath/question-page-six'],
+  alias: ['/h5/starpath/question-page-six'],
 })
 useHead({ title: 'Birthday · 智能问卷' })
 
@@ -22,7 +22,7 @@ const year = ref(years[0])
 
 function next() {
   const birthDate = `${month.value} ${day.value}, ${year.value}`
-  router.push('/starpath/birth/time')
+  router.push('/h5/starpath/birth/time')
 }
 </script>
 
@@ -30,7 +30,7 @@ function next() {
   <StarpathLayout
     show-back
     show-lock
-    :progress="progressOf('/starpath/birth/date')"
+    :progress="progressOf('/h5/starpath/birth/date')"
     data-node-id="1:496"
   >
     <h1 class="mx-auto w-[301px] mt-[40px] text-center text-base font-semibold text-white leading-snug">

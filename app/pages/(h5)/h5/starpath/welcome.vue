@@ -5,7 +5,7 @@ import { useStarpathStore } from '~/stores/starpath'
 const { t } = useI18n()
 definePageMeta({
   title: '智能问卷 · Welcome',
-  alias: ['/starpath/question-page-zero'],
+  alias: ['/h5/starpath/question-page-zero'],
 })
 useHead({ title: 'Navigate Your Fate · 智能问卷' })
 
@@ -14,7 +14,7 @@ const store = useStarpathStore()
 
 function pickGender(g: 'male' | 'female') {
   store.setAnswer('gender', g)
-  router.push('/starpath/intro/familiarity')
+  router.push('/h5/starpath/intro/familiarity')
 }
 </script>
 
