@@ -42,6 +42,33 @@ export class GooglePayPaymentStrategy implements PaymentStrategy {
   }
 
   /**
+   * Refund a Google Pay payment.
+   *
+   * Google Pay itself does NOT have a refund API — payments are processed
+   * through an underlying gateway (typically Stripe). This method routes
+   * the refund to the Stripe strategy using the payment_intent_id stored
+   * on the order.
+   *
+   * @param paymentIntentId - The Stripe PaymentIntent ID (stored as order.payment_intent_id)
+   * @param amount - Optional partial refund amount in dollars
+   */
+  async refundPayment(paymentIntentId: string, amount?: number): Promise<any> {
+    if (process.env.MOCK_DB === 'true') {
+      return { id: `gpay_refund_mock_${Date.now()}`, status: 'succeeded' }
+    }
+
+    // Route refund through Stripe gateway (Google Pay is processed via Stripe)
+    const { StripePaymentStrategy } = await import('./stripe')
+    const stripeStrategy = new StripePaymentStrategy()
+
+    if (!stripeStrategy.refundPayment) {
+      throw new Error('Stripe strategy does not support refundPayment')
+    }
+
+    return stripeStrategy.refundPayment(paymentIntentId, amount)
+  }
+
+  /**
    * Validate a Google Pay payment token (decrypted from the frontend)
    *
    * When the payment is processed via a gateway (Stripe), the token is

@@ -238,7 +238,7 @@ onBeforeUnmount(() => {
         <!-- 已登录用户 -->
         <div v-if="isLoggedIn && user" class="nav-user-capsule">
           <div class="nav-avatar">
-            <NuxtImg v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.displayName" />
+            <NuxtImg v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.displayName" loading="lazy" width="32" height="32" />
             <span v-else class="nav-avatar-placeholder">
               {{ (user.displayName || user.username || 'U').charAt(0).toUpperCase() }}
             </span>

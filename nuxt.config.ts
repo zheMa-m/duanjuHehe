@@ -24,25 +24,27 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [
-        // 字体预加载：Inter 400/700 woff2，消除 FOUT
+        // 🚀 字体预加载（全部自托管 woff2，零外部依赖）
         { rel: 'preload', href: '/fonts/inter-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
         { rel: 'preload', href: '/fonts/inter-v18-latin-700.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
-        // 外部 Google Fonts 预连接，消减 TLS/DNS 耗时
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap' },
+        { rel: 'preload', href: '/fonts/ibm-plex-sans-v19-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+        { rel: 'preload', href: '/fonts/jetbrains-mono-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
         // SVG favicon（轻量 <1KB）
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        // Apple Touch Icon
-        { rel: 'apple-touch-icon', href: '/og-default.png' },
+        // Apple Touch Icon (webp 优化)
+        { rel: 'apple-touch-icon', href: '/og-default.webp' },
       ],
     },
   },
 
   runtimeConfig: {
     // 根域名，从 baseUrl 自动提取 hostname；本地子域名开发可用 ROOT_DOMAIN 覆盖
+    // ✅ 自动去除 www. 前缀，避免 Vercel VERCEL_URL=www.xxx.com 导致子域名路由失效
     rootDomain: process.env.ROOT_DOMAIN || (() => {
-      try { return new URL(_resolveBaseUrl()).hostname } catch { return 'localhost' }
+      try {
+        const hostname = new URL(_resolveBaseUrl()).hostname
+        return hostname.replace(/^www\./, '')
+      } catch { return 'localhost' }
     })(),
     // Sentry DSN（服务器端，不暴露给浏览器）
     sentryDSN: process.env.SENTRY_DSN || '',
@@ -73,18 +75,27 @@ export default defineNuxtConfig({
     // 管理后台强制设为 SPA 纯客户端渲染，完全隔离 SSR 安全隐患
     // /admin/** 路径由 01.subdomain-rewrite 中间件将 admin. 子域名重写而来
     '/admin/**': { ssr: false },
-    // 营销 H5 页面走 ISR 短间隔，后台修改配置后前端秒级热更新
-    '/h5/**': { isr: 600 },
-    '/h5-v2/**': { isr: 600 },
+    // 营销 H5 页面走 ISR 短间隔 + swr CDN 缓存
+    '/h5/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
+    '/h5-v2/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
     // 智能问卷 (StarPath) 独立路由
-    '/starpath/**': { isr: 600 },
-    // ── 客户端页面：ISR 3600s（(client) route group 不出现在 URL 中）──
-    // 新增客户端页面时需同步注册到此列表
-    '/': { isr: 3600 },
-    '/architecture': { isr: 3600 },
-    '/help': { isr: 3600 },
+    '/starpath/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
+    // ── 客户端页面：ISR 3600s + CDN swr 24h，新增页面需同步注册 ──
+    '/': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
+    '/architecture': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
+    '/help': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
+    // 静态资源 (hashed 文件名，内容永不变) — 1 年浏览器缓存
+    '/_nuxt/**': { headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
     // API 接口绝对禁止缓存，确保每次请求实时响应
-    '/api/**': { cors: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+    '/api/**': { cors: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
+    // 公开 API 端点允许短时 CDN 缓存（读多写少，高频访问）
+    // 注意：routeRules 独立匹配不继承父规则，需显式声明 cors
+    '/api/v1/products/**': { cors: true, headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' } },
+    '/api/v1/campaigns/**': { cors: true, headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=600' } },
+    '/api/v1/analytics/config': { cors: true, headers: { 'Cache-Control': 'public, max-age=3600' } },
+    '/api/v1/payments/config': { cors: true, headers: { 'Cache-Control': 'public, max-age=3600' } },
+    '/api/v1/feedback/**': { cors: true, headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=600' } },
+    '/api/starpath/report/**': { cors: true, headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' } },
   },
 
   image: {
@@ -96,8 +107,12 @@ export default defineNuxtConfig({
 
   nitro: {
     compressPublicAssets: true,
+    minify: true,
     // Vercel 部署需指定 preset，确保 Nitro 生成正确的 Serverless Function
     preset: 'vercel',
+    prerender: {
+      crawlLinks: true,
+    },
     experimental: {
       openAPI: true,
     },
@@ -122,6 +137,7 @@ export default defineNuxtConfig({
     '@unocss/nuxt',
     '@nuxt/image',
     '@nuxtjs/i18n',
+    '@nuxtjs/sitemap',
     '@vite-pwa/nuxt',
     '@nuxt/eslint',
     ...(_hasSentry ? ['@sentry/nuxt/module'] : []),
@@ -130,6 +146,25 @@ export default defineNuxtConfig({
   // Bundle 分析：ANALYZE=true npm run build 生成可视化报告
   build: {
     analyze: process.env.ANALYZE === 'true',
+  },
+
+  experimental: {
+    payloadExtraction: true,
+    renderJsonPayloads: true,
+  },
+
+  // ── SEO 基础设施 ──
+  site: {
+    url: _resolveBaseUrl(),
+    name: 'HeHe App',
+    description: 'HeHe 全栈应用平台 — 智能问券、营销活动、支付一站式解决方案',
+    defaultLocale: 'zh',
+  },
+
+  sitemap: {
+    sources: [
+      '/api/__sitemap__/urls',
+    ],
   },
 
   i18n: {

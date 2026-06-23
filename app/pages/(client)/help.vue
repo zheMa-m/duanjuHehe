@@ -3212,6 +3212,8 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
 .section {
   padding: 48px 0;
   border-bottom: 1px solid var(--border);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
 }
 .section:last-child { border-bottom: none; }
 .section-header {

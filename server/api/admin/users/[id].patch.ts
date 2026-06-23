@@ -74,6 +74,15 @@ export default defineEventHandler(async (event) => {
     if (updateErr) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to update user profile' })
     }
+
+    // 🔒 P1-7: 手动降级为 free 时，同步取消用户的活跃订阅
+    if (body.plan_status === 'free') {
+      await db.from('subscriptions').update({
+        status: 'canceled',
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      }).eq('user_id', id).eq('status', 'active')
+    }
   }
 
   // ③ 同步更新 Auth 用户的 user_metadata（display_name）

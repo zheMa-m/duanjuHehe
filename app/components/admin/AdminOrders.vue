@@ -31,47 +31,104 @@ const emit = defineEmits<{
   toast: [msg: string, type: 'success' | 'error' | 'info']
 }>()
 
-const handleRefund = async (orderId: string) => {
-  if (!confirm('确定要为该订单办理原路退款吗？\n该操作将自动：\n1. 向 Stripe 发起原路退款申请\n2. 取消该用户的活跃订阅\n3. 将该用户 Profiles 权限降级为 Free\n4. 在系统安全表中记录管理员退款操作审计日志')) return
-  
-  refundLoading.value[orderId] = true
+const refundModalOrder = ref<any>(null)
+const refundModalAmount = ref('')
+const refundModalFull = ref(true)
+
+function openRefundModal(order: any) {
+  refundModalOrder.value = order
+  refundModalAmount.value = String(Number(order.amount).toFixed(2))
+  refundModalFull.value = true
+}
+
+async function handleRefundConfirm() {
+  const order = refundModalOrder.value
+  if (!order) return
+  refundLoading.value[order.id] = true
+  const isFull = refundModalFull.value
+  const amount = isFull ? undefined : Number(refundModalAmount.value)
   try {
-    const res = await $fetch<any>(`/api/admin/orders/${orderId}/refund`, { method: 'POST' })
-    emit('toast', res?.message || '退款及用户会员降级处理成功', 'success')
+    const body: any = {}
+    if (!isFull) body.refundAmount = amount
+    const res = await $fetch<any>(`/api/admin/orders/${order.id}/refund`, {
+      method: 'POST',
+      body,
+    })
+    emit('toast', res?.message || '退款处理成功', 'success')
+    refundModalOrder.value = null
     emit('refresh')
   } catch (e: any) {
     emit('toast', '退款处理失败: ' + (e.data?.statusMessage || e.message), 'error')
   } finally {
-    refundLoading.value[orderId] = false
+    refundLoading.value[order.id] = false
+  }
+}
+
+const exportLoading = ref(false)
+async function handleExport() {
+  exportLoading.value = true
+  try {
+    const params = new URLSearchParams()
+    if (statusFilter.value !== 'all') params.set('status', statusFilter.value)
+    const blob = await $fetch<Blob>(`/api/admin/orders/export?${params.toString()}`, {
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(blob as any)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `orders-export-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    emit('toast', 'CSV 导出成功', 'success')
+  } catch (e: any) {
+    emit('toast', '导出失败', 'error')
+  } finally {
+    exportLoading.value = false
   }
 }
 
 const statusFilter = ref('all')
 const providerFilter = ref('all')
 
-const orderStatusList = ['all', 'paid', 'pending', 'failed', 'refunded']
+const orderStatusList = ['all', 'paid', 'pending', 'failed', 'refunded', 'expired']
 const orderStatusLabel: Record<string, string> = {
   all: '全部订单',
   paid: '已支付',
   pending: '待支付',
   failed: '已失败',
   refunded: '已退款',
+  expired: '已过期',
 }
 const orderStatusText: Record<string, string> = {
   paid: '已支付',
   pending: '待支付',
   failed: '已失败',
   refunded: '已退款',
+  expired: '已过期',
 }
 
-const providerList = ['all', 'stripe', 'paypal', 'google_pay', 'apple_iap', 'manual']
+const providerList = ['all', 'stripe', 'paypal', 'google_pay', 'apple_iap', 'alipay', 'wechat', 'manual']
 const providerLabel: Record<string, string> = {
   all: '全部渠道',
   stripe: 'Stripe',
   paypal: 'PayPal',
   google_pay: 'Google Pay',
   apple_iap: 'Apple IAP',
+  alipay: '支付宝',
+  wechat: '微信支付',
   manual: '手动入账',
+}
+
+const providerRefundHint = (provider: string): string => {
+  const map: Record<string, string> = {
+    stripe: '将通过 Stripe API 发起退款',
+    paypal: '将通过 PayPal REST API 发起退款',
+    google_pay: '将通过 Stripe 网关发起退款',
+    apple_iap: '⚠️ Apple IAP 不支持服务端退款，请前往 App Store Connect 人工处理。系统将记录退款状态。',
+    alipay: '将通过支付宝开放平台发起退款',
+    wechat: '将通过微信支付 API v3 发起退款',
+  }
+  return map[provider] || ''
 }
 
 // Transaction log viewer
@@ -125,6 +182,7 @@ const statusBadge = (status: string) => {
     pending: 'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/20',
     failed: 'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/20',
     refunded: 'bg-[#64d2ff]/10 text-[#64d2ff] border-[#64d2ff]/20',
+    expired: 'bg-white/5 text-white/30 border-white/10',
   }
   return map[status] || 'bg-white/5 text-white/40 border-white/10'
 }
@@ -135,6 +193,7 @@ const statusPulseDot = (status: string) => {
     pending: 'bg-[#ff9f0a]',
     failed: 'bg-[#ff453a]',
     refunded: 'bg-[#64d2ff]',
+    expired: 'bg-white/30',
   }
   return map[status] || 'bg-white/40'
 }
@@ -154,14 +213,23 @@ const handlePageChange = (page: number) => {
         <h1 class="text-[28px] font-bold text-white tracking-tight">订单流水管理</h1>
         <p class="text-white/40 text-sm mt-1">管理并监控全站支付订单、追踪退款及安全合规流水</p>
       </div>
-      <button
-        @click="$emit('refresh')"
-        :disabled="isLoading"
-        class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
-      >
-        <span :class="{'animate-spin': isLoading}">🔄</span>
-        刷新订单
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          @click="handleExport"
+          :disabled="exportLoading"
+          class="text-xs bg-emerald-600/10 hover:bg-emerald-600/20 disabled:opacity-50 text-emerald-400 font-semibold px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1"
+        >
+          {{ exportLoading ? '导出中...' : '导出 CSV' }}
+        </button>
+        <button
+          @click="$emit('refresh')"
+          :disabled="isLoading"
+          class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+        >
+          <span :class="{'animate-spin': isLoading}">🔄</span>
+          刷新订单
+        </button>
+      </div>
     </div>
 
     <!-- 订单状态分类栏 (高级一体化胶囊 Switcher) -->
@@ -240,7 +308,7 @@ const handlePageChange = (page: number) => {
                 <div class="flex items-center gap-2">
                   <button
                     v-if="order.status === 'paid'"
-                    @click="handleRefund(order.id)"
+                    @click="openRefundModal(order)"
                     :disabled="refundLoading[order.id]"
                     class="text-[11px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 disabled:opacity-50 disabled:cursor-not-allowed text-[#ff453a] px-4 py-2 rounded-full border border-[#ff453a]/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
                   >
@@ -283,6 +351,37 @@ const handlePageChange = (page: number) => {
       </div>
     </div>
   </div>
+
+  <!-- ── 退款 Modal ── -->
+  <Transition name="dropdown">
+    <div v-if="refundModalOrder" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="refundModalOrder = null">
+      <div class="w-full max-w-sm bg-[#0e0e12] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
+        <h3 class="text-lg font-bold text-white mb-4">办理退款</h3>
+        <div class="text-xs text-white/40 mb-2">订单: {{ refundModalOrder.order_no }} · 金额: {{ refundModalOrder.currency }} {{ Number(refundModalOrder.amount).toFixed(2) }}</div>
+        <div v-if="providerRefundHint(refundModalOrder.payment_provider)" class="text-[10px] mb-4 px-3 py-2 rounded-lg border"
+          :class="refundModalOrder.payment_provider === 'apple_iap' ? 'bg-[#ff9f0a]/5 text-[#ff9f0a] border-[#ff9f0a]/20' : 'bg-indigo-500/5 text-indigo-400 border-indigo-500/15'">
+          {{ providerRefundHint(refundModalOrder.payment_provider) }}
+        </div>
+
+        <div class="flex gap-2 mb-4">
+          <button @click="refundModalFull = true" class="flex-1 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer" :class="refundModalFull ? 'bg-[#ff453a]/10 text-[#ff453a] border-[#ff453a]/30' : 'bg-white/5 text-white/50 border-white/10'">全额退款</button>
+          <button @click="refundModalFull = false" class="flex-1 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer" :class="!refundModalFull ? 'bg-[#ff9f0a]/10 text-[#ff9f0a] border-[#ff9f0a]/30' : 'bg-white/5 text-white/50 border-white/10'">部分退款</button>
+        </div>
+
+        <div v-if="!refundModalFull" class="mb-4">
+          <label class="text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5 block">退款金额</label>
+          <input type="number" step="0.01" v-model="refundModalAmount" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#ff9f0a]/50" />
+        </div>
+
+        <div class="flex justify-end gap-3 border-t border-white/[0.06] pt-4">
+          <button @click="refundModalOrder = null" class="text-xs bg-white/5 hover:bg-white/10 text-white/70 font-semibold px-5 py-2.5 rounded-full transition-all cursor-pointer">取消</button>
+          <button @click="handleRefundConfirm" :disabled="refundLoading[refundModalOrder.id]" class="text-xs bg-[#ff453a] hover:bg-[#ff453a]/80 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-full transition-all cursor-pointer">
+            {{ refundLoading[refundModalOrder.id] ? '处理中...' : '确认退款' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 
   <!-- ── 交易流水 Modal ── -->
   <Transition name="dropdown">

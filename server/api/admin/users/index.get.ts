@@ -15,6 +15,7 @@ defineRouteMeta({
       { in: 'query', name: 'role', schema: { type: 'string', enum: ['user', 'admin'] }, description: '按角色过滤' },
       { in: 'query', name: 'plan', schema: { type: 'string', enum: ['paid'] }, description: '按套餐过滤（paid = pro + enterprise）' },
       { in: 'query', name: 'provider', schema: { type: 'string' }, description: '按认证方式过滤' },
+      { in: 'query', name: 'search', schema: { type: 'string' }, description: '按邮箱或显示名模糊搜索' },
     ],
     responses: {
       200: { description: '分页用户列表（Auth + Profiles 合并）' },
@@ -37,6 +38,7 @@ export default defineEventHandler(async (event) => {
   const roleFilter = query.role as string | undefined
   const planFilter = query.plan as string | undefined
   const providerFilter = query.provider as string | undefined
+  const searchQuery = query.search as string | undefined
 
   let authUsers: any[] = []
   let total = 0
@@ -129,6 +131,21 @@ export default defineEventHandler(async (event) => {
   // ④ provider 内存过滤（仅无 profiles 筛选时生效）
   if (providerFilter && !hasProfileFilter) {
     items = items.filter((u: any) => u.auth_provider === providerFilter)
+  }
+
+  // ⑤ search 关键词搜索（邮箱 + 显示名模糊匹配）
+  if (searchQuery) {
+    const lower = searchQuery.toLowerCase()
+    items = items.filter((u: any) => {
+      const email = (u.email || '').toLowerCase()
+      const displayName = (u.display_name || '').toLowerCase()
+      return email.includes(lower) || displayName.includes(lower)
+    })
+    // 搜索结果不信任原有 total，重新计算
+    total = items.length
+    // 对搜索结果做内存分页
+    const from = (page - 1) * pageSize
+    items = items.slice(from, from + pageSize)
   }
 
   return sendSuccess(event, {

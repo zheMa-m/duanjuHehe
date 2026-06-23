@@ -1,4 +1,4 @@
-import type { PaymentStrategy, CreateSessionParams, PaymentStrategyResult, WebhookResult } from './types'
+import type { PaymentStrategy, CreateSessionParams, PaymentStrategyResult, WebhookResult, SubscriptionRecord } from './types'
 
 /**
  * PayPal Payment Strategy
@@ -163,6 +163,79 @@ export class PayPalPaymentStrategy implements PaymentStrategy {
     }
 
     return result
+  }
+
+  /**
+   * Cancel a PayPal subscription (billing agreement)
+   *
+   * POST /v1/billing/subscriptions/{subscriptionId}/cancel
+   *
+   * @param subscription - The subscription record from DB
+   * @param _immediate - PayPal subscriptions cancel immediately by default
+   */
+  async cancelSubscription(subscription: SubscriptionRecord, _immediate: boolean): Promise<void> {
+    if (process.env.MOCK_DB === 'true') {
+      return
+    }
+
+    const config = await this.getConfig()
+    const accessToken = await this.getAccessToken(config)
+
+    const response = await fetch(
+      `${config.baseUrl}/v1/billing/subscriptions/${subscription.gateway_subscription_id}/cancel`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ reason: 'Cancelled by admin' }),
+      },
+    )
+
+    if (!response.ok && response.status !== 204) {
+      const err = await response.text()
+      throw new Error(`PayPal subscription cancel failed: ${err}`)
+    }
+  }
+
+  /**
+   * Change the plan of a PayPal subscription (revise)
+   *
+   * POST /v1/billing/subscriptions/{subscriptionId}/revise
+   *
+   * @param subscription - The subscription record from DB
+   * @param newPriceId - The new PayPal Plan ID
+   */
+  async changeSubscriptionPlan(subscription: SubscriptionRecord, newPriceId: string): Promise<void> {
+    if (process.env.MOCK_DB === 'true') {
+      return
+    }
+
+    const config = await this.getConfig()
+    const accessToken = await this.getAccessToken(config)
+
+    const response = await fetch(
+      `${config.baseUrl}/v1/billing/subscriptions/${subscription.gateway_subscription_id}/revise`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          plan_id: newPriceId,
+          application_context: {
+            user_action: 'CONTINUE',
+          },
+        }),
+      },
+    )
+
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`PayPal subscription plan change failed: ${err}`)
+    }
   }
 
   /**

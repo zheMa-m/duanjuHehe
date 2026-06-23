@@ -8,9 +8,9 @@
 export const figmaAssets = {
   // 问卷页面-0 (1:24)
   'page-0-bg-mask': '/starpath/images/page-0-bg-mask.svg',
-  'page-0-male': '/starpath/images/page-0-male.png',
-  'page-0-female': '/starpath/images/page-0-female.png',
-  'page-0-logo': '/starpath/images/page-0-logo.png',
+  'page-0-male': '/starpath/images/page-0-male.webp',
+  'page-0-female': '/starpath/images/page-0-female.webp',
+  'page-0-logo': '/starpath/images/page-0-logo.webp',
 
   // 问卷页面-1 (1:74)
   'page-1-bg-mask': '/starpath/images/page-1-bg-mask.svg',
@@ -18,20 +18,20 @@ export const figmaAssets = {
   'page-1-icon-back': '/starpath/images/page-1-icon-back.svg',
 
   // 问卷页面-2 (1:485)
-  'page-2-bg': '/starpath/images/page-2-bg.png',
+  'page-2-bg': '/starpath/images/page-2-bg.webp',
   'page-2-icon-two-hearts': '/starpath/images/page-2-icon-two-hearts.png',
   'page-2-icon-sparkles': '/starpath/images/page-2-icon-sparkles.png',
   'page-2-icon-briefcase': '/starpath/images/page-2-icon-briefcase.png',
   'page-2-icon-crescent-moon': '/starpath/images/page-2-icon-crescent-moon.png',
 
   // 问卷页面-4 (1:429)
-  'page-4-bg': '/starpath/images/page-4-bg.png',
+  'page-4-bg': '/starpath/images/page-4-bg.webp',
   'page-4-icon-heart-with-arrow': '/starpath/images/page-4-icon-heart-with-arrow.png',
   'page-4-icon-money-bag': '/starpath/images/page-4-icon-money-bag.png',
   'page-4-icon-rainbow': '/starpath/images/page-4-icon-rainbow.png',
 
   // 问卷页面-5 (1:549)
-  'page-5-relationship-sprite': '/starpath/images/page-5-relationship-sprite.png',
+  'page-5-relationship-sprite': '/starpath/images/page-5-relationship-sprite.webp',
 
   // 问卷页面-3 (1:123)
   'page-3-icon-lotus': '/starpath/images/page-3-icon-lotus.png',
@@ -40,7 +40,7 @@ export const figmaAssets = {
   'page-3-checkmark': '/starpath/images/page-3-checkmark.svg',
 
   // 问卷页面-10 (1:708)
-  'page-10-badge': '/starpath/images/page-10-badge.png',
+  'page-10-badge': '/starpath/images/page-10-badge.webp',
 
   // 问卷页面-填写邮箱 (1:890)
   'page-email-illustration': '/starpath/images/page-email-illustration.png',

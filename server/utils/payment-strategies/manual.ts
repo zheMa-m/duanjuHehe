@@ -1,4 +1,4 @@
-import type { PaymentStrategy, CreateSessionParams, PaymentStrategyResult, WebhookResult } from './types'
+import type { PaymentStrategy, CreateSessionParams, PaymentStrategyResult, WebhookResult, SubscriptionRecord } from './types'
 
 /**
  * Manual Payment Strategy
@@ -61,6 +61,35 @@ export class ManualPaymentStrategy implements PaymentStrategy {
       `manual_payment_confirmed:${orderId}`,
       'SUCCESS',
     )
+  }
+
+  /**
+   * Cancel a manual subscription — update DB state only, no gateway call.
+   */
+  async cancelSubscription(subscription: SubscriptionRecord, _immediate: boolean): Promise<void> {
+    const { getDB } = await import('../db')
+    const db = getDB()
+
+    const { error } = await db
+      .from('subscriptions')
+      .update({
+        status: 'canceled',
+        cancel_at_period_end: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', subscription.id)
+      .eq('subscription_provider', 'manual')
+
+    if (error) {
+      throw new Error(`Failed to cancel manual subscription: ${error.message}`)
+    }
+  }
+
+  /**
+   * Refund a manual payment — marks the order as refunded.
+   */
+  async refundPayment(orderId: string, _amount?: number): Promise<any> {
+    return { id: `manual_refund_${orderId}`, status: 'recorded' }
   }
 
   /**

@@ -36,6 +36,7 @@ const createProductSchema = z.object({
   name: z.string().min(1, 'Product name cannot be empty'),
   price: z.number().min(0, 'Price must be a non-negative number'),
   paymentMeta: z.record(z.any()).optional().default({}),
+  category: z.enum(['subscription', 'one_time', 'addon']).optional().default('subscription'),
 })
 
 /**
@@ -50,6 +51,7 @@ export default defineEventHandler(async (event) => {
   const newRow = {
     name: body.name,
     price: body.price,
+    category: body.category,
     tenant_id: BUILTIN_ADMIN_UUID, // 全局商品绑定为内置管理员 UUID
     payment_meta: body.paymentMeta,
     created_at: new Date().toISOString(),

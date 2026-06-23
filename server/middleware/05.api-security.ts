@@ -1,18 +1,17 @@
 /**
- * 05.api-security.ts — API 安全策略执行中间件
+ * 05.api-security.ts — 安全响应头 + API 安全策略执行中间件
  *
- * 在 04.auth-guard 之后执行，仅对 /api/v1/ 路径生效。
- * 管理后台 /api/admin/* 完全跳过（有自己的 JWT + assertAdmin 体系）。
- *
- * 执行链：
- *   ① 快速放行系统路径
- *   ② 全局短路（allDisabled）
- *   ③ IP 黑白名单（预编译 Set，O(1)）
- *   ④ 国家限制（预编译 Set + CDN 头，O(1)）
- *   ⑤ API Key 提取与验证（二级缓存）
- *   ⑥ 请求签名验证（HMAC-SHA256，per-key 可选）
- *   ⑦ 端点访问控制（预编译 Map，O(1)）
- *   ⑧ 速率限制（固定窗口计数器）
+ * 在 04.auth-guard 之后执行。
+ * ① 全局安全响应头注入（所有页面 + API + 静态资源均覆盖）
+ * ②～⑨ API v1 安全策略链（仅 /api/v1/ 路径）：
+ *   ② 快速放行系统路径
+ *   ③ 全局短路（allDisabled）
+ *   ④ IP 黑白名单（预编译 Set，O(1)）
+ *   ⑤ 国家限制（预编译 Set + CDN 头，O(1)）
+ *   ⑥ API Key 提取与验证（二级缓存）
+ *   ⑦ 请求签名验证（HMAC-SHA256，per-key 可选）
+ *   ⑧ 端点访问控制（预编译 Map，O(1)）
+ *   ⑨ 速率限制（固定窗口计数器）
  */
 // @api-auth: public
 import { defineEventHandler, getHeader, readRawBody, setHeader } from 'h3'
@@ -41,10 +40,31 @@ const BYPASS_EXACT = [
   '/api/v1/payments/confirm',
 ]
 
+// ──────────────────────────────────────────────
+// 全局安全响应头（所有响应统一注入，零额外开销）
+// ──────────────────────────────────────────────
+const SECURITY_HEADERS: Record<string, string> = {
+  // 仅允许 HTTPS 访问（含子域名，HSTS 预加载候选）
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  // 禁止被 iframe 嵌入，防止点击劫持
+  'X-Frame-Options': 'DENY',
+  // 禁止浏览器 MIME 类型嗅探
+  'X-Content-Type-Options': 'nosniff',
+  // 跨域不泄露完整 URL（仅同源发送 referrer）
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  // 禁用浏览器功能策略（摄像头、麦克风、定位等默认关闭）
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+}
+
 export default defineEventHandler(async (event) => {
+  // ── 全局安全响应头（最先注入，覆盖所有页面 + API） ──
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    setHeader(event, key, value)
+  }
+
   const path = event.path
 
-  // ── 仅对 /api/v1/ 路径生效 ──
+  // ── 仅对 /api/v1/ 路径生效以下安全检查 ──
   if (!path.startsWith('/api/v1/')) return
 
   // ── ① 快速放行系统路径 ──

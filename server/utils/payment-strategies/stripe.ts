@@ -1,4 +1,4 @@
-import type { PaymentStrategy, CreateSessionParams, PaymentStrategyResult, WebhookResult } from './types'
+import type { PaymentStrategy, CreateSessionParams, PaymentStrategyResult, WebhookResult, SubscriptionRecord } from './types'
 import { getStripeClient, verifyWebhookSignature } from '../payments'
 import { getDB } from '../db'
 
@@ -120,12 +120,12 @@ export class StripePaymentStrategy implements PaymentStrategy {
       const isAuthorized = subStatus === 'active' || subStatus === 'trialing'
       
       result.status = isAuthorized ? 'paid' : 'failed'
-      result.stripeSubscriptionId = subscription.id
+      result.gatewaySubscriptionId = subscription.id
       result.priceId = priceId
       result.userId = subscription.metadata?.userId
       
       result.subscriptionDetails = {
-        stripeSubscriptionId: subscription.id,
+        gatewaySubscriptionId: subscription.id,
         priceId: priceId || '',
         quantity: subscription.quantity || 1,
         cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
@@ -138,13 +138,13 @@ export class StripePaymentStrategy implements PaymentStrategy {
     if (type === 'customer.subscription.deleted') {
       const subscription = dataObj
       result.status = 'failed'
-      result.stripeSubscriptionId = subscription.id
+      result.gatewaySubscriptionId = subscription.id
       result.userId = subscription.metadata?.userId
     }
 
     // 4. 扣款失败/退款
     if (type === 'invoice.payment_failed') {
-      result.stripeSubscriptionId = dataObj.subscription as string
+      result.gatewaySubscriptionId = dataObj.subscription as string
       result.status = 'failed'
     }
 
@@ -154,5 +154,100 @@ export class StripePaymentStrategy implements PaymentStrategy {
     }
 
     return result
+  }
+
+  /**
+   * Cancel a Stripe subscription
+   *
+   * @param subscription - The subscription record from DB
+   * @param immediate - true = cancel immediately, false = cancel at period end
+   */
+  async cancelSubscription(subscription: SubscriptionRecord, immediate: boolean): Promise<void> {
+    if (process.env.MOCK_DB === 'true') {
+      return // Mock mode: no-op, caller handles DB update
+    }
+
+    const db = getDB()
+    const { data: secretsRow } = await db.from('system_configs').select('value').eq('key', 'payment_secrets').single()
+    const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
+
+    const stripe = getStripeClient(stripeSecretKey)
+    if (!stripe) {
+      throw new Error('Stripe client not initialized.')
+    }
+
+    if (immediate) {
+      await stripe.subscriptions.cancel(subscription.gateway_subscription_id)
+    } else {
+      await stripe.subscriptions.update(subscription.gateway_subscription_id, {
+        cancel_at_period_end: true,
+      })
+    }
+  }
+
+  /**
+   * Change the plan/price of an active Stripe subscription
+   *
+   * @param subscription - The subscription record from DB
+   * @param newPriceId - The new Stripe Price ID
+   */
+  async changeSubscriptionPlan(subscription: SubscriptionRecord, newPriceId: string): Promise<void> {
+    if (process.env.MOCK_DB === 'true') {
+      return // Mock mode: no-op, caller handles DB update
+    }
+
+    const db = getDB()
+    const { data: secretsRow } = await db.from('system_configs').select('value').eq('key', 'payment_secrets').single()
+    const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
+
+    const stripe = getStripeClient(stripeSecretKey)
+    if (!stripe) {
+      throw new Error('Stripe client not initialized.')
+    }
+
+    const subscriptionObj = await stripe.subscriptions.retrieve(subscription.gateway_subscription_id)
+    const itemId = subscriptionObj.items.data[0]?.id
+
+    if (!itemId) {
+      throw new Error(`No subscription item found for subscription ${subscription.gateway_subscription_id}`)
+    }
+
+    await stripe.subscriptions.update(subscription.gateway_subscription_id, {
+      items: [
+        {
+          id: itemId,
+          price: newPriceId,
+        },
+      ],
+      proration_behavior: 'create_prorations',
+    })
+  }
+
+  /**
+   * Refund a Stripe payment intent
+   *
+   * @param paymentIntentId - The Stripe PaymentIntent ID
+   * @param amount - Optional partial refund amount in dollars
+   */
+  async refundPayment(paymentIntentId: string, amount?: number): Promise<any> {
+    if (process.env.MOCK_DB === 'true') {
+      return { id: `re_mock_${Date.now()}`, status: 'succeeded' }
+    }
+
+    const db = getDB()
+    const { data: secretsRow } = await db.from('system_configs').select('value').eq('key', 'payment_secrets').single()
+    const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
+
+    const stripe = getStripeClient(stripeSecretKey)
+    if (!stripe) {
+      throw new Error('Stripe client not initialized.')
+    }
+
+    const refundParams: any = { payment_intent: paymentIntentId }
+    if (amount !== undefined) {
+      refundParams.amount = Math.round(amount * 100) // Stripe uses cents
+    }
+
+    return stripe.refunds.create(refundParams)
   }
 }

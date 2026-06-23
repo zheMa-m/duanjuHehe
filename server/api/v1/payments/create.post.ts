@@ -43,6 +43,7 @@ const createPaymentSchema = z.object({
   provider: z.string().default('stripe'),
   mode: z.enum(['payment', 'subscription']).default('payment'),
   priceId: z.string().optional(),
+  idempotencyKey: z.string().optional(),
 })
 
 /**
@@ -66,6 +67,26 @@ export default defineEventHandler(async (event) => {
       statusCode: 400,
       statusMessage: `Payment channel [${body.provider}] is currently disabled.`
     })
+  }
+
+  // 🔒 P0-1: 服务端校验金额与产品实际价格一致
+  const { data: product } = await db
+    .from('products')
+    .select('price, name')
+    .eq('id', body.productId)
+    .single()
+
+  if (product) {
+    const dbPrice = Number(product.price)
+    const clientAmount = Number(body.amount)
+    if (Math.abs(dbPrice - clientAmount) > 0.01) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Amount mismatch: expected ${dbPrice}, got ${clientAmount}`
+      })
+    }
+    // 以服务端数据为准覆盖 productName
+    body.productName = product.name
   }
 
   // 2. 检索并同步 Stripe Customer ID
@@ -105,9 +126,49 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 3. 创建本地订单记录（一次性订单）
+  // 🔒 P0-2: 幂等键防重提交
+  const idempotencyKey = body.idempotencyKey || `${body.productId}_${user.id}`
+  const { data: existingOrders } = await db
+    .from('orders')
+    .select('id, order_no, status, payment_intent_id, created_at')
+    .eq('idempotency_key', idempotencyKey)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  const existing = existingOrders?.[0]
+  if (existing) {
+    const strategy = getPaymentStrategy(body.provider)
+    const session = await strategy.createSession({
+      userId: user.id,
+      orderId: existing.id,
+      productName: body.productName,
+      amount: body.amount,
+      currency: body.currency,
+      priceMeta: {
+        mode: body.mode,
+        priceId: body.priceId,
+        stripePriceId: body.priceId,
+        stripeCustomerId,
+      },
+      successUrl: `${process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/payments/confirm?order_id=${existing.id}&session_id={CHECKOUT_SESSION_ID}&provider=${body.provider}`,
+      cancelUrl: `${process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/payments/cancel?provider=${body.provider}`,
+    })
+    if (session.paymentIntentId) {
+      await db.from('orders').update({ payment_intent_id: session.paymentIntentId }).eq('id', existing.id)
+    }
+    return sendSuccess(event, {
+      orderId: existing.id,
+      orderNo: existing.order_no,
+      checkoutUrl: session.checkoutUrl,
+      sessionId: session.sessionId,
+    }, 'Idempotent: existing payment session reused')
+  }
+
+  // 3. 创建本地订单记录
   const orderNo = generateOrderNo()
   const orderId = crypto.randomUUID()
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 分钟后过期
 
   await db.from('orders').insert({
     id: orderId,
@@ -119,6 +180,8 @@ export default defineEventHandler(async (event) => {
     status: 'pending',
     user_id: user.id,
     payment_provider: body.provider.toLowerCase(),
+    idempotency_key: idempotencyKey,
+    expires_at: expiresAt,
   })
 
   // 4. 调用策略创建会话并重定向

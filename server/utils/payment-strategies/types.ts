@@ -18,13 +18,13 @@ export interface PaymentStrategyResult {
 export interface WebhookResult {
   orderId?: string
   paymentIntentId?: string
-  stripeSubscriptionId?: string
+  gatewaySubscriptionId?: string
   status: 'paid' | 'failed' | 'refunded'
   eventLog: string
   priceId?: string
   userId?: string // 用于订阅和解耦绑定
   subscriptionDetails?: {
-    stripeSubscriptionId: string
+    gatewaySubscriptionId: string
     priceId: string
     quantity: number
     cancelAtPeriodEnd: boolean
@@ -33,7 +33,51 @@ export interface WebhookResult {
   }
 }
 
+/**
+ * Subscription record from the database
+ */
+export interface SubscriptionRecord {
+  id: string
+  user_id: string
+  gateway_subscription_id: string
+  subscription_provider: string
+  status: string
+  price_id: string
+  quantity: number
+  cancel_at_period_end: boolean
+  current_period_start: string
+  current_period_end: string
+  created_at?: string
+  updated_at?: string
+}
+
 export interface PaymentStrategy {
   createSession(params: CreateSessionParams): Promise<PaymentStrategyResult>
   verifyWebhook(rawBody: string | Buffer, signature: string): Promise<WebhookResult | null>
+
+  /**
+   * Cancel a subscription at the payment gateway level.
+   * Not all providers support this (e.g. Apple IAP requires user action on-device).
+   *
+   * @param subscription - The subscription record from DB
+   * @param immediate - true = cancel immediately, false = cancel at period end
+   */
+  cancelSubscription?(subscription: SubscriptionRecord, immediate: boolean): Promise<void>
+
+  /**
+   * Change the plan/price of an active subscription.
+   * Not all providers support this (e.g. Apple IAP uses upgrade/downgrade through StoreKit).
+   *
+   * @param subscription - The subscription record from DB
+   * @param newPriceId - The new price/plan identifier in the provider's system
+   */
+  changeSubscriptionPlan?(subscription: SubscriptionRecord, newPriceId: string): Promise<void>
+
+  /**
+   * Refund a payment. Provider-specific implementation.
+   *
+   * @param paymentIntentId - The payment intent ID to refund
+   * @param amount - Optional partial refund amount
+   */
+  refundPayment?(paymentIntentId: string, amount?: number): Promise<any>
 }

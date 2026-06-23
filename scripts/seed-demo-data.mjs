@@ -421,7 +421,8 @@ for (let i = 0; i < paidUsers.length && i < createdUserIds.length; i++) {
     .from('subscriptions')
     .insert({
       user_id: userId,
-      stripe_subscription_id: `sub_mock_${userId.substring(0, 8)}_${Date.now()}`,
+      gateway_subscription_id: `sub_mock_${userId.substring(0, 8)}_${Date.now()}`,
+      subscription_provider: 'stripe',
       status,
       price_id: priceId,
       quantity: 1,

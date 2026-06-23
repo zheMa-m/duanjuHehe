@@ -1608,6 +1608,8 @@ onBeforeUnmount(() => {
     .section {
       padding: 50px 60px;
       border-bottom: 1px solid var(--border);
+      content-visibility: auto;
+      contain-intrinsic-size: auto 500px;
     }
 
     .section-header {

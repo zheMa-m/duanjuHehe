@@ -1,4 +1,4 @@
-import { defineEventHandler, getHeader, createError } from 'h3'
+import { defineEventHandler, getHeader, sendRedirect } from 'h3'
 
 export default defineEventHandler((event) => {
   const hostWithPort = getHeader(event, 'host') || ''
@@ -54,7 +54,9 @@ export default defineEventHandler((event) => {
   // 3. API 域名拦截
   if (host.startsWith('api.')) {
     if (!path.startsWith('/api/v1/')) {
-      throw createError({ statusCode: 404, statusMessage: 'API Not Found' })
+      // 非 API 路径重定向到主站，避免 404
+      const wwwUrl = `https://www.${ROOT_DOMAIN}${path}`
+      return sendRedirect(event, wwwUrl, 301)
     }
     return
   }

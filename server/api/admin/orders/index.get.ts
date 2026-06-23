@@ -28,6 +28,12 @@ export default defineEventHandler(async (event) => {
   const user = assertAdmin(event)
   const db = getDB(event)
 
+  // 🔒 P1-5: 自动将超时 pending 订单标记为 expired
+  await db.from('orders').update({
+    status: 'expired',
+    updated_at: new Date().toISOString(),
+  }).eq('status', 'pending').lt('expires_at', new Date().toISOString())
+
   const query = getQuery(event)
   const page = Math.min(Math.max(parseInt(query.page as string) || 1, 1), 100)
   const pageSize = Math.min(parseInt(query.pageSize as string) || 20, 100)

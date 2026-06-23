@@ -3,6 +3,7 @@
 import { getHeader, readRawBody } from 'h3'
 import { getDB } from '~~/server/utils/db'
 import { verifyWebhookSignature } from '~~/server/utils/payments'
+import { getPaymentStrategy } from '~~/server/utils/payment-strategies/factory'
 import { logAuditEvent } from '~~/server/utils/logger'
 
 defineRouteMeta({
@@ -89,7 +90,8 @@ export default defineEventHandler(async (event) => {
     const details = result.subscriptionDetails
     await db.from('subscriptions').upsert({
       user_id: targetUserId,
-      stripe_subscription_id: details.stripeSubscriptionId,
+      gateway_subscription_id: details.gatewaySubscriptionId,
+      subscription_provider: provider,
       status: result.status === 'paid' ? 'active' : 'canceled',
       price_id: details.priceId,
       quantity: details.quantity,
@@ -97,11 +99,11 @@ export default defineEventHandler(async (event) => {
       current_period_start: details.currentPeriodStart,
       current_period_end: details.currentPeriodEnd,
     })
-  } else if (result.stripeSubscriptionId && result.status === 'failed') {
+  } else if (result.gatewaySubscriptionId && result.status === 'failed') {
     await db.from('subscriptions').update({
       status: 'canceled',
       updated_at: new Date().toISOString()
-    }).eq('stripe_subscription_id', result.stripeSubscriptionId)
+    }).eq('gateway_subscription_id', result.gatewaySubscriptionId)
   }
 
   // 4. 联动升级/降级用户资料表 (Profiles)

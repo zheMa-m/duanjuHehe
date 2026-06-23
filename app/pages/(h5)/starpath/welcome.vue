@@ -25,7 +25,7 @@ function pickGender(g: 'male' | 'female') {
     <div class="starpath-frame pt-safe-top">
       <main class="relative z-10 flex flex-col items-center">
         <div class="mt-[72px] size-[70px] rounded-[16px] border border-starpath-primary-soft overflow-hidden">
-          <img :src="figmaAssets['page-0-logo']" alt="智能问卷" class="size-full object-cover">
+          <NuxtImg :src="figmaAssets['page-0-logo']" alt="智能问卷" class="size-full object-cover" format="webp" loading="eager" fetchpriority="high" />
         </div>
 
         <h1 class="mt-[42px] mx-auto w-[337px] text-center text-base font-semibold leading-snug">
@@ -45,7 +45,7 @@ function pickGender(g: 'male' | 'female') {
             class="w-[148px] h-[200px] rounded-[20px] overflow-hidden active:opacity-90"
             @click="pickGender('male')"
           >
-            <img :src="figmaAssets['page-0-male']" :alt="t('starpath.welcome.male')" class="size-full object-cover">
+            <NuxtImg :src="figmaAssets['page-0-male']" :alt="t('starpath.welcome.male')" class="size-full object-cover" format="webp" loading="lazy" />
           </button>
 
           <button
@@ -54,7 +54,7 @@ function pickGender(g: 'male' | 'female') {
             class="w-[148px] h-[200px] rounded-[20px] overflow-hidden active:opacity-90"
             @click="pickGender('female')"
           >
-            <img :src="figmaAssets['page-0-female']" :alt="t('starpath.welcome.female')" class="size-full object-cover">
+            <NuxtImg :src="figmaAssets['page-0-female']" :alt="t('starpath.welcome.female')" class="size-full object-cover" format="webp" loading="lazy" />
           </button>
         </div>
 

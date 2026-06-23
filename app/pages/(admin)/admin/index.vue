@@ -182,12 +182,14 @@ const usersPage = ref(1)
 const usersPageSize = ref(20)
 const usersRole = ref('all')
 const usersPlan = ref('all')
+const usersSearch = ref('')
 const usersUrl = computed(() => {
   const params = new URLSearchParams()
   params.set('page', String(usersPage.value))
   params.set('pageSize', String(usersPageSize.value))
   if (usersRole.value !== 'all') params.set('role', usersRole.value)
   if (usersPlan.value !== 'all') params.set('plan', usersPlan.value)
+  if (usersSearch.value) params.set('search', usersSearch.value)
   return `/api/admin/users?${params.toString()}`
 })
 
@@ -402,6 +404,10 @@ const handleFilterUsersPlan = (plan: string) => {
   usersPlan.value = plan
   usersPage.value = 1
 }
+const handleSearchUsers = (query: string) => {
+  usersSearch.value = query
+  usersPage.value = 1
+}
 const handleChangeAuditPage = (page: number) => {
   auditPage.value = page
 }
@@ -537,6 +543,8 @@ const handleDeleteUser = async (id: string) => {
           <div class="flex items-center gap-3">
             <NuxtLink to="/" class="admin-header__link">主站</NuxtLink>
             <span class="admin-header__sep" />
+            <NuxtLink to="/help" class="admin-header__link">帮助文档</NuxtLink>
+            <span class="admin-header__sep" />
 
             <!-- 任务全局入口（右上角） -->
             <button @click="showTasksPanel = !showTasksPanel" class="admin-header__task-btn" :class="{ 'admin-header__task-btn--active': showTasksPanel }">
@@ -614,7 +622,7 @@ const handleDeleteUser = async (id: string) => {
           <AdminCampaigns v-else-if="activeTab === 'campaigns'" ref="campaignsRef" :campaigns="campaignsRes?.data?.items ?? null" :campaigns-total="campaignsRes?.data?.pagination?.total ?? 0" :campaigns-page="campaignsPage" :campaigns-page-size="campaignsPageSize" :leads="leadsRes?.data?.items ?? null" :leads-total="leadsRes?.data?.total ?? 0" :leads-page="leadsPage" :leads-page-size="leadsPageSize" :is-loading="!!refreshing.campaigns" @refresh="handleRefresh" @save="saveCampaignConfig" @toggle-status="handleToggleCampaignStatus" @create="createCampaign" @delete-campaign="deleteCampaign" @delete-lead="deleteCampaignLead" @export-leads="exportLeads" @change-leads-page="handleChangeLeadsPage" @filter-leads="handleFilterLeads" @change-campaigns-page="handleChangeCampaignsPage" />
           <AdminFeedback v-else-if="activeTab === 'feedback'" :is-loading="!!refreshing.feedback" @refresh="handleRefresh" />
           <AdminStarpath v-else-if="activeTab === 'starpath'" />
-          <AdminUsers v-else-if="activeTab === 'users'" :users="usersRes?.data?.items ?? null" :users-total="usersRes?.data?.pagination?.total ?? 0" :users-page="usersPage" :users-page-size="usersPageSize" :stats="userStatsRes?.data ?? null" :is-loading="!!refreshing.users" @refresh="handleRefresh" @update-user="handleUpdateUser" @delete-user="handleDeleteUser" @change-page="handleChangeUsersPage" @filter-role="handleFilterUsersRole" @filter-plan="handleFilterUsersPlan" />
+          <AdminUsers v-else-if="activeTab === 'users'" :users="usersRes?.data?.items ?? null" :users-total="usersRes?.data?.pagination?.total ?? 0" :users-page="usersPage" :users-page-size="usersPageSize" :stats="userStatsRes?.data ?? null" :is-loading="!!refreshing.users" @refresh="handleRefresh" @update-user="handleUpdateUser" @delete-user="handleDeleteUser" @change-page="handleChangeUsersPage" @filter-role="handleFilterUsersRole" @filter-plan="handleFilterUsersPlan" @search="handleSearchUsers" />
           <AdminMedia v-else-if="activeTab === 'media'" ref="mediaRef" :is-loading="!!refreshing.media" />
           <AdminApiSecurity v-else-if="activeTab === 'security'" @toast="toast" />
           <AdminApm v-else-if="activeTab === 'health'" :apm-data="apmRes?.data ?? null" :is-loading="!!refreshing.health" :is-simulating="isSimulating" @refresh="handleRefresh" @simulate="handleSimulateAlert" />

@@ -39,12 +39,24 @@ const emit = defineEmits<{
   changePage: [page: number]
   filterRole: [role: string]
   filterPlan: [plan: string]
+  search: [query: string]
 }>()
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.usersTotal / props.usersPageSize)))
 const handlePageChange = (page: number) => {
   if (page < 1 || page > totalPages.value) return
   emit('changePage', page)
+}
+
+// 搜索防抖
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+const searchQuery = ref('')
+function onSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    emit('search', searchQuery.value)
+    emit('changePage', 1)
+  }, 300)
 }
 
 // ── 筛选状态（服务端过滤，通过 emit 传给父组件） ─────────────
@@ -190,6 +202,17 @@ const providerLabel: Record<string, string> = {
         <span :class="{'animate-spin': isLoading}">🔄</span>
         刷新用户
       </button>
+    </div>
+
+    <!-- 搜索输入框 -->
+    <div class="w-full max-w-md">
+      <input
+        type="text"
+        v-model="searchQuery"
+        @input="onSearchInput"
+        placeholder="搜索用户邮箱或显示名称..."
+        class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none transition-all"
+      />
     </div>
 
     <!-- 筛选胶囊（角色 + 套餐组合） -->

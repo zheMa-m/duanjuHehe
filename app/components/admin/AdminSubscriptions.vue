@@ -2,7 +2,8 @@
 interface Subscription {
   id: string
   user_id: string
-  stripe_subscription_id: string
+  gateway_subscription_id: string
+  subscription_provider: string
   status: string
   price_id: string
   quantity: number
@@ -13,6 +14,16 @@ interface Subscription {
   updated_at: string
   user_email: string | null
   user_display_name: string | null
+}
+
+const providerLabelMap: Record<string, string> = {
+  stripe: 'Stripe',
+  paypal: 'PayPal',
+  apple_iap: 'Apple IAP',
+  google_pay: 'Google Pay',
+  alipay: '支付宝',
+  wechat: '微信支付',
+  manual: '手动',
 }
 
 const props = defineProps<{
@@ -30,7 +41,10 @@ const emit = defineEmits<{
 }>()
 
 const cancelLoading = ref<Record<string, boolean>>({})
+const changeLoading = ref<Record<string, boolean>>({})
 const statusFilter = ref('all')
+const changeModalSub = ref<any>(null)
+const changeNewPriceId = ref('')
 
 const statusList = ['all', 'active', 'trialing', 'past_due', 'canceled', 'unpaid']
 const statusLabel: Record<string, string> = {
@@ -91,10 +105,13 @@ const formatDate = (iso: string) => {
 }
 
 const handleCancel = async (subId: string, immediate: boolean) => {
+  const sub = props.subscriptions?.find(s => s.id === subId)
+  const provider = sub?.subscription_provider || 'stripe'
+  const providerName = providerLabelMap[provider] || provider
   const mode = immediate ? '立即取消' : '周期末取消'
   const detail = immediate
-    ? '该操作将：\n1. 立即通过 Stripe 终止订阅\n2. 同步将用户会员方案降级为免费版\n3. 记录管理员审计日志'
-    : '该操作将：\n1. 设定在当前周期结束后自动取消\n2. 用户在此周期内仍可正常使用\n3. 记录管理员审计日志'
+    ? `该操作将：\n1. 立即通过 ${providerName} 终止订阅\n2. 同步将用户会员方案降级为免费版\n3. 记录管理员审计日志`
+    : `该操作将：\n1. 设定在当前周期结束后自动取消并降级用户\n2. 用户在此周期内仍可正常使用\n3. 记录管理员审计日志`
   if (!confirm(`确定要对该订阅执行「${mode}」吗？\n${detail}`)) return
 
   cancelLoading.value[subId] = true
@@ -109,6 +126,30 @@ const handleCancel = async (subId: string, immediate: boolean) => {
     emit('toast', '取消订阅失败: ' + (e.data?.statusMessage || e.message), 'error')
   } finally {
     cancelLoading.value[subId] = false
+  }
+}
+
+function openChangeModal(sub: Subscription) {
+  changeModalSub.value = sub
+  changeNewPriceId.value = ''
+}
+
+async function handleChangePlan() {
+  const sub = changeModalSub.value
+  if (!sub || !changeNewPriceId.value) return
+  changeLoading.value[sub.id] = true
+  try {
+    const res = await $fetch<any>(`/api/admin/subscriptions/${sub.id}/change-plan`, {
+      method: 'POST',
+      body: { newPriceId: changeNewPriceId.value },
+    })
+    emit('toast', res?.message || '方案变更成功', 'success')
+    changeModalSub.value = null
+    emit('refresh')
+  } catch (e: any) {
+    emit('toast', '方案变更失败: ' + (e.data?.statusMessage || e.message), 'error')
+  } finally {
+    changeLoading.value[sub.id] = false
   }
 }
 </script>
@@ -153,6 +194,7 @@ const handleCancel = async (subId: string, immediate: boolean) => {
           <thead class="sticky top-0 z-10">
             <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-[#0d0d18]/95 backdrop-blur-sm">
               <th class="px-6 py-4 font-semibold font-mono">用户</th>
+              <th class="px-6 py-4 font-semibold font-mono">平台</th>
               <th class="px-6 py-4 font-semibold font-mono">状态</th>
               <th class="px-6 py-4 font-semibold font-mono">价格方案</th>
               <th class="px-6 py-4 font-semibold font-mono">当前周期</th>
@@ -171,6 +213,12 @@ const handleCancel = async (subId: string, immediate: boolean) => {
               <td class="px-6 py-5">
                 <div class="text-white/90 font-medium text-sm">{{ sub.user_display_name || '-' }}</div>
                 <div class="text-white/35 text-xs font-mono mt-0.5">{{ sub.user_email || sub.user_id.slice(0, 8) }}</div>
+              </td>
+              <!-- 平台 -->
+              <td class="px-6 py-5">
+                <span class="text-[10px] px-2 py-0.5 rounded-full border bg-white/5 text-white/60 border-white/10">
+                  {{ providerLabelMap[sub.subscription_provider] || sub.subscription_provider || 'Stripe' }}
+                </span>
               </td>
               <!-- 状态 -->
               <td class="px-6 py-5">
@@ -199,6 +247,13 @@ const handleCancel = async (subId: string, immediate: boolean) => {
               <td class="px-6 py-5">
                 <div v-if="sub.status === 'active' || sub.status === 'trialing'" class="flex items-center gap-2">
                   <button
+                    @click="openChangeModal(sub)"
+                    :disabled="changeLoading[sub.id]"
+                    class="text-[11px] font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-400 px-3 py-1.5 rounded-full border border-indigo-500/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
+                  >
+                    {{ changeLoading[sub.id] ? '...' : '变更方案' }}
+                  </button>
+                  <button
                     @click="handleCancel(sub.id, false)"
                     :disabled="cancelLoading[sub.id] || sub.cancel_at_period_end"
                     class="text-[11px] font-semibold bg-[#ff9f0a]/10 hover:bg-[#ff9f0a]/20 disabled:opacity-50 disabled:cursor-not-allowed text-[#ff9f0a] px-3 py-1.5 rounded-full border border-[#ff9f0a]/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
@@ -217,7 +272,7 @@ const handleCancel = async (subId: string, immediate: boolean) => {
               </td>
             </tr>
             <tr v-if="!filteredSubs.length">
-              <td colspan="7" class="py-12 text-center text-xs text-white/25 font-light">暂无符合条件的订阅记录</td>
+              <td colspan="8" class="py-12 text-center text-xs text-white/25 font-light">暂无符合条件的订阅记录</td>
             </tr>
           </tbody>
         </table>
@@ -243,4 +298,33 @@ const handleCancel = async (subId: string, immediate: boolean) => {
       </div>
     </div>
   </div>
+
+  <!-- ── 变更方案 Modal ── -->
+  <Transition name="dropdown">
+    <div v-if="changeModalSub" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="changeModalSub = null">
+      <div class="w-full max-w-sm bg-[#0e0e12] border border-white/[0.08] rounded-2xl p-6 shadow-2xl">
+        <h3 class="text-lg font-bold text-white mb-4">变更订阅方案</h3>
+        <div class="text-xs text-white/40 mb-4">当前方案: {{ changeModalSub.price_id }} · 用户: {{ changeModalSub.user_display_name || changeModalSub.user_id.slice(0, 8) }}</div>
+
+        <div class="space-y-3">
+          <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide block">
+            新 Price/Plan ID ({{ providerLabelMap[changeModalSub?.subscription_provider] || changeModalSub?.subscription_provider || 'Stripe' }})
+          </label>
+          <input
+            type="text"
+            v-model="changeNewPriceId"
+            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+            :placeholder="changeModalSub?.subscription_provider === 'paypal' ? '例如: P-xxx...' : '例如: price_1Pxxx...'"
+          />
+        </div>
+
+        <div class="mt-6 flex justify-end gap-3 border-t border-white/[0.06] pt-4">
+          <button @click="changeModalSub = null" class="text-xs bg-white/5 hover:bg-white/10 text-white/70 font-semibold px-5 py-2.5 rounded-full transition-all cursor-pointer">取消</button>
+          <button @click="handleChangePlan" :disabled="!changeNewPriceId || changeLoading[changeModalSub.id]" class="text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-full transition-all active:scale-[0.98] cursor-pointer">
+            {{ changeLoading[changeModalSub.id] ? '变更中...' : '确认变更' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>

@@ -114,10 +114,10 @@ export const mockPaymentConfigsTable: Array<Record<string, any>> = [
 
 // 内存 Mock 订阅关系表
 export const mockSubscriptionsTable: Array<Record<string, any>> = [
-  { id: 'sub-1', user_id: 'mock-user-456', stripe_subscription_id: 'sub_mock_pro_monthly_001', status: 'active', price_id: 'price_pro_monthly', quantity: 1, cancel_at_period_end: false, current_period_start: new Date(Date.now() - 86400000 * 5).toISOString(), current_period_end: new Date(Date.now() + 86400000 * 25).toISOString(), created_at: new Date(Date.now() - 86400000 * 60).toISOString(), updated_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { id: 'sub-2', user_id: 'mock-user-101', stripe_subscription_id: 'sub_mock_ent_annual_002', status: 'active', price_id: 'price_enterprise_annual', quantity: 1, cancel_at_period_end: true, current_period_start: new Date(Date.now() - 86400000 * 180).toISOString(), current_period_end: new Date(Date.now() + 86400000 * 185).toISOString(), created_at: new Date(Date.now() - 86400000 * 180).toISOString(), updated_at: new Date(Date.now() - 86400000 * 2).toISOString() },
-  { id: 'sub-3', user_id: 'mock-user-789', stripe_subscription_id: 'sub_mock_pro_monthly_003', status: 'past_due', price_id: 'price_pro_monthly', quantity: 1, cancel_at_period_end: false, current_period_start: new Date(Date.now() - 86400000 * 35).toISOString(), current_period_end: new Date(Date.now() - 86400000 * 5).toISOString(), created_at: new Date(Date.now() - 86400000 * 90).toISOString(), updated_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { id: 'sub-4', user_id: 'anon-abc123', stripe_subscription_id: 'sub_mock_trial_004', status: 'canceled', price_id: 'price_pro_monthly', quantity: 1, cancel_at_period_end: false, current_period_start: new Date(Date.now() - 86400000 * 45).toISOString(), current_period_end: new Date(Date.now() - 86400000 * 15).toISOString(), created_at: new Date(Date.now() - 86400000 * 45).toISOString(), updated_at: new Date(Date.now() - 86400000 * 15).toISOString() },
+  { id: 'sub-1', user_id: 'mock-user-456', gateway_subscription_id: 'sub_mock_pro_monthly_001', subscription_provider: 'stripe', status: 'active', price_id: 'price_pro_monthly', quantity: 1, cancel_at_period_end: false, current_period_start: new Date(Date.now() - 86400000 * 5).toISOString(), current_period_end: new Date(Date.now() + 86400000 * 25).toISOString(), created_at: new Date(Date.now() - 86400000 * 60).toISOString(), updated_at: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: 'sub-2', user_id: 'mock-user-101', gateway_subscription_id: 'sub_mock_ent_annual_002', subscription_provider: 'stripe', status: 'active', price_id: 'price_enterprise_annual', quantity: 1, cancel_at_period_end: true, current_period_start: new Date(Date.now() - 86400000 * 180).toISOString(), current_period_end: new Date(Date.now() + 86400000 * 185).toISOString(), created_at: new Date(Date.now() - 86400000 * 180).toISOString(), updated_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: 'sub-3', user_id: 'mock-user-789', gateway_subscription_id: 'sub_mock_pro_monthly_003', subscription_provider: 'stripe', status: 'past_due', price_id: 'price_pro_monthly', quantity: 1, cancel_at_period_end: false, current_period_start: new Date(Date.now() - 86400000 * 35).toISOString(), current_period_end: new Date(Date.now() - 86400000 * 5).toISOString(), created_at: new Date(Date.now() - 86400000 * 90).toISOString(), updated_at: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: 'sub-4', user_id: 'anon-abc123', gateway_subscription_id: 'sub_mock_trial_004', subscription_provider: 'stripe', status: 'canceled', price_id: 'price_pro_monthly', quantity: 1, cancel_at_period_end: false, current_period_start: new Date(Date.now() - 86400000 * 45).toISOString(), current_period_end: new Date(Date.now() - 86400000 * 15).toISOString(), created_at: new Date(Date.now() - 86400000 * 45).toISOString(), updated_at: new Date(Date.now() - 86400000 * 15).toISOString() },
 ]
 
 // 内存 Mock 系统通用配置表
@@ -579,7 +579,8 @@ function getLocalMockDB() {
           const newSub = {
             id: data.id || Math.random().toString(36).substring(2, 9),
             user_id: data.user_id,
-            stripe_subscription_id: data.stripe_subscription_id,
+            gateway_subscription_id: data.gateway_subscription_id,
+            subscription_provider: data.subscription_provider || 'stripe',
             status: data.status,
             price_id: data.price_id,
             quantity: data.quantity || 1,
@@ -644,7 +645,7 @@ function getLocalMockDB() {
         for (const item of items) {
           let pkCol = 'id'
           if (tableName === 'payment_configs') pkCol = 'provider'
-          if (tableName === 'subscriptions') pkCol = 'stripe_subscription_id'
+          if (tableName === 'subscriptions') pkCol = 'gateway_subscription_id'
           if (tableName === 'profiles') pkCol = 'id'
           if (tableName === 'system_configs') pkCol = 'key'
           if (tableName === 'admin_2fa') pkCol = 'user_id'

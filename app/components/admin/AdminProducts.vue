@@ -6,6 +6,8 @@ interface Product {
   name: string
   price: number
   is_active: boolean
+  category: string
+  archived_at: string | null
   payment_meta: Record<string, any>
   created_at: string
   updated_at: string
@@ -29,22 +31,50 @@ const pageSize = ref(20)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const saving = ref(false)
+const deleteLoading = ref<Record<string, boolean>>({})
 
 // 新建商品表单
+const activeCreatePlatform = ref('stripe')
 const createForm = ref({
   name: '',
   price: 0,
   mode: 'subscription' as 'payment' | 'subscription',
-  stripePriceId: ''
+  stripePriceId: '',
+  paypalPlanId: '',
+  appleProductId: '',
+  googlePayProductId: '',
+  alipayProductCode: '',
+  wechatPlanId: '',
+  category: 'subscription' as string,
 })
 
 // 编辑商品表单
 const editingProduct = ref<Product | null>(null)
+const activeEditPlatform = ref('stripe')
 const editForm = ref({
   name: '',
   price: 0,
   mode: 'subscription' as 'payment' | 'subscription',
-  stripePriceId: ''
+  stripePriceId: '',
+  paypalPlanId: '',
+  appleProductId: '',
+  googlePayProductId: '',
+  alipayProductCode: '',
+  wechatPlanId: '',
+  category: 'subscription' as string,
+})
+
+const categoryFilter = ref('all')
+const categoryOptions = [
+  { key: 'all', label: '全部' },
+  { key: 'subscription', label: '订阅' },
+  { key: 'one_time', label: '一次性' },
+  { key: 'addon', label: '增值' },
+]
+const categoryLabel: Record<string, string> = { subscription: '订阅制', one_time: '一次性购买', addon: '增值服务' }
+const filteredProducts = computed(() => {
+  if (categoryFilter.value === 'all') return products.value
+  return products.value.filter(p => p.category === categoryFilter.value || (!p.category && categoryFilter.value === 'subscription'))
 })
 
 const totalPages = computed(() => Math.max(1, Math.ceil(productsTotal.value / pageSize.value)))
@@ -91,11 +121,18 @@ const handlePageChange = (page: number) => {
 
 // ── 创建商品 ────────────────────────────────────────────
 function openCreate() {
+  activeCreatePlatform.value = 'stripe'
   createForm.value = {
     name: '',
     price: 19.90,
     mode: 'subscription',
-    stripePriceId: ''
+    stripePriceId: '',
+    paypalPlanId: '',
+    appleProductId: '',
+    googlePayProductId: '',
+    alipayProductCode: '',
+    wechatPlanId: '',
+    category: 'subscription',
   }
   showCreateModal.value = true
 }
@@ -112,15 +149,18 @@ async function handleCreateProduct() {
       body: {
         name: createForm.value.name,
         price: Number(createForm.value.price),
+        category: createForm.value.category,
         paymentMeta: {
-          stripe: {
-            priceId: createForm.value.stripePriceId || undefined,
-            mode: createForm.value.mode
-          }
+          stripe: createForm.value.stripePriceId ? { priceId: createForm.value.stripePriceId, mode: createForm.value.mode } : undefined,
+          paypal: createForm.value.paypalPlanId ? { planId: createForm.value.paypalPlanId } : undefined,
+          apple_iap: createForm.value.appleProductId ? { productId: createForm.value.appleProductId } : undefined,
+          google_pay: createForm.value.googlePayProductId ? { productId: createForm.value.googlePayProductId } : undefined,
+          alipay: createForm.value.alipayProductCode ? { productCode: createForm.value.alipayProductCode } : undefined,
+          wechat: createForm.value.wechatPlanId ? { planId: createForm.value.wechatPlanId } : undefined,
         }
       }
     })
-    emit('toast', '商品创建成功并完成计费关联', 'success')
+    emit('toast', '商品创建成功并完成多平台计费关联', 'success')
     showCreateModal.value = false
     await fetchProducts()
   } catch (e: any) {
@@ -133,11 +173,18 @@ async function handleCreateProduct() {
 // ── 编辑商品 ────────────────────────────────────────────
 function openEdit(product: Product) {
   editingProduct.value = product
+  activeEditPlatform.value = 'stripe'
   editForm.value = {
     name: product.name,
     price: product.price,
     mode: (product.payment_meta?.stripe?.mode || 'subscription') as 'payment' | 'subscription',
-    stripePriceId: product.payment_meta?.stripe?.priceId || ''
+    stripePriceId: product.payment_meta?.stripe?.priceId || '',
+    paypalPlanId: product.payment_meta?.paypal?.planId || '',
+    appleProductId: product.payment_meta?.apple_iap?.productId || '',
+    googlePayProductId: product.payment_meta?.google_pay?.productId || '',
+    alipayProductCode: product.payment_meta?.alipay?.productCode || '',
+    wechatPlanId: product.payment_meta?.wechat?.planId || '',
+    category: product.category || 'subscription',
   }
   showEditModal.value = true
 }
@@ -151,12 +198,14 @@ async function handleEditProduct() {
       body: {
         name: editForm.value.name,
         price: Number(editForm.value.price),
+        category: editForm.value.category,
         paymentMeta: {
-          stripe: {
-            ...editingProduct.value.payment_meta?.stripe,
-            priceId: editForm.value.stripePriceId || undefined,
-            mode: editForm.value.mode
-          }
+          stripe: editForm.value.stripePriceId ? { priceId: editForm.value.stripePriceId, mode: editForm.value.mode } : undefined,
+          paypal: editForm.value.paypalPlanId ? { planId: editForm.value.paypalPlanId } : undefined,
+          apple_iap: editForm.value.appleProductId ? { productId: editForm.value.appleProductId } : undefined,
+          google_pay: editForm.value.googlePayProductId ? { productId: editForm.value.googlePayProductId } : undefined,
+          alipay: editForm.value.alipayProductCode ? { productCode: editForm.value.alipayProductCode } : undefined,
+          wechat: editForm.value.wechatPlanId ? { planId: editForm.value.wechatPlanId } : undefined,
         }
       }
     })
@@ -182,6 +231,24 @@ async function toggleShelving(product: Product) {
     emit('toast', nextStatus ? `商品「${product.name}」已上架在售` : `商品「${product.name}」已下架暂存`, 'success')
   } catch (e: any) {
     emit('toast', '切换上下架状态失败: ' + (e.data?.statusMessage || e.message), 'error')
+  }
+}
+
+// ── 删除商品 ──────────────────────────────────────────
+async function handleDelete(product: Product) {
+  const msg = product.archived_at
+    ? `确定永久删除商品「${product.name}」吗？（无关联订单）`
+    : `确定删除商品「${product.name}」吗？\n有历史订单时将仅归档，不会真正删除数据。`
+  if (!confirm(msg)) return
+  deleteLoading.value[product.id] = true
+  try {
+    const res = await $fetch<any>(`/api/admin/products/${product.id}`, { method: 'DELETE' })
+    emit('toast', res?.message || '商品已删除/归档', 'success')
+    await fetchProducts()
+  } catch (e: any) {
+    emit('toast', '删除失败: ' + (e.data?.statusMessage || e.message), 'error')
+  } finally {
+    deleteLoading.value[product.id] = false
   }
 }
 
@@ -232,12 +299,23 @@ async function syncStripe() {
       </div>
     </div>
 
+    <!-- 分类筛选胶囊 -->
+    <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full">
+      <button
+        v-for="c in categoryOptions"
+        :key="c.key"
+        @click="categoryFilter = c.key"
+        class="text-[10px] font-semibold px-4 py-2 rounded-full transition-all cursor-pointer border-0"
+        :class="categoryFilter === c.key ? 'bg-white/10 text-white' : 'bg-transparent text-white/60 hover:text-white/90'"
+      >{{ c.label }}</button>
+    </div>
+
     <!-- KPI 卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-white/[0.03] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden shadow-lg shadow-black/20">
         <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-blue-500/5 blur-2xl"></div>
         <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1 font-mono">商品总量</div>
-        <div class="text-3xl font-bold tracking-tight text-white font-mono">{{ products.length }}</div>
+        <div class="text-3xl font-bold tracking-tight text-white font-mono">{{ filteredProducts.length }}</div>
         <div class="text-xs text-white/30 mt-2">包含本地商品与已同步的渠道商品</div>
       </div>
       <div class="bg-white/[0.03] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden shadow-lg shadow-black/20">
@@ -264,6 +342,7 @@ async function syncStripe() {
             <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[9px] bg-white/[0.005]">
               <th class="px-6 py-4 font-semibold font-mono">商品编号</th>
               <th class="px-6 py-4 font-semibold font-mono">商品名称</th>
+              <th class="px-6 py-4 font-semibold font-mono">分类</th>
               <th class="px-6 py-4 font-semibold font-mono">价格 (USD)</th>
               <th class="px-6 py-4 font-semibold font-mono">计费关联</th>
               <th class="px-6 py-4 font-semibold font-mono text-center">状态</th>
@@ -271,19 +350,28 @@ async function syncStripe() {
             </tr>
           </thead>
           <tbody class="divide-y divide-white/[0.04]">
-            <tr v-for="p in products" :key="p.id" class="hover:bg-white/[0.01] transition-colors">
+            <tr v-for="p in filteredProducts" :key="p.id" class="hover:bg-white/[0.01] transition-colors">
               <td class="px-6 py-5 text-white/40 font-mono text-xs">{{ String(p.id).slice(0, 8) }}</td>
               <td class="px-6 py-5 text-white/95 font-medium">{{ p.name }}</td>
+              <td class="px-6 py-5 text-white/50 font-mono text-xs">{{ categoryLabel[p.category] || '订阅制' }}</td>
               <td class="px-6 py-5 text-[#30d158] font-mono font-semibold">${{ Number(p.price || 0).toFixed(2) }}</td>
               <td class="px-6 py-5">
-                <div v-if="p.payment_meta?.stripe" class="space-y-1 text-[10px] font-mono">
-                  <div class="flex items-center gap-1.5">
-                    <span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold border border-indigo-500/20 text-[8px] uppercase">Stripe</span>
-                    <span class="text-white/60">{{ p.payment_meta.stripe.priceId || '未配置' }}</span>
+                <div class="space-y-1 text-[10px] font-mono">
+                  <div v-for="platform in ['stripe','paypal','apple_iap','google_pay','alipay','wechat']" :key="platform">
+                    <div v-if="p.payment_meta?.[platform]" class="flex items-center gap-1.5">
+                      <span class="px-1.5 py-0.5 rounded text-[8px] uppercase font-bold"
+                        :class="platform === 'stripe' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
+                                platform === 'paypal' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                platform === 'apple_iap' ? 'bg-white/10 text-white/50 border border-white/10' :
+                                platform === 'google_pay' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                platform === 'alipay' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                'bg-green-500/10 text-green-400 border border-green-500/20'"
+                      >{{ platform === 'apple_iap' ? 'Apple' : platform === 'google_pay' ? 'GPay' : platform.charAt(0).toUpperCase() + platform.slice(1) }}</span>
+                      <span class="text-white/60">{{ p.payment_meta[platform].priceId || p.payment_meta[platform].planId || p.payment_meta[platform].productId || p.payment_meta[platform].productCode || '✓' }}</span>
+                    </div>
                   </div>
-                  <div class="text-white/30 capitalize pl-1">模式: {{ p.payment_meta.stripe.mode === 'subscription' ? '周期订阅' : '单次购买' }}</div>
+                  <span v-if="!p.payment_meta || !Object.keys(p.payment_meta).filter(k => ['stripe','paypal','apple_iap','google_pay','alipay','wechat'].includes(k)).length" class="text-white/20 text-xs">无计费绑定</span>
                 </div>
-                <span v-else class="text-white/20 text-xs">无计费绑定</span>
               </td>
               <td class="px-6 py-5 text-center">
                 <button
@@ -297,12 +385,15 @@ async function syncStripe() {
                 </button>
               </td>
               <td class="px-6 py-5 text-right">
-                <button @click="openEdit(p)" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer">修改</button>
+                <div class="flex items-center justify-end gap-2">
+                  <button @click="openEdit(p)" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer">修改</button>
+                  <button @click="handleDelete(p)" :disabled="deleteLoading[p.id]" class="text-xs text-[#ff453a]/70 hover:text-[#ff453a] font-semibold cursor-pointer disabled:opacity-40">{{ deleteLoading[p.id] ? '...' : '删除' }}</button>
+                </div>
               </td>
             </tr>
-            <tr v-if="!products.length && !loading">
-              <td colspan="6" class="py-12 text-center text-xs text-white/20 font-light">
-                暂无商品，请点击“新建商品”或“同步 Stripe 商品”。
+            <tr v-if="!filteredProducts.length && !loading">
+              <td colspan="7" class="py-12 text-center text-xs text-white/20 font-light">
+                暂无商品，请点击"新建商品"或"同步 Stripe 商品"。
               </td>
             </tr>
           </tbody>
@@ -358,13 +449,42 @@ async function syncStripe() {
             </div>
 
             <div class="space-y-1.5">
-              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">Stripe Price ID</label>
-              <input
-                type="text"
-                v-model="createForm.stripePriceId"
+              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">业务分类</label>
+              <select v-model="createForm.category" class="w-full bg-[#18181c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50">
+                <option value="subscription">订阅制 (Subscription)</option>
+                <option value="one_time">一次性购买 (One-time)</option>
+                <option value="addon">增值服务 (Addon)</option>
+              </select>
+            </div>
+
+            <!-- 平台配置标签页 -->
+            <div class="space-y-1.5">
+              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">平台标识配置</label>
+              <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-0.5 rounded-lg mb-2 flex-wrap gap-0.5">
+                <button v-for="p in ['stripe','paypal','apple_iap','google_pay','alipay','wechat']" :key="p"
+                  @click="activeCreatePlatform = p"
+                  class="text-[9px] font-semibold px-2 py-1 rounded-md transition-all cursor-pointer border-0"
+                  :class="activeCreatePlatform === p ? 'bg-indigo-500/20 text-indigo-400' : 'bg-transparent text-white/40 hover:text-white/70'"
+                >{{ p === 'apple_iap' ? 'Apple' : p === 'google_pay' ? 'GPay' : p.charAt(0).toUpperCase() + p.slice(1) }}</button>
+              </div>
+              <input v-if="activeCreatePlatform === 'stripe'" type="text" v-model="createForm.stripePriceId"
                 class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
-                placeholder="例如：price_1Pxxx..."
-              />
+                placeholder="Stripe Price ID: price_1Pxxx..." />
+              <input v-if="activeCreatePlatform === 'paypal'" type="text" v-model="createForm.paypalPlanId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="PayPal Plan ID: P-xxx..." />
+              <input v-if="activeCreatePlatform === 'apple_iap'" type="text" v-model="createForm.appleProductId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="Apple Product ID: com.hehe.premium.monthly" />
+              <input v-if="activeCreatePlatform === 'google_pay'" type="text" v-model="createForm.googlePayProductId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="Google Pay Product ID" />
+              <input v-if="activeCreatePlatform === 'alipay'" type="text" v-model="createForm.alipayProductCode"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="支付宝产品码: GENERAL_WITHHOLDING" />
+              <input v-if="activeCreatePlatform === 'wechat'" type="text" v-model="createForm.wechatPlanId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="微信支付计划 ID" />
             </div>
           </div>
 
@@ -384,7 +504,7 @@ async function syncStripe() {
         <div class="w-full max-w-md bg-[#0e0e12] border border-white/[0.08] rounded-2xl p-6 shadow-2xl relative">
           <h3 class="text-lg font-bold text-white mb-4">修改商品定价策略</h3>
           
-          <div class="space-y-4">
+            <div class="space-y-4">
             <div class="space-y-1.5">
               <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">商品名称</label>
               <input
@@ -405,6 +525,15 @@ async function syncStripe() {
             </div>
 
             <div class="space-y-1.5">
+              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">业务分类</label>
+              <select v-model="editForm.category" class="w-full bg-[#18181c] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50">
+                <option value="subscription">订阅制 (Subscription)</option>
+                <option value="one_time">一次性购买 (One-time)</option>
+                <option value="addon">增值服务 (Addon)</option>
+              </select>
+            </div>
+
+            <div class="space-y-1.5">
               <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">计费模式</label>
               <select
                 v-model="editForm.mode"
@@ -415,13 +544,34 @@ async function syncStripe() {
               </select>
             </div>
 
+            <!-- 平台配置标签页 -->
             <div class="space-y-1.5">
-              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">Stripe Price ID</label>
-              <input
-                type="text"
-                v-model="editForm.stripePriceId"
+              <label class="text-[11px] font-semibold text-white/40 uppercase tracking-wide">平台标识配置</label>
+              <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-0.5 rounded-lg mb-2 flex-wrap gap-0.5">
+                <button v-for="p in ['stripe','paypal','apple_iap','google_pay','alipay','wechat']" :key="p"
+                  @click="activeEditPlatform = p"
+                  class="text-[9px] font-semibold px-2 py-1 rounded-md transition-all cursor-pointer border-0"
+                  :class="activeEditPlatform === p ? 'bg-indigo-500/20 text-indigo-400' : 'bg-transparent text-white/40 hover:text-white/70'"
+                >{{ p === 'apple_iap' ? 'Apple' : p === 'google_pay' ? 'GPay' : p.charAt(0).toUpperCase() + p.slice(1) }}</button>
+              </div>
+              <input v-if="activeEditPlatform === 'stripe'" type="text" v-model="editForm.stripePriceId"
                 class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
-              />
+                placeholder="Stripe Price ID: price_1Pxxx..." />
+              <input v-if="activeEditPlatform === 'paypal'" type="text" v-model="editForm.paypalPlanId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="PayPal Plan ID: P-xxx..." />
+              <input v-if="activeEditPlatform === 'apple_iap'" type="text" v-model="editForm.appleProductId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="Apple Product ID" />
+              <input v-if="activeEditPlatform === 'google_pay'" type="text" v-model="editForm.googlePayProductId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="Google Pay Product ID" />
+              <input v-if="activeEditPlatform === 'alipay'" type="text" v-model="editForm.alipayProductCode"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="支付宝产品码" />
+              <input v-if="activeEditPlatform === 'wechat'" type="text" v-model="editForm.wechatPlanId"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50"
+                placeholder="微信支付计划 ID" />
             </div>
           </div>
 

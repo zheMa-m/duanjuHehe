@@ -4,13 +4,13 @@ import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 import { assertAdmin } from '~~/server/utils/auth'
 import { logAuditEvent } from '~~/server/utils/logger'
-import { getStripeClient } from '~~/server/utils/payments'
+import { getPaymentStrategy } from '~~/server/utils/payment-strategies/factory'
 
 defineRouteMeta({
   openAPI: {
     tags: ['管理端订阅'],
     summary: '管理员：取消订阅',
-    description: '管理员可立即取消订阅或设定周期末取消。立即取消将同步降级用户 plan_status。',
+    description: '管理员可立即取消订阅或设定周期末取消。按 subscription_provider 分发到对应支付平台。',
     security: [{ BearerAuth: [] }],
     parameters: [
       { in: 'path', name: 'id', required: true, schema: { type: 'string' }, description: '订阅 ID (UUID)' },
@@ -29,14 +29,14 @@ defineRouteMeta({
     },
     responses: {
       200: { description: '订阅取消成功' },
-      400: { description: '订阅不满足取消条件' },
+      400: { description: '订阅不满足取消条件或平台不支持' },
       404: { description: '订阅未找到' },
     },
   } as any,
 })
 
 /**
- * 管理员取消订阅
+ * 管理员取消订阅（多平台路由）
  * POST /api/admin/subscriptions/:id/cancel
  */
 export default defineEventHandler(async (event) => {
@@ -72,6 +72,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const provider = sub.subscription_provider || 'stripe'
+
   if (process.env.MOCK_DB === 'true') {
     // 3. Mock 模式：直接更新状态
     await db.from('subscriptions').update({
@@ -87,54 +89,45 @@ export default defineEventHandler(async (event) => {
       }).eq('id', sub.user_id)
     }
   } else {
-    // 4. 真实 Stripe 模式
-    const { data: secretsRow } = await db
-      .from('system_configs')
-      .select('value')
-      .eq('key', 'payment_secrets')
-      .single()
+    // 4. 按 subscription_provider 分发到对应策略
+    const strategy = getPaymentStrategy(provider)
 
-    const stripeSecretKey = secretsRow?.value?.stripe?.secretKey || undefined
-    const stripe = getStripeClient(stripeSecretKey)
-
-    if (!stripe) {
-      throw createError({ statusCode: 500, statusMessage: 'Stripe client is not configured' })
+    if (!strategy.cancelSubscription) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Cancel subscription is not supported for provider [${provider}]. Please manage via the gateway directly.`
+      })
     }
 
     try {
-      if (immediate) {
-        // 立即取消
-        await stripe.subscriptions.cancel(sub.stripe_subscription_id)
+      await strategy.cancelSubscription(sub, immediate)
 
+      // 更新 DB 状态
+      if (immediate) {
         await db.from('subscriptions').update({
           status: 'canceled',
           cancel_at_period_end: false,
           updated_at: new Date().toISOString()
         }).eq('id', id)
-
-        // 同步降级用户
-        if (sub.user_id) {
-          await db.from('profiles').update({
-            plan_status: 'free',
-            updated_at: new Date().toISOString()
-          }).eq('id', sub.user_id)
-        }
       } else {
-        // 周期末取消
-        await stripe.subscriptions.update(sub.stripe_subscription_id, {
-          cancel_at_period_end: true
-        })
-
         await db.from('subscriptions').update({
           cancel_at_period_end: true,
           updated_at: new Date().toISOString()
         }).eq('id', id)
       }
+
+      // 同步降级用户
+      if (sub.user_id) {
+        await db.from('profiles').update({
+          plan_status: 'free',
+          updated_at: new Date().toISOString()
+        }).eq('id', sub.user_id)
+      }
     } catch (err: any) {
-      console.error('[Stripe Cancel Subscription] Action failed:', err.message)
+      console.error(`[${provider} Cancel Subscription] Action failed:`, err.message)
       throw createError({
         statusCode: 500,
-        statusMessage: `Stripe cancel failed: ${err.message}`
+        statusMessage: `${provider} cancel failed: ${err.message}`
       })
     }
   }
@@ -143,7 +136,7 @@ export default defineEventHandler(async (event) => {
   await logAuditEvent(
     event,
     adminUser,
-    `ADMIN_CANCEL_SUBSCRIPTION:${sub.stripe_subscription_id}:user_id=${sub.user_id}:immediate=${immediate}`,
+    `ADMIN_CANCEL_SUBSCRIPTION:${sub.gateway_subscription_id}:provider=${provider}:user_id=${sub.user_id}:immediate=${immediate}`,
     'SUCCESS'
   )
 

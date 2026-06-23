@@ -568,11 +568,12 @@ export type Database = {
           created_at: string | null
           current_period_end: string
           current_period_start: string
+          gateway_subscription_id: string
           id: string
           price_id: string
           quantity: number
           status: string
-          stripe_subscription_id: string
+          subscription_provider: string
           updated_at: string | null
           user_id: string
         }
@@ -581,11 +582,12 @@ export type Database = {
           created_at?: string | null
           current_period_end: string
           current_period_start: string
+          gateway_subscription_id: string
           id?: string
           price_id: string
           quantity?: number
           status: string
-          stripe_subscription_id: string
+          subscription_provider?: string
           updated_at?: string | null
           user_id: string
         }
@@ -594,11 +596,12 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string
           current_period_start?: string
+          gateway_subscription_id?: string
           id?: string
           price_id?: string
           quantity?: number
           status?: string
-          stripe_subscription_id?: string
+          subscription_provider?: string
           updated_at?: string | null
           user_id?: string
         }

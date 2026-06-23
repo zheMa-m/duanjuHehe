@@ -41,6 +41,7 @@ const updateProductSchema = z.object({
   price: z.number().min(0).optional(),
   paymentMeta: z.record(z.any()).optional(),
   isActive: z.boolean().optional(),
+  category: z.enum(['subscription', 'one_time', 'addon']).optional(),
 })
 
 /**
@@ -77,6 +78,7 @@ export default defineEventHandler(async (event) => {
   if (body.price !== undefined) updatePayload.price = body.price
   if (body.paymentMeta !== undefined) updatePayload.payment_meta = body.paymentMeta
   if (body.isActive !== undefined) updatePayload.is_active = body.isActive
+  if (body.category !== undefined) updatePayload.category = body.category
 
   const { data: updated, error: updateErr } = await db
     .from('products')

@@ -43,7 +43,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Order not found' })
   }
 
-  // 2. 幂等性处理：若已支付，直接返回成功
+  // 2. 检查订单是否已过期
+  if (order.status === 'expired') {
+    throw createError({ statusCode: 400, statusMessage: 'Order has expired. Please create a new order.' })
+  }
+
+  if (order.status !== 'pending') {
+    return sendSuccess(event, {
+      orderId: order.id,
+      orderNo: order.order_no,
+      status: order.status,
+      message: `Order is already in status: ${order.status}`
+    }, 'Order already processed')
+  }
+
+  // 3. 幂等性处理：若已支付，直接返回成功
   if (order.status === 'paid') {
     return sendSuccess(event, {
       orderId: order.id,

@@ -214,4 +214,24 @@ export class AppleIAPPaymentStrategy implements PaymentStrategy {
       environment: apple.environment || 'sandbox',
     }
   }
+
+  /**
+   * Refund for Apple IAP — record-only.
+   *
+   * Apple does NOT provide a server-side refund API. Refunds must be
+   * processed manually through App Store Connect. This method records
+   * the intent and returns a descriptive message for the admin.
+   *
+   * @param _paymentIntentId - The Apple transaction ID (not actionable via API)
+   * @param _amount - Not supported for Apple IAP
+   */
+  async refundPayment(_paymentIntentId: string, _amount?: number): Promise<any> {
+    // Apple IAP does not support server-side refunds.
+    // Admin must process refunds via App Store Connect manually.
+    return {
+      id: `apple_iap_refund_${_paymentIntentId || 'pending'}`,
+      status: 'pending_manual',
+      note: 'Apple IAP refunds must be processed manually through App Store Connect. This transaction has been recorded for audit purposes only.',
+    }
+  }
 }
