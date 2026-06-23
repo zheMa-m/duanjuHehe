@@ -33,9 +33,11 @@ export default defineEventHandler((event) => {
   const host = hostWithPort.split(':')[0] || ''
   const path = event.path
 
-  // 跳过静态资源与 Nitro 内部 API 路由
+  // 跳过静态资源与 Nitro 内部路由（避免子域名重定向破坏资源加载）
   if (
     path.startsWith('/_nuxt/') ||
+    path.startsWith('/_ipx/') ||
+    path.startsWith('/_payload') ||
     path.startsWith('/api/') ||
     path.startsWith('/__nuxt_error') ||
     path.startsWith('/favicon.ico')
