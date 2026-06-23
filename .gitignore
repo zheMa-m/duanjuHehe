@@ -29,3 +29,6 @@ supabase/.temp
 
 .codebuddy
 .cursorrules
+
+.devcontainer
+.vscode
