@@ -1,39 +1,42 @@
 import { defineEventHandler, getHeader, sendRedirect } from 'h3'
 
+/**
+ * 从请求 Host 头动态提取根域名，无需环境变量。
+ * 例: www.aihomeworkscan.com → aihomeworkscan.com
+ *     admin.aihomeworkscan.com → aihomeworkscan.com
+ *     localhost → localhost
+ */
+function getRootDomain(host: string): string {
+  if (host === 'localhost' || host.startsWith('localhost:')) return 'localhost'
+  const parts = host.split('.')
+  if (parts.length <= 2) return host
+  return parts.slice(-2).join('.')
+}
+
 export default defineEventHandler((event) => {
   const hostWithPort = getHeader(event, 'host') || ''
   const host = hostWithPort.split(':')[0] || ''
   const path = event.path
-  
+
   // 跳过静态资源与 Nitro 内部 API 路由
   if (
-    path.startsWith('/_nuxt/') || 
-    path.startsWith('/api/') || 
+    path.startsWith('/_nuxt/') ||
+    path.startsWith('/api/') ||
     path.startsWith('/__nuxt_error') ||
     path.startsWith('/favicon.ico')
   ) {
     return
   }
 
-  const ROOT_DOMAIN = useRuntimeConfig().rootDomain
+  const ROOT_DOMAIN = getRootDomain(host)
 
-  // ── Vercel / 无子域名环境：直接路径路由，不做 Host 重写 ──
-  // 当 Host 不匹配 ROOT_DOMAIN 且不是子域名格式时，
-  // 说明运行在 Vercel 等单域名平台，页面路由由 Nuxt pages 直接匹配
-  const isKnownHost =
-    host === ROOT_DOMAIN ||
-    host === `www.${ROOT_DOMAIN}` ||
-    host.endsWith(`.${ROOT_DOMAIN}`) ||
-    host.startsWith('admin.') ||
-    host.startsWith('api.')
-
-  if (!isKnownHost) {
-    // Vercel 等单域名环境：路径 /admin → (admin) 路由组, /h5/* → (h5) 路由组
-    // Nuxt route groups (xxx) 不出现在 URL 中，无需手动重写
+  // ── Vercel 预览 / 无子域名环境：不做 Host 重写 ──
+  // Nuxt pages 直接通过路径匹配路由
+  if (host.endsWith('.vercel.app') || host === 'localhost') {
     return
   }
 
-  // ── 本地开发 / 自定义域名环境：基于 Host 子域名重写 ──
+  // ── 自定义域名环境：基于 Host 子域名重写 ──
 
   // 1. 官网首页路由重写
   if (host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) {
@@ -65,7 +68,6 @@ export default defineEventHandler((event) => {
   const parts = host.split('.')
   if (parts.length >= 3) {
     const subdomain = parts[0]
-    // 排除 admin / api / www 等子域名
     if (subdomain !== 'admin' && subdomain !== 'api' && subdomain !== 'www') {
       if (!path.startsWith(`/h5/${subdomain}`)) {
         event.node.req.url = `/h5/${subdomain}${path === '/' ? '' : path}`

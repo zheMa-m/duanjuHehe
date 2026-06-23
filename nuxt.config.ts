@@ -38,14 +38,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // 根域名，从 baseUrl 自动提取 hostname；本地子域名开发可用 ROOT_DOMAIN 覆盖
-    // ✅ 自动去除 www. 前缀，避免 Vercel VERCEL_URL=www.xxx.com 导致子域名路由失效
-    rootDomain: process.env.ROOT_DOMAIN || (() => {
-      try {
-        const hostname = new URL(_resolveBaseUrl()).hostname
-        return hostname.replace(/^www\./, '')
-      } catch { return 'localhost' }
-    })(),
+
     // Sentry DSN（服务器端，不暴露给浏览器）
     sentryDSN: process.env.SENTRY_DSN || '',
     public: {
