@@ -1,4 +1,4 @@
-import { defineEventHandler, getHeader, sendRedirect, setResponseHeader } from 'h3'
+import { defineEventHandler, getHeader, sendRedirect } from 'h3'
 
 /**
  * 从请求 Host 头动态提取根域名，无需环境变量。
@@ -13,6 +13,21 @@ function getRootDomain(host: string): string {
   return parts.slice(-2).join('.')
 }
 
+/**
+ * 子域名路由中间件
+ *
+ * ⚠️ h3 v1.15+ 的 createAppEventHandler 在路由匹配前计算 _reqPath，
+ *    中间件中改写 event.node.req.url 或 event._path 都不会影响后续路由匹配。
+ *    因此用 sendRedirect (302) 让浏览器重新请求正确路径，
+ *    而非内部 URL 重写。
+ *
+ * 路由规则:
+ *   www.aihomeworkscan.com/  → 保持原样 (官网首页)
+ *   admin.aihomeworkscan.com/  → 302 → /admin/
+ *   api.aihomeworkscan.com/非API路径  → 301 → https://www.aihomeworkscan.com/路径
+ *   starpath.aihomeworkscan.com/  → 302 → /h5/starpath/
+ *   其他子域名.aihomeworkscan.com/  → 302 → /h5/子域名/
+ */
 export default defineEventHandler((event) => {
   const hostWithPort = getHeader(event, 'host') || ''
   const host = hostWithPort.split(':')[0] || ''
@@ -30,51 +45,43 @@ export default defineEventHandler((event) => {
 
   const ROOT_DOMAIN = getRootDomain(host)
 
-  // ── Vercel 预览 / 无子域名环境：不做 Host 重写 ──
-  // Nuxt pages 直接通过路径匹配路由
+  // ── Vercel 预览 / 本地开发：不做子域名重定向 ──
   if (host.endsWith('.vercel.app') || host === 'localhost') {
     return
   }
 
-  // ── 自定义域名环境：基于 Host 子域名重写 ──
-
-  // 1. 官网首页路由重写
+  // ── 官网首页 (www / 根域名)：不重定向 ──
   if (host === ROOT_DOMAIN || host === `www.${ROOT_DOMAIN}`) {
-    if (!path.startsWith('/client')) {
-      event.node.req.url = `/client${path === '/' ? '' : path}`
-    }
     return
   }
 
-  // 2. 后台管理路由重写
+  // ── 后台管理子域名 → 302 重定向到 /admin/ ──
   if (host.startsWith('admin.')) {
     if (!path.startsWith('/admin')) {
-      event.node.req.url = `/admin${path}`
+      const target = `/admin${path === '/' ? '' : path}`
+      return sendRedirect(event, target, 302)
     }
-    // 告诉 CDN 按 Host 区分缓存，避免 admin 子域名被缓存的官网首页覆盖
-    setResponseHeader(event, 'Vary', 'Host')
     return
   }
 
-  // 3. API 域名拦截
+  // ── API 子域名：非 API 路径 301 重定向到主站 ──
   if (host.startsWith('api.')) {
     if (!path.startsWith('/api/v1/')) {
-      // 非 API 路径重定向到主站，避免 404
       const wwwUrl = `https://www.${ROOT_DOMAIN}${path}`
       return sendRedirect(event, wwwUrl, 301)
     }
     return
   }
 
-  // 4. 营销 H5 子域名重写 → 统一路由到 /h5/${subdomain}
+  // ── 营销 H5 子域名 → 302 重定向到 /h5/${subdomain} ──
   const parts = host.split('.')
   if (parts.length >= 3) {
     const subdomain = parts[0] || ''
     if (subdomain && subdomain !== 'admin' && subdomain !== 'api' && subdomain !== 'www') {
       if (!path.startsWith(`/h5/${subdomain}`)) {
-        event.node.req.url = `/h5/${subdomain}${path === '/' ? '' : path}`
+        const target = `/h5/${subdomain}${path === '/' ? '' : path}`
+        return sendRedirect(event, target, 302)
       }
-      setResponseHeader(event, 'Vary', 'Host')
     }
   }
 })

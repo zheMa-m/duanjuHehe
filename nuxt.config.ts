@@ -72,8 +72,7 @@ export default defineNuxtConfig({
     '/h5/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
     '/h5-v2/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
     // ── 客户端页面：ISR 3600s + CDN swr 24h，新增页面需同步注册 ──
-    // ⚠️ Vary: Host 告诉 CDN 按域名区分缓存，避免 admin/api 子域名被首页缓存覆盖
-    '/': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400', 'Vary': 'Host' } },
+    '/': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
     '/architecture': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
     '/help': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
     // 静态资源 (hashed 文件名，内容永不变) — 1 年浏览器缓存
