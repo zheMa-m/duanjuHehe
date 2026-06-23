@@ -1,14 +1,14 @@
 -- ============================================================================
--- 0002 IAP 模块：商品 + 订单 + 支付配置 + 交易日志 + 订阅（可选）
+-- 0002 IAP 模块：商品 + 订单 + 支付配置 + 交易日志 + 订阅
 --
 -- 前置依赖：0001_core.sql（profiles、is_admin()、set_updated_at()）
 --
 -- 表清单：
---   1. products             — 商品表（tenant_id 行级隔离）
---   2. orders               — 订单表（多支付渠道，纯净支付 Schema）
+--   1. products             — 商品表（tenant_id 行级隔离，支持软删除+分类）
+--   2. orders               — 订单表（多支付渠道，防重提交，过期机制）
 --   3. payment_configs      — 支付通道动态配置表
 --   4. payment_transactions — 支付网关交易日志（审计用）
---   5. subscriptions        — 计费订阅周期表
+--   5. subscriptions        — 计费订阅周期表（多平台通用 gateway_subscription_id）
 --
 -- 设计原则：orders 表专注于支付，活动关联通过 0003_campaign.sql 中的
 --          campaign_orders 关联表处理，避免活动字段污染通用订单表。
@@ -17,19 +17,25 @@
 BEGIN;
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  1. products — 商品表                                                     ║
+-- ║  1. products — 商品表（软删除 + 业务分类）                                  ║
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 CREATE TABLE IF NOT EXISTS products (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT NOT NULL,
   price         NUMERIC(10, 2) NOT NULL,
+  category      TEXT NOT NULL DEFAULT 'subscription'
+                CHECK (category IN ('subscription', 'one_time', 'addon')),
   payment_meta  JSONB NOT NULL DEFAULT '{}'::jsonb,
   is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+  archived_at   TIMESTAMPTZ,
   tenant_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at    TIMESTAMPTZ DEFAULT NOW(),
   updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
+
+COMMENT ON COLUMN products.category IS 'product category: subscription | one_time | addon';
+COMMENT ON COLUMN products.archived_at IS 'soft-delete timestamp; if set, product is considered archived';
 
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products FORCE ROW LEVEL SECURITY;
@@ -44,6 +50,7 @@ CREATE POLICY products_admin_all ON products
 
 CREATE INDEX IF NOT EXISTS idx_products_tenant_id  ON products(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_products_category_active ON products(category, is_active);
 
 CREATE TRIGGER products_set_updated_at
   BEFORE UPDATE ON products
@@ -51,9 +58,10 @@ CREATE TRIGGER products_set_updated_at
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  2. orders — 订单表（统一多支付渠道，纯净支付 Schema）                      ║
+-- ║  2. orders — 订单表（统一多支付渠道，防重提交 + 过期机制）                    ║
 -- ║                                                                          ║
--- ║  payment_provider: stripe | paypal | google_pay | apple_iap | manual     ║
+-- ║  payment_provider: stripe | paypal | google_pay | apple_iap | alipay     ║
+-- ║                   | wechat | manual                                      ║
 -- ║  各渠道专属字段在对应 provider 时才填充，其余为 NULL                        ║
 -- ║  活动关联字段（campaign_id / session_id / report_id）统一由               ║
 -- ║  0003_campaign.sql 中的 campaign_orders 关联表管理                        ║
@@ -67,11 +75,13 @@ CREATE TABLE IF NOT EXISTS orders (
   amount              NUMERIC(10, 2) NOT NULL CHECK (amount >= 0),
   currency            TEXT NOT NULL DEFAULT 'USD',
   status              TEXT NOT NULL DEFAULT 'pending'
-                      CHECK (status IN ('pending', 'paid', 'failed', 'refunded')),
+                      CHECK (status IN ('pending', 'paid', 'failed', 'refunded', 'expired')),
   user_id             UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   payment_provider    TEXT NOT NULL DEFAULT 'stripe'
-                      CHECK (payment_provider IN ('stripe', 'paypal', 'google_pay', 'apple_iap', 'manual')),
+                      CHECK (payment_provider IN ('stripe', 'paypal', 'google_pay', 'apple_iap', 'alipay', 'wechat', 'manual')),
   payment_intent_id   TEXT,
+  idempotency_key     TEXT,
+  expires_at          TIMESTAMPTZ,
   paid_at             TIMESTAMPTZ,
   -- 渠道专属字段（按 provider 按需填充）
   paypal_order_id       TEXT,
@@ -87,6 +97,9 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at          TIMESTAMPTZ DEFAULT NOW(),
   updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
+
+COMMENT ON COLUMN orders.idempotency_key IS 'client-generated idempotency key to prevent duplicate payment creation';
+COMMENT ON COLUMN orders.expires_at IS 'pending order expiry timestamp, defaults to created_at + 30 minutes';
 
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders FORCE ROW LEVEL SECURITY;
@@ -112,9 +125,18 @@ CREATE INDEX IF NOT EXISTS idx_orders_user_id            ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status             ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at         ON orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_payment_intent_id  ON orders(payment_intent_id) WHERE payment_intent_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_orders_campaign_id        ON orders(campaign_id) WHERE campaign_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_orders_session_id         ON orders(session_id) WHERE session_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_orders_paid_at            ON orders(paid_at) WHERE paid_at IS NOT NULL;
+
+-- 幂等键部分唯一索引：同一幂等键在窗口内只允许一个 pending 订单
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_idempotency_pending
+  ON orders(idempotency_key, status)
+  WHERE status = 'pending' AND idempotency_key IS NOT NULL;
+
+-- 复合索引：revenue / 订单列表查询
+CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at DESC);
+
+-- 复合索引：用户订单列表分页
+CREATE INDEX IF NOT EXISTS idx_orders_user_created ON orders(user_id, created_at DESC);
 
 CREATE TRIGGER orders_set_updated_at
   BEFORE UPDATE ON orders
@@ -134,10 +156,10 @@ CREATE TABLE IF NOT EXISTS payment_configs (
 );
 
 COMMENT ON COLUMN payment_configs.public_keys IS
-  'JSON: stripe={publishableKey}; paypal={clientId}; google_pay={merchantId,gatewayMerchantId,merchantName}; apple_iap={bundleId}';
+  'JSON: stripe={publishableKey}; paypal={clientId}; google_pay={merchantId,gatewayMerchantId,merchantName}; apple_iap={bundleId}; alipay={appId,alipayPublicKey}; wechat={appId,mchId,apiV3Key}';
 
 COMMENT ON COLUMN payment_configs.extra_meta IS
-  'JSON: Provider-specific metadata. e.g. paypal={environment,merchantName}; google_pay={environment,countryCode}';
+  'JSON: Provider-specific metadata. e.g. paypal={environment,merchantName}; google_pay={environment,countryCode}; alipay={gateway,notifyUrl}; wechat={notifyUrl}';
 
 ALTER TABLE payment_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_configs FORCE ROW LEVEL SECURITY;
@@ -199,13 +221,18 @@ CREATE INDEX IF NOT EXISTS idx_payment_transactions_provider  ON payment_transac
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  5. subscriptions — 计费订阅周期表                                        ║
+-- ║  5. subscriptions — 计费订阅周期表（多平台通用）                            ║
+-- ║                                                                          ║
+-- ║  gateway_subscription_id: 各支付平台的订阅ID（替代 stripe_subscription_id） ║
+-- ║  subscription_provider:  区分支付平台（stripe/paypal/apple_iap/...）       ║
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 CREATE TABLE IF NOT EXISTS subscriptions (
   id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id                  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  stripe_subscription_id   TEXT UNIQUE NOT NULL,
+  gateway_subscription_id  TEXT UNIQUE NOT NULL,
+  subscription_provider    TEXT NOT NULL DEFAULT 'stripe'
+                           CHECK (subscription_provider IN ('stripe', 'paypal', 'apple_iap', 'google_pay', 'alipay', 'wechat', 'manual')),
   status                   TEXT NOT NULL,
   price_id                 TEXT NOT NULL,
   quantity                 INTEGER NOT NULL DEFAULT 1,
@@ -215,6 +242,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   created_at               TIMESTAMPTZ DEFAULT NOW(),
   updated_at               TIMESTAMPTZ DEFAULT NOW()
 );
+
+COMMENT ON COLUMN subscriptions.subscription_provider IS 'Subscription gateway provider: stripe | paypal | apple_iap | google_pay | alipay | wechat | manual';
 
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions FORCE ROW LEVEL SECURITY;
@@ -231,8 +260,13 @@ CREATE POLICY subscriptions_service_all ON subscriptions
   FOR ALL TO service_role
   USING (true) WITH CHECK (true);
 
-CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id   ON subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_id ON subscriptions(stripe_subscription_id);
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id       ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_gateway_id    ON subscriptions(gateway_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_provider      ON subscriptions(subscription_provider);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_provider ON subscriptions(user_id, subscription_provider);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status        ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status   ON subscriptions(user_id, status);
 
 CREATE TRIGGER subscriptions_set_updated_at
   BEFORE UPDATE ON subscriptions
@@ -240,7 +274,7 @@ CREATE TRIGGER subscriptions_set_updated_at
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  Seed: 初始支付通道配置（5 种渠道）                                         ║
+-- ║  Seed: 初始支付通道配置（7 种渠道）                                         ║
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 INSERT INTO payment_configs (provider, is_enabled, public_keys, extra_meta)
@@ -249,6 +283,8 @@ VALUES
   ('paypal',     FALSE, '{"clientId": "mock_paypal_client"}'::jsonb,          '{"environment": "sandbox"}'::jsonb),
   ('google_pay', FALSE, '{"merchantId": "mock_google_pay_merchant"}'::jsonb, '{"environment": "TEST"}'::jsonb),
   ('apple_iap',  FALSE, '{"bundleId": "com.hehe.app"}'::jsonb,                '{"environment": "sandbox"}'::jsonb),
+  ('alipay',     FALSE, '{"appId": "mock_alipay_app_id"}'::jsonb,             '{"gateway": "https://openapi.alipaydev.com/gateway.do", "notifyUrl": "https://YOUR_DOMAIN/api/v1/payments/webhook"}'::jsonb),
+  ('wechat',     FALSE, '{"appId": "mock_wechat_app_id", "mchId": "mock_wechat_mch_id"}'::jsonb, '{"notifyUrl": "https://YOUR_DOMAIN/api/v1/payments/webhook"}'::jsonb),
   ('manual',     TRUE,  '{}'::jsonb,                                          '{}'::jsonb)
 ON CONFLICT (provider) DO NOTHING;
 
