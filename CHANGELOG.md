@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-06-24
+
+### Changed
+- **子域名路由架构重构**：动态营销 H5 子域名支持
+  - 统一配置源 `app/utils/subdomain.ts`（纯函数，单一切入点）
+  - `admin` 固定映射 `/admin`，任意其他子域名自动映射 `/h5/{子域名}`
+  - 客户端插件 `app/plugins/01.subdomain-router.client.ts` 全局拦截 `router.push`，新增页面零改动
+  - 中间件精简为 `01.subdomain.ts`（仅 api 重定向 + 放行）
+  - 重命名：`01.subdomain-rewrite.ts` → `01.subdomain.ts`
+
+### Fixed
+- Vercel 遗留 `_ipx` 图片 404：新增 `server/routes/_ipx/[...].ts` 兜底路由
+
+### Removed
+- `app/composables/useSubdomainRouter.ts`（功能由客户端插件替代）
+
 ## [1.1.0] - 2026-06-23
 
 ### Added

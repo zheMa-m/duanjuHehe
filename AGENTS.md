@@ -2,7 +2,7 @@
 
 > Nuxt 4 + Supabase + Vercel — 单人全栈独立闭环脚手架
 >
-> **Version**: 1.3.0 | **Last Updated**: 2026-06-23
+> **Version**: 1.4.0 | **Last Updated**: 2026-06-24
 
 ## Commands
 
@@ -33,11 +33,12 @@ app/
   components/   admin/ client/ h5/ shared/ starpath/
   composables/  auth/ payments/ seo/ storage/ + useAdmin*/useStarpathFlow/useLocaleDetect/useExport
   pages/        (admin)/ (client)/ (h5)/
-  plugins/      supabase-auth.client.ts
-  utils/        http-client.ts (含 #shell/http 类型声明)
+  plugins/      supabase-auth.client.ts + 01.subdomain-router.client.ts
+  utils/        http-client.ts (含 #shell/http 类型声明) + subdomain.ts (子域名路由配置)
 server/
   api/          admin/ starpath/ v1/
   middleware/   00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.api-security
+                (01.subdomain: api 重定向 + 子域名放行，路由重写由 router.options.ts + 客户端插件完成)
   utils/        db.ts auth.ts payments.ts logger.ts response.ts
                 payment-strategies/ (stripe/paypal/google-pay/apple-iap/manual + factory + types)
 supabase/migrations/  0001_core → 0099_cron_jobs (顺序编号)
@@ -53,6 +54,25 @@ docs/           10 篇中文文档 + plan-payment-closure.md
 | `/h5/**` `/starpath/**` | ISR 600s | 营销页快速更新 |
 | `/admin/**` | SPA (ssr: false) | 纯客户端，隔离 SSR |
 | `/api/**` | no-store | 实时，零缓存 |
+
+## Subdomain Routing
+
+子域名自动路由，无需手动注册：
+
+| 子域名 | 映射路径 | 类型 |
+|--------|----------|------|
+| `www.*` / 根域名 | 主站路由（过滤 /admin /h5） | 固定 |
+| `admin.*` | `/admin` | 固定 |
+| `api.*` | REST API（非 API 路径 301→www） | 固定 |
+| 任意其他子域名 | `/h5/{子域名}` | 动态 |
+
+**架构**：
+- `app/utils/subdomain.ts` — 单一切入点（纯函数配置）
+- `app/router.options.ts` — SSR/客户端路由表重写
+- `app/plugins/01.subdomain-router.client.ts` — 全局拦截 `router.push`，自动剥离前缀
+- `server/middleware/01.subdomain.ts` — 仅处理 api 重定向 + 放行
+
+新增营销 H5：只需创建 `app/pages/(h5)/h5/{子域名}/`，零配置。
 
 ## Code Style (Mandatory)
 
