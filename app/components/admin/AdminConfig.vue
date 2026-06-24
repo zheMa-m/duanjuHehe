@@ -555,7 +555,7 @@ async function saveAnalytics() {
             <div class="flex items-center justify-between bg-white/[0.03] rounded-xl px-4 py-3">
               <div>
                 <p class="text-sm font-medium text-white/90">营销 H5 端</p>
-                <p class="text-[11px] text-white/35">/h5/*  /h5-v2/*</p>
+                <p class="text-[11px] text-white/35">/h5/*</p>
               </div>
               <button
                 @click="analytics.enableH5 = !analytics.enableH5; debounceSaveAnalytics()"

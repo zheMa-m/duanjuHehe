@@ -28,6 +28,11 @@ export default defineEventHandler((event) => {
 
   if (SKIP_PREFIXES.some((p) => path.startsWith(p))) return
 
+  // 旧路径 /h5-v2/* → /h5/*（V2 已合并至 /h5/h5-v2）
+  if (path.startsWith('/h5-v2/')) {
+    return sendRedirect(event, path.replace(/^\/h5-v2/, '/h5'), 301)
+  }
+
   if (isLocalEnv(host)) return
 
   const rootDomain = getRootDomain(host)
@@ -51,7 +56,7 @@ export default defineEventHandler((event) => {
 
   // 子域名下访问完整前缀路径 → 301 剥离前缀
   // h5-v1.aihomeworkscan.com/h5/h5-v1 → /
-  // h5-v2.aihomeworkscan.com/h5-v2/h5-v2 → /
+  // h5-v2.aihomeworkscan.com/h5/h5-v2 → /
   const parts = host.split('.')
   if (parts.length > 2) {
     const sd = parts[0]

@@ -1,14 +1,8 @@
 <script setup lang="ts">
 import { onMounted, computed, ref, watch } from 'vue'
 
-const route = useRoute()
-const subdomain = computed(() => {
-  const sub = route.params.subdomain
-  if (Array.isArray(sub)) {
-    return sub[0] || 'h5-v2'
-  }
-  return sub || 'h5-v2'
-})
+/** 新野兽派 V2 固定演示活动 subdomain（与 DB / 子域名 h5-v2 一致） */
+const subdomain = ref('h5-v2')
 
 interface Campaign {
   subdomain: string
@@ -55,10 +49,6 @@ const ticketNo = ref(Math.floor(Math.random() * 90000) + 10000)
 const { createAndRedirect } = usePayment()
 
 const currentProduct = computed(() => {
-  const sub = subdomain.value.toLowerCase()
-  if (sub === 'cloud') {
-    return { id: 'p2', name: 'HEHE Enterprise 全套方案', price: 299.00 }
-  }
   return { id: 'p1', name: 'HEHE Pro 工具套件', price: 29.99 }
 })
 

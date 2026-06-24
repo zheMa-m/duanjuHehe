@@ -14,8 +14,6 @@
 /** 固定映射（非默认 /h5/{子域名} 规则） */
 const FIXED_SUBDOMAINS: Record<string, string> = {
   admin: '/admin',
-  /** 新野兽派 V2 模板 — 活动 subdomain 与 DB 种子一致 */
-  'h5-v2': '/h5-v2/h5-v2',
 }
 
 /** 保留子域名（不映射到 H5） */
@@ -26,7 +24,7 @@ const RESERVED_SUBDOMAINS = new Set(['www', 'api'])
  * 例: getPrefix('admin')     → '/admin'         (固定)
  *     getPrefix('starpath')   → '/h5/starpath'   (动态 H5)
  *     getPrefix('h5-v1')      → '/h5/h5-v1'      (动态 H5 V1)
- *     getPrefix('h5-v2')      → '/h5-v2/h5-v2'   (固定 V2 模板)
+ *     getPrefix('h5-v2')      → '/h5/h5-v2'      (动态 H5 V2)
  *     getPrefix('api')        → null             (保留)
  *     getPrefix(null)         → null             (无子域名)
  */
@@ -79,13 +77,13 @@ export const INTERNAL_ROUTE_PREFIXES = [
 ]
 
 /** 主站需要过滤掉的子应用路由前缀 */
-export const MAIN_DOMAIN_EXCLUDE_PREFIXES = ['/admin', '/h5', '/h5-v2']
+export const MAIN_DOMAIN_EXCLUDE_PREFIXES = ['/admin', '/h5']
 
 /** 主站 www 仍须暴露的 H5 演示路径（官网入口、换域名后路径访问） */
 const MAIN_SITE_H5_ALLOWLIST = [
   /^\/h5\/h5-v1(?:\/|$)/,
+  /^\/h5\/h5-v2(?:\/|$)/,
   /^\/h5\/starpath(?:\/|$)/,
-  /^\/h5-v2\//,
 ]
 
 export function isMainSitePublicH5Path(path: string): boolean {
@@ -96,7 +94,8 @@ export function isMainSitePublicH5Path(path: string): boolean {
 export function shouldExcludeRouteFromMainSite(path: string): boolean {
   if (path.startsWith('/admin')) return true
   if (isMainSitePublicH5Path(path)) return false
-  if (path.startsWith('/h5') || path.startsWith('/h5-v2')) return true
+  if (path.startsWith('/h5')) return true
+  if (path.startsWith('/h5-v2')) return true
   return false
 }
 

@@ -37,14 +37,14 @@ let globalConfig: AnalyticsConfig | null = null
 function shouldTrackPath(path: string, cfg: AnalyticsConfig): boolean {
   if (!cfg.isEnabled) return false
   if (path.startsWith('/admin'))  return cfg.enableAdmin
-  if (path.startsWith('/h5') || path.startsWith('/h5-v2')) return cfg.enableH5
+  if (path.startsWith('/h5')) return cfg.enableH5
   return cfg.enableClient
 }
 
 /** 判断当前路由类型 */
 function getRouteType(path: string): 'admin' | 'h5' | 'client' {
   if (path.startsWith('/admin'))  return 'admin'
-  if (path.startsWith('/h5') || path.startsWith('/h5-v2')) return 'h5'
+  if (path.startsWith('/h5')) return 'h5'
   return 'client'
 }
 

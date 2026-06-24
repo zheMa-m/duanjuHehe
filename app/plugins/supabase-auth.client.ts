@@ -50,7 +50,7 @@ export default defineNuxtPlugin({
     // 只有在已登录、从 OAuth 回调回来，或者访问后台(/admin)及 H5 活动(/h5)等交互路由时，才引入 Supabase SDK
     const hasAuthCookie = !!getCookie(AUTH_COOKIE_NAME)
     const currentPath = window.location.pathname
-    const isInteractiveRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/h5') || currentPath.startsWith('/h5-v2')
+    const isInteractiveRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/h5')
 
     if (hasAuthCookie || authToken || isInteractiveRoute) {
       const { useSupabaseClient } = await import('~/utils/supabase-client')

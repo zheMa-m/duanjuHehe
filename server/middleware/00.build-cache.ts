@@ -17,7 +17,7 @@ import { parseSubdomain, SKIP_PATH_PREFIXES } from '~/utils/subdomain'
 const BUILD_ID = resolveBuildId()
 
 const SITE_PATHS = new Set(['/', '/architecture', '/help'])
-const H5_PREFIXES = ['/h5/', '/h5-v2/']
+const H5_PREFIXES = ['/h5/']
 
 function isHtmlDocumentRequest(event: H3Event): boolean {
   const accept = getHeader(event, 'accept') || ''

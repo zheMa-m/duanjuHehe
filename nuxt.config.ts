@@ -83,14 +83,6 @@ export default defineNuxtConfig({
         Pragma: 'no-cache',
       },
     },
-    '/h5-v2/**': {
-      isr: 600,
-      headers: {
-        'Cache-Control': BROWSER_HTML_CACHE,
-        'CDN-Cache-Control': CDN_HTML_CACHE_H5,
-        Pragma: 'no-cache',
-      },
-    },
     // ── 客户端页面：ISR 3600s + CDN swr ──
     '/': {
       isr: 3600,

@@ -12,7 +12,7 @@ export function isH5Host(hostname: string): boolean {
 }
 
 export function isH5Path(path: string): boolean {
-  return path.startsWith('/h5/') || path.startsWith('/h5-v2/')
+  return path.startsWith('/h5/')
 }
 
 export function isH5MarketingContext(hostname: string, path: string): boolean {

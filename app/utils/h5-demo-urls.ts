@@ -14,7 +14,7 @@ export interface H5DemoEntry {
 
 export const H5_DEMO_ENTRIES: readonly H5DemoEntry[] = [
   { id: 'v1', labelKey: 'home.navH5_v1', path: '/h5/h5-v1', cardClass: 'v1', subdomain: 'h5-v1' },
-  { id: 'v2', labelKey: 'home.navH5_v2', path: '/h5-v2/h5-v2', cardClass: 'v2', subdomain: 'h5-v2' },
+  { id: 'v2', labelKey: 'home.navH5_v2', path: '/h5/h5-v2', cardClass: 'v2', subdomain: 'h5-v2' },
   { id: 'starpath', labelKey: 'home.navH5_starpath', path: '/h5/starpath/welcome', cardClass: 'starpath', subdomain: 'starpath' },
 ]
 
