@@ -93,21 +93,27 @@ BEGIN
 END $$;
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  5. payment_transactions — 公开 INSERT（服务端用 service_role 绕过 RLS，  ║
--- ║    但以防万一）                                                           ║
+-- ║  5. payment_transactions — 确保表存在 + 公开 INSERT                       ║
+-- ║    服务端用 service_role 绕过 RLS，但添加 public INSERT 作为后备           ║
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS order_id              UUID;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS payment_provider      TEXT;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS transaction_type      TEXT;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS gateway_transaction_id TEXT;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS amount                NUMERIC(10, 2);
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS currency              TEXT DEFAULT 'USD';
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS status                TEXT;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS gateway_response      JSONB;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS error_message         TEXT;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS context               JSONB;
-ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS created_at            TIMESTAMPTZ DEFAULT NOW();
+CREATE TABLE IF NOT EXISTS payment_transactions (
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id                UUID,
+  payment_provider        TEXT,
+  transaction_type        TEXT,
+  gateway_transaction_id  TEXT,
+  amount                  NUMERIC(10, 2),
+  currency                TEXT DEFAULT 'USD',
+  status                  TEXT,
+  gateway_response        JSONB,
+  error_message           TEXT,
+  context                 JSONB,
+  created_at              TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE payment_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_transactions FORCE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
