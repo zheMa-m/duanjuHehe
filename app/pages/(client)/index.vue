@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { useH5DemoLinks } from '~/composables/useH5DemoLinks'
 
 const { t } = useI18n()
 const { localeLabel, toggleLocale } = useLocaleDetect()
@@ -11,6 +12,7 @@ useAppSEO({
 
 const showH5Dropdown = ref(false)
 const showHeroH5Dropdown = ref(false)
+const { demos: h5Demos } = useH5DemoLinks()
 
 const { user, isLoggedIn, isAnonymous, signOut, initAuth } = useAuth()
 const showLoginModal = ref(false)
@@ -217,12 +219,17 @@ onBeforeUnmount(() => {
           </button>
           <Transition name="dropdown-fade">
             <div v-show="showH5Dropdown" class="dropdown-menu-list">
-              <NuxtLink to="/h5/promo" class="dropdown-item" target="_blank" @click="showH5Dropdown = false">
-                {{ t('home.navH5_v1') }}
-              </NuxtLink>
-              <NuxtLink to="/h5-v2/promo" class="dropdown-item" target="_blank" @click="showH5Dropdown = false">
-                {{ t('home.navH5_v2') }}
-              </NuxtLink>
+              <a
+                v-for="demo in h5Demos"
+                :key="demo.id"
+                :href="demo.href"
+                target="_blank"
+                rel="noopener"
+                class="dropdown-item"
+                @click="showH5Dropdown = false"
+              >
+                {{ t(demo.labelKey) }}
+              </a>
             </div>
           </Transition>
         </div>
@@ -297,12 +304,17 @@ onBeforeUnmount(() => {
               </button>
               <Transition name="dropdown-fade">
                 <div v-show="showHeroH5Dropdown" class="hero-dropdown-menu">
-                  <NuxtLink to="/h5/promo" target="_blank" class="hero-dropdown-item" @click="showHeroH5Dropdown = false">
-                    {{ t('home.navH5_v1') }} ↗
-                  </NuxtLink>
-                  <NuxtLink to="/h5-v2/promo" target="_blank" class="hero-dropdown-item" @click="showHeroH5Dropdown = false">
-                    {{ t('home.navH5_v2') }} ↗
-                  </NuxtLink>
+                  <a
+                    v-for="demo in h5Demos"
+                    :key="demo.id"
+                    :href="demo.href"
+                    target="_blank"
+                    rel="noopener"
+                    class="hero-dropdown-item"
+                    @click="showHeroH5Dropdown = false"
+                  >
+                    {{ t(demo.labelKey) }} ↗
+                  </a>
                 </div>
               </Transition>
             </div>
@@ -519,12 +531,17 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="card-links">
-              <NuxtLink to="/h5/promo" target="_blank" class="card-btn-link v1">
-                {{ t('home.navH5_v1') }} ↗
-              </NuxtLink>
-              <NuxtLink to="/h5-v2/promo" target="_blank" class="card-btn-link v2">
-                {{ t('home.navH5_v2') }} ↗
-              </NuxtLink>
+              <a
+                v-for="demo in h5Demos"
+                :key="demo.id"
+                :href="demo.href"
+                target="_blank"
+                rel="noopener"
+                class="card-btn-link"
+                :class="demo.cardClass"
+              >
+                {{ t(demo.labelKey) }} ↗
+              </a>
             </div>
           </div>
 
@@ -1518,6 +1535,7 @@ onBeforeUnmount(() => {
 
 .card-links {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: auto;
 }
@@ -1551,6 +1569,16 @@ onBeforeUnmount(() => {
 .card-btn-link.v2:hover {
   background: rgba(6, 182, 212, 0.15);
   border-color: rgba(6, 182, 212, 0.35);
+}
+
+.card-btn-link.starpath {
+  background: rgba(114, 98, 160, 0.12);
+  border: 1px solid rgba(114, 98, 160, 0.35);
+  color: #c4b5fd;
+}
+.card-btn-link.starpath:hover {
+  background: rgba(114, 98, 160, 0.22);
+  border-color: rgba(114, 98, 160, 0.45);
 }
 
 /* ── DEVELOPER TOOLS CARD GLOW ── */

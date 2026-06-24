@@ -77,3 +77,22 @@ export const INTERNAL_ROUTE_PREFIXES = [
 
 /** 主站需要过滤掉的子应用路由前缀 */
 export const MAIN_DOMAIN_EXCLUDE_PREFIXES = ['/admin', '/h5', '/h5-v2']
+
+/** 主站 www 仍须暴露的 H5 演示路径（官网入口、换域名后路径访问） */
+const MAIN_SITE_H5_ALLOWLIST = [
+  /^\/h5\/promo(?:\/|$)/,
+  /^\/h5\/starpath(?:\/|$)/,
+  /^\/h5-v2\//,
+]
+
+export function isMainSitePublicH5Path(path: string): boolean {
+  return MAIN_SITE_H5_ALLOWLIST.some((re) => re.test(path))
+}
+
+/** 主站路由表是否应排除该路径 */
+export function shouldExcludeRouteFromMainSite(path: string): boolean {
+  if (path.startsWith('/admin')) return true
+  if (isMainSitePublicH5Path(path)) return false
+  if (path.startsWith('/h5') || path.startsWith('/h5-v2')) return true
+  return false
+}

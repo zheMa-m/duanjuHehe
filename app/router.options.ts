@@ -15,7 +15,7 @@ import {
   getRootDomain,
   parseSubdomain,
   getPrefix,
-  MAIN_DOMAIN_EXCLUDE_PREFIXES,
+  shouldExcludeRouteFromMainSite,
   INTERNAL_ROUTE_PREFIXES,
 } from '~/utils/subdomain'
 
@@ -94,11 +94,9 @@ export default <RouterConfig>{
 
     const rootDomain = getRootDomain(hostname)
 
-    // 主站：过滤子应用路由
+    // 主站：过滤子应用路由，保留官网演示用 H5 路径
     if (hostname === rootDomain || hostname === `www.${rootDomain}`) {
-      return _routes.filter((r) =>
-        MAIN_DOMAIN_EXCLUDE_PREFIXES.every((p) => !r.path.startsWith(p)),
-      ) as RouteRecordRaw[]
+      return _routes.filter((r) => !shouldExcludeRouteFromMainSite(r.path)) as RouteRecordRaw[]
     }
 
     // 子域名：动态计算前缀 → 重写路由
