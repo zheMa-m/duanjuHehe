@@ -49,5 +49,22 @@ export default defineEventHandler((event) => {
     return
   }
 
+  // 子域名下访问完整前缀路径 → 301 剥离前缀
+  // starpath.aihomeworkscan.com/h5/starpath/welcome → /welcome
+  // admin.aihomeworkscan.com/admin/users → /users
+  const parts = host.split('.')
+  if (parts.length > 2) {
+    const sd = parts[0]
+    if (sd && sd !== 'www' && sd !== 'api') {
+      const h5Prefix = `/h5/${sd}`
+      if (path === h5Prefix || path.startsWith(h5Prefix + '/')) {
+        return sendRedirect(event, path.slice(h5Prefix.length) || '/', 301)
+      }
+      if (sd === 'admin' && (path === '/admin' || path.startsWith('/admin/'))) {
+        return sendRedirect(event, path.slice('/admin'.length) || '/', 301)
+      }
+    }
+  }
+
   // admin / h5 子域名：放行，路由重写由 router.options.ts + 客户端插件完成
 })
