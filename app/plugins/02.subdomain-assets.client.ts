@@ -1,11 +1,11 @@
 /**
  * 子域名客户端资源修复 — _i18n / _ipx
  *
- * 子域名下 i18n 懒加载会请求 /h5/{biz}/_i18n/...（404），
- * ISR 缓存 HTML 仍含 /_ipx/ 图片 URL。
- * 在 $fetch 层将上述请求重写到正确地址。
+ * 子域名下 i18n 懒加载可能请求 /h5/{biz}/_i18n/...，
+ * 重写为同域 /_i18n/... 由服务端 proxy 处理（避免跨域 CORS）。
+ * ISR 缓存 HTML 中的 /_ipx/ 图片 URL 重写到直链静态资源。
  */
-import { parseSubdomain, getRootDomain } from '~/utils/subdomain'
+import { parseSubdomain } from '~/utils/subdomain'
 
 export default defineNuxtPlugin({
   name: 'subdomain-assets',
@@ -15,15 +15,14 @@ export default defineNuxtPlugin({
     const { subdomain, isLocal } = parseSubdomain(hostname)
     if (isLocal || !subdomain) return
 
-    const wwwOrigin = `https://www.${getRootDomain(hostname)}`
     const origin = window.location.origin
     const rawFetch = globalThis.$fetch
 
     globalThis.$fetch = ((request: RequestInfo, opts?: Parameters<typeof rawFetch>[1]) => {
       if (typeof request === 'string') {
-        const i18n = request.match(/^(?:\/h5\/[^/]+)?(\/_i18n\/.+)$/)
-        if (i18n) {
-          return rawFetch(`${wwwOrigin}${i18n[1]}`, opts)
+        const prefixedI18n = request.match(/^\/h5\/[^/]+\/_i18n\/(.+)$/)
+        if (prefixedI18n) {
+          return rawFetch(`/_i18n/${prefixedI18n[1]}`, opts)
         }
 
         const ipx = request.match(/^\/_ipx\/[^/]+\/(.+)$/)
