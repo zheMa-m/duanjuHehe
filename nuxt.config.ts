@@ -34,14 +34,8 @@ export default defineNuxtConfig({
         { name: 'hehe-build-id', content: _buildId },
       ],
       link: [
-        // 🚀 字体预加载（全部自托管 woff2，零外部依赖）
-        { rel: 'preload', href: '/fonts/inter-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
-        { rel: 'preload', href: '/fonts/inter-v18-latin-700.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
-        { rel: 'preload', href: '/fonts/ibm-plex-sans-v19-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
-        { rel: 'preload', href: '/fonts/jetbrains-mono-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
-        // SVG favicon（轻量 <1KB）
+        // 字体 preload 仅主站注入（见 app.vue），H5 营销页不加载 Inter/IBM Plex
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        // Apple Touch Icon (webp 优化)
         { rel: 'apple-touch-icon', href: '/og-default.webp' },
       ],
     },

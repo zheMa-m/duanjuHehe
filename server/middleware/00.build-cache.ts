@@ -30,12 +30,13 @@ function isSkippableAsset(path: string): boolean {
 
 function resolveCdnHtmlCache(path: string, subdomain: string | null): string | null {
   if (H5_PREFIXES.some((p) => path.startsWith(p))) return CDN_HTML_CACHE_H5
-  if (SITE_PATHS.has(path)) return CDN_HTML_CACHE_SITE
 
-  // 子域名剥离后的 H5 页面（如 starpath.*/welcome）
+  // 子域名 H5（含 starpath.*/ 根路径）优先于主站 SITE_PATHS
   if (subdomain && subdomain !== 'admin' && subdomain !== 'api' && !isSkippableAsset(path)) {
     return CDN_HTML_CACHE_H5
   }
+
+  if (SITE_PATHS.has(path)) return CDN_HTML_CACHE_SITE
 
   return null
 }

@@ -1,44 +1,82 @@
 <script setup lang="ts">
 import { inject } from '@vercel/analytics'
 import { injectSpeedInsights } from '@vercel/speed-insights'
-import { onErrorCaptured, ref, onMounted } from 'vue'
+import { onErrorCaptured, ref, onMounted, computed } from 'vue'
 import { useLocaleDetect } from '~/composables/useLocaleDetect'
+import { isH5MarketingContext } from '~/utils/is-h5-context'
 
-// 仅在生产环境注入 Vercel Analytics + Speed Insights
-if (import.meta.client && import.meta.env.PROD) {
-  inject()
-  injectSpeedInsights()
+const MAIN_SITE_FONT_PRELOADS = [
+  { rel: 'preload', href: '/fonts/inter-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+  { rel: 'preload', href: '/fonts/inter-v18-latin-700.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+  { rel: 'preload', href: '/fonts/ibm-plex-sans-v19-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+  { rel: 'preload', href: '/fonts/jetbrains-mono-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+] as const
+
+function resolveHostname(): string {
+  if (import.meta.server) {
+    return (useRequestHeaders(['host']).host || '').split(':')[0] || ''
+  }
+  return window.location.hostname
 }
 
-// 自动检测并应用多语言
+const route = useRoute()
+const hostname = resolveHostname()
+const isH5 = computed(() => isH5MarketingContext(hostname, route.path))
+
+function runWhenIdle(fn: () => void, timeoutMs = 2500) {
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(fn, { timeout: timeoutMs })
+  } else {
+    setTimeout(fn, 1)
+  }
+}
+
+// 生产环境：H5 营销页延后注入 Analytics，降低 TBT
+if (import.meta.client && import.meta.env.PROD) {
+  const bootAnalytics = () => {
+    inject()
+    injectSpeedInsights()
+  }
+  if (isH5MarketingContext(window.location.hostname, window.location.pathname)) {
+    runWhenIdle(bootAnalytics)
+  } else {
+    bootAnalytics()
+  }
+}
+
 const { autoDetect } = useLocaleDetect()
 onMounted(() => {
-  autoDetect()
+  const detect = () => autoDetect()
+  if (isH5MarketingContext(window.location.hostname, route.path)) {
+    runWhenIdle(detect)
+  } else {
+    detect()
+  }
 })
 
-// 🔗 预连接关键域名（消减 DNS/TCP/TLS 耗时）
 const supabaseUrl = useRuntimeConfig().public.supabaseUrl as string
 const supabaseHost = supabaseUrl ? new URL(supabaseUrl).hostname : ''
 
-useHead({
+useHead(computed(() => ({
   link: [
-    // Supabase API / Auth / Storage 预连接
-    ...(supabaseHost ? [{ rel: 'preconnect', href: `https://${supabaseHost}` } as const] : []),
+    ...(!isH5.value ? MAIN_SITE_FONT_PRELOADS : []),
+    ...(supabaseHost && !isH5.value
+      ? [{ rel: 'preconnect', href: `https://${supabaseHost}` } as const]
+      : []),
   ],
-})
+})))
 
-// ─── ErrorBoundary：捕获子组件崩溃，防止白屏 ───
 const appError = ref<Error | null>(null)
 const pageKey = ref(0)
 
 onErrorCaptured((err) => {
   appError.value = err instanceof Error ? err : new Error(String(err))
-  return false // 阻止向上传播
+  return false
 })
 
 function handleRetry() {
   appError.value = null
-  pageKey.value++ // 强制重新挂载 NuxtPage
+  pageKey.value++
 }
 </script>
 
@@ -58,7 +96,7 @@ function handleRetry() {
 </template>
 
 <style>
-/* ─── 自托管字体 @font-face（全部 woff2，零外部依赖） ─── */
+/* ─── 自托管字体 @font-face（主站 / 管理后台；H5 营销页用 system-ui 不触发下载） ─── */
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -76,7 +114,6 @@ function handleRetry() {
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* IBM Plex Sans — 首页标题/UI 字体 */
 @font-face {
   font-family: 'IBM Plex Sans';
   font-style: normal;
@@ -102,7 +139,6 @@ function handleRetry() {
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* JetBrains Mono — 代码/终端字体 */
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
@@ -116,25 +152,22 @@ function handleRetry() {
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/jetbrains-mono-v18-latin-700.woff2') format('woff2');
+  src: url('/fonts/jetbrains-mono-v18-latin-400.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* ─── 全局基底样式（三大子系统统一视觉基础） ─── */
 :root {
   --bg-base: #0a0e1a;
   --text-base: #e2e8f0;
   --border-base: #1e2d4d;
   --font-sans: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  /* 品牌色 (indigo) */
   --brand-accent: #6366f1;
   --brand-accent-light: #818cf8;
   --brand-accent-dark: #4f46e5;
   --brand-accent-soft: #a5b4fc;
   --brand-blue-500: #3b82f6;
   --brand-violet: #bf5af2;
-  /* 状态色 (Apple HIG) */
   --brand-status-ok: #30d158;
   --brand-status-err: #ff453a;
   --brand-status-warn: #ff9f0a;
@@ -163,31 +196,30 @@ body {
   overflow-x: hidden;
 }
 
-/* 全局滚动条风格 */
+[data-biz="starpath"] {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-base); }
 ::-webkit-scrollbar-thumb { background: var(--border-base); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #2d4470; }
 
-/* 文本选中高亮 */
 ::selection {
   background: rgba(79, 142, 247, 0.3);
   color: #ffffff;
 }
 
-/* 全局链接风格重置 */
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* 图片响应式默认行为 */
 img {
   max-width: 100%;
   height: auto;
 }
 
-/* 隐藏滚动条的通用工具类 */
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
@@ -199,7 +231,6 @@ img {
   color: var(--text-base);
 }
 
-/* ─── ErrorBoundary 兜底界面 ─── */
 .error-fallback {
   display: flex;
   flex-direction: column;

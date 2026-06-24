@@ -7,7 +7,17 @@ definePageMeta({
   title: '智能问卷 · Welcome',
   alias: ['/h5/starpath/question-page-zero'],
 })
-useHead({ title: 'Navigate Your Fate · 智能问卷' })
+useHead({
+  title: 'Navigate Your Fate · 智能问卷',
+  link: [
+    {
+      rel: 'preload',
+      as: 'image',
+      href: figmaAssets['page-0-logo'],
+      fetchpriority: 'high',
+    },
+  ],
+})
 
 const router = useRouter()
 const store = useStarpathStore()
@@ -25,7 +35,16 @@ function pickGender(g: 'male' | 'female') {
     <div class="starpath-frame pt-safe-top">
       <main class="relative z-10 flex flex-col items-center">
         <div class="mt-[72px] size-[70px] rounded-[16px] border border-starpath-primary-soft overflow-hidden">
-          <img :src="figmaAssets['page-0-logo']" alt="智能问卷" class="size-full object-cover" loading="eager" fetchpriority="high" />
+          <img
+            :src="figmaAssets['page-0-logo']"
+            alt="智能问卷"
+            width="70"
+            height="70"
+            class="size-full object-cover"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          >
         </div>
 
         <h1 class="mt-[42px] mx-auto w-[337px] text-center text-base font-semibold leading-snug">

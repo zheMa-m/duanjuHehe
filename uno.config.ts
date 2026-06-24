@@ -74,6 +74,7 @@ export default defineConfig({
     fontFamily: {
       sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
       mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+      starpath: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
       'starpath-display': ['Inter', '"PingFang SC"', 'system-ui', 'sans-serif'],
     },
   },
@@ -89,7 +90,7 @@ export default defineConfig({
     'badge-green': 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-success/15 text-brand-success border border-brand-success/25',
     'badge-red': 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-danger/15 text-brand-danger border border-brand-danger/25',
     // StarPath shortcuts
-    'starpath-page': 'min-h-dvh w-full relative overflow-x-hidden bg-starpath-bg-start text-white',
+    'starpath-page': 'min-h-dvh w-full relative overflow-x-hidden bg-starpath-bg-start text-white font-starpath',
     'starpath-frame': 'min-h-dvh w-full max-w-[375px] mx-auto relative',
     'starpath-bg-gradient': 'absolute inset-0 bg-gradient-to-b from-starpath-bg-start via-starpath-bg-mid to-starpath-bg-end pointer-events-none',
     'starpath-card': 'w-[343px] mx-auto h-[53px] rounded-[10px] border border-starpath-primary bg-starpath-option-bg px-4 flex items-center text-xs text-white',
