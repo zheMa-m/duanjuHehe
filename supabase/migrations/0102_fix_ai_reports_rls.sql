@@ -11,8 +11,17 @@
 -- ============================================================================
 
 -- 1. 允许公开 INSERT（报告生成请求，status 默认 pending）
-CREATE POLICY IF NOT EXISTS ar_public_insert ON ai_reports
-  FOR INSERT WITH CHECK (true);
+--    PostgreSQL 不支持 CREATE POLICY IF NOT EXISTS，用 DO 块幂等处理
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'ai_reports' AND policyname = 'ar_public_insert'
+  ) THEN
+    CREATE POLICY ar_public_insert ON ai_reports
+      FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
 
 -- 2. 刷新 PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
