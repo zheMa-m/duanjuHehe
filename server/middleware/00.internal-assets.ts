@@ -1,18 +1,47 @@
 /**
- * 内部资源路径重写 — 子域名 H5 前缀下的 _i18n / _ipx 请求
+ * 子域名内部资源代理 — _i18n / _ipx
  *
- * 子域名访问 /h5/{biz}/welcome 时，i18n 懒加载可能请求
- * /h5/{biz}/_i18n/... 而非根路径 /_i18n/...，导致 404。
- * 在路由匹配前将路径重写为根级内部资源路径。
+ * 子域名下 /_i18n 会被应用层 302 到 /h5/{biz}/_i18n（不存在），
+ * event.node.req.url 重写于 Vercel Serverless 无效。
+ * 在最早阶段将请求代理到 www 主域名的对应路径。
  */
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, getHeader, proxyRequest } from 'h3'
 
-const PREFIXED_INTERNAL = /^\/h5\/[^/]+(\/_i18n\/.*|\/_ipx\/.*)$/
+function getRootDomain(hostname: string): string {
+  const parts = hostname.split('.')
+  if (parts.length <= 2) return hostname
+  return parts.slice(-2).join('.')
+}
+
+function isWwwOrApex(host: string, rootDomain: string): boolean {
+  return host === rootDomain || host === `www.${rootDomain}`
+}
+
+const PREFIXED_I18N = /^\/h5\/[^/]+\/_i18n\/(.*)$/
+const PREFIXED_IPX = /^\/h5\/[^/]+\/_ipx\/(.*)$/
 
 export default defineEventHandler((event) => {
+  const host = (getHeader(event, 'host') || '').split(':')[0] || ''
   const path = event.path
-  const match = path.match(PREFIXED_INTERNAL)
-  if (!match?.[1]) return
 
-  event.node.req.url = match[1]
+  if (!host || host === 'localhost' || host.endsWith('.vercel.app')) return
+
+  const rootDomain = getRootDomain(host)
+  if (isWwwOrApex(host, rootDomain)) return
+
+  const wwwBase = `https://www.${rootDomain}`
+
+  if (path.startsWith('/_i18n/')) {
+    return proxyRequest(event, `${wwwBase}${path}`)
+  }
+
+  const i18nMatch = path.match(PREFIXED_I18N)
+  if (i18nMatch?.[1]) {
+    return proxyRequest(event, `${wwwBase}/_i18n/${i18nMatch[1]}`)
+  }
+
+  const ipxMatch = path.match(PREFIXED_IPX)
+  if (ipxMatch?.[1]) {
+    return proxyRequest(event, `${wwwBase}/_ipx/${ipxMatch[1]}`)
+  }
 })
