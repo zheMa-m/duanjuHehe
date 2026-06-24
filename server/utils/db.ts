@@ -44,11 +44,11 @@ export const mockCampaignsTable: Array<Record<string, any>> = [
     tiktok_pixel_id: null,
   },
   {
-    id: 'c-promo',
-    subdomain: 'promo',
-    title: '🚀 HEHE 全栈单仓极速版',
-    subtitle: '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。',
-    badge: '开发者特惠季',
+    id: 'c-h5-v1',
+    subdomain: 'h5-v1',
+    title: '✨ HEHE 营销 H5 v1 毛玻璃拟态',
+    subtitle: '柔和毛玻璃质感与渐变光晕，适合品牌种草与轻转化场景。',
+    badge: 'V1 示例',
     color_from: 'from-rose-600',
     color_to: 'to-orange-600',
     ga_measurement_id: null,
@@ -141,15 +141,15 @@ export const mockSystemConfigsTable: Array<Record<string, any>> = [
 
 // 内存 Mock 用户反馈/评价表
 export const mockFeedbacksTable: Array<Record<string, any>> = [
-  { id: 'fb-1', user_id: 'mock-user-123', campaign_subdomain: 'promo', type: 'review', rating: 5, comment: '产品体验非常流畅，注册流程简洁高效！', display_name: 'Alice', is_approved: true, admin_reply: null, created_at: new Date(Date.now() - 86400000 * 3).toISOString() },
-  { id: 'fb-2', user_id: 'mock-user-456', campaign_subdomain: 'promo', type: 'review', rating: 4, comment: 'Great landing page, very responsive.', display_name: 'Bob', is_approved: true, admin_reply: 'Thanks for your feedback!', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: 'fb-1', user_id: 'mock-user-123', campaign_subdomain: 'h5-v1', type: 'review', rating: 5, comment: '产品体验非常流畅，注册流程简洁高效！', display_name: 'Alice', is_approved: true, admin_reply: null, created_at: new Date(Date.now() - 86400000 * 3).toISOString() },
+  { id: 'fb-2', user_id: 'mock-user-456', campaign_subdomain: 'h5-v1', type: 'review', rating: 4, comment: 'Great landing page, very responsive.', display_name: 'Bob', is_approved: true, admin_reply: 'Thanks for your feedback!', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
   { id: 'fb-3', user_id: 'mock-user-789', campaign_subdomain: 'ai', type: 'review', rating: 5, comment: 'AI features are impressive, love the demo.', display_name: 'Charlie', is_approved: true, admin_reply: null, created_at: new Date(Date.now() - 86400000).toISOString() },
-  { id: 'fb-4', user_id: 'mock-user-123', campaign_subdomain: 'promo', type: 'bug', rating: 2, comment: '表单提交后页面白屏了，刷新才恢复。', display_name: 'Solo Hacker', is_approved: true, admin_reply: null, created_at: new Date().toISOString() },
+  { id: 'fb-4', user_id: 'mock-user-123', campaign_subdomain: 'h5-v1', type: 'bug', rating: 2, comment: '表单提交后页面白屏了，刷新才恢复。', display_name: 'Solo Hacker', is_approved: true, admin_reply: null, created_at: new Date().toISOString() },
 ]
 
 // 内存 Mock 营销活动预约留资表
 export const mockCampaignRegistrationsTable: Array<Record<string, any>> = [
-  { id: 'reg-1', campaign_id: 'c-promo', subdomain: 'promo', phone: '13800138000', email: 'lead1@example.com', user_id: 'mock-user-123', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: 'reg-1', campaign_id: 'c-h5-v1', subdomain: 'h5-v1', phone: '13800138000', email: 'lead1@example.com', user_id: 'mock-user-123', created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
   { id: 'reg-2', campaign_id: 'c-ai', subdomain: 'ai', phone: '13912345678', email: 'lead2@example.com', user_id: null, created_at: new Date(Date.now() - 3600000).toISOString() },
 ]
 

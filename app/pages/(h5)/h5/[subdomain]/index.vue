@@ -3,9 +3,9 @@ const route = useRoute()
 const subdomain = computed(() => {
   const sub = route.params.subdomain
   if (Array.isArray(sub)) {
-    return sub[0] || 'promo'
+    return sub[0] || 'h5-v1'
   }
-  return sub || 'promo'
+  return sub || 'h5-v1'
 })
 
 interface Campaign {

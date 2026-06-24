@@ -25,8 +25,8 @@ const RESERVED_SUBDOMAINS = new Set(['www', 'api'])
  * 根据子域名获取路径前缀
  * 例: getPrefix('admin')     → '/admin'         (固定)
  *     getPrefix('starpath')   → '/h5/starpath'   (动态 H5)
+ *     getPrefix('h5-v1')      → '/h5/h5-v1'      (动态 H5 V1)
  *     getPrefix('h5-v2')      → '/h5-v2/h5-v2'   (固定 V2 模板)
- *     getPrefix('promo2024')  → '/h5/promo2024'  (动态 H5)
  *     getPrefix('api')        → null             (保留)
  *     getPrefix(null)         → null             (无子域名)
  */
@@ -83,7 +83,7 @@ export const MAIN_DOMAIN_EXCLUDE_PREFIXES = ['/admin', '/h5', '/h5-v2']
 
 /** 主站 www 仍须暴露的 H5 演示路径（官网入口、换域名后路径访问） */
 const MAIN_SITE_H5_ALLOWLIST = [
-  /^\/h5\/promo(?:\/|$)/,
+  /^\/h5\/h5-v1(?:\/|$)/,
   /^\/h5\/starpath(?:\/|$)/,
   /^\/h5-v2\//,
 ]

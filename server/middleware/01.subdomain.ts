@@ -50,7 +50,7 @@ export default defineEventHandler((event) => {
   }
 
   // 子域名下访问完整前缀路径 → 301 剥离前缀
-  // promo.aihomeworkscan.com/h5/promo → /
+  // h5-v1.aihomeworkscan.com/h5/h5-v1 → /
   // h5-v2.aihomeworkscan.com/h5-v2/h5-v2 → /
   const parts = host.split('.')
   if (parts.length > 2) {

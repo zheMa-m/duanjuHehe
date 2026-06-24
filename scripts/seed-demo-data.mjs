@@ -308,15 +308,15 @@ const MOCK_CAMPAIGNS = [
     sort_order: 10,
   },
   {
-    subdomain: 'promo',
-    title: '🔥 限时促销活动',
-    subtitle: '新用户首单立减 50%，老用户推荐有礼。',
-    badge: '限时优惠',
-    color_from: 'from-orange-400',
-    color_to: 'to-red-500',
+    subdomain: 'h5-v1',
+    title: '✨ HEHE 营销 H5 v1 毛玻璃拟态',
+    subtitle: '柔和毛玻璃质感与渐变光晕，适合品牌种草与轻转化场景。',
+    badge: 'V1 示例',
+    color_from: 'from-rose-600',
+    color_to: 'to-orange-600',
     is_active: true,
-    cta_text: '立即抢购',
-    sort_order: 20,
+    cta_text: '立即体验',
+    sort_order: 5,
   },
 ]
 
@@ -551,10 +551,10 @@ const MOCK_LEADS = [
   { subdomain: 'h5-v2', phone: '13534567890', email: 'jianghua@163.com',    days: 25 },
   { subdomain: 'h5-v2', phone: '15645678901', email: 'qinxue@gmail.com',    days: 28 },
   { subdomain: 'h5-v2', phone: '18756789012', email: 'shenyi@hotmail.com',  days: 30 },
-  // 其他活动（若存在 promo / ai 活动则也会写入）
-  { subdomain: 'promo',  phone: '13800100001', email: 'promo_user1@qq.com',  days: 3  },
-  { subdomain: 'promo',  phone: '13900200002', email: 'promo_user2@163.com', days: 7  },
-  { subdomain: 'promo',  phone: '15000300003', email: 'promo_user3@gmail.com', days: 14 },
+  // 其他活动（若存在 h5-v1 / ai 活动则也会写入）
+  { subdomain: 'h5-v1', phone: '13800100001', email: 'h5v1_user1@qq.com',  days: 3  },
+  { subdomain: 'h5-v1', phone: '13900200002', email: 'h5v1_user2@163.com', days: 7  },
+  { subdomain: 'h5-v1', phone: '15000300003', email: 'h5v1_user3@gmail.com', days: 14 },
   { subdomain: 'ai',     phone: '18600400004', email: 'ai_lead1@qq.com',     days: 5  },
   { subdomain: 'ai',     phone: '13700500005', email: 'ai_lead2@163.com',    days: 10 },
 ]

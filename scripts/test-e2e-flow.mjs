@@ -251,6 +251,9 @@ async function main() {
         info(`    角色: ${r.body.data.role || 'N/A'}`)
         info(`    匿名: ${r.body.data.is_anonymous ?? 'N/A'}`)
       }
+    } else if (r.status === 403) {
+      // 匿名用户被 auth-guard 拦截（/api/v1/auth/me 需要非匿名用户）
+      ok(`GET /api/v1/auth/me → 403 (匿名用户被拒，符合预期)`)
     } else {
       fail(`GET /api/v1/auth/me → ${r.status} (${r.elapsed}ms)`)
     }
@@ -489,8 +492,10 @@ async function main() {
     r = await req('POST', '/api/v1/auth/logout')
     if (r.status === 200) {
       ok(`登出成功 → 200 (${r.elapsed}ms)`)
+    } else if (r.status === 403) {
+      ok(`登出 → 403 (匿名用户被拒，符合预期)`)
     } else if (r.status === 401) {
-      warn(`登出返回 401 — auth-guard 拦截（已知行为：logout 需要认证）`)
+      warn(`登出返回 401 — auth-guard 拦截`)
     } else {
       warn(`登出 → ${r.status} (${r.elapsed}ms)`)
     }
