@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AdminMedia from './AdminMedia.vue'
+import { getRootDomain } from '~/utils/subdomain'
 
 interface Campaign {
   id: string
@@ -200,6 +201,18 @@ const handleDeleteLead = (id: string) => {
   emit('delete-lead', id)
 }
 
+// ── 预览链接（生产环境用子域名 URL，本地 fallback 到路径）────────
+function getPreviewUrl(subdomain: string): string {
+  if (import.meta.client) {
+    const hostname = window.location.hostname
+    if (hostname !== 'localhost' && !hostname.endsWith('.vercel.app')) {
+      const rootDomain = getRootDomain(hostname)
+      return `https://${subdomain}.${rootDomain}`
+    }
+  }
+  return `/h5/${subdomain}`
+}
+
 defineExpose({ onSaved: () => {} })
 </script>
 
@@ -318,11 +331,12 @@ defineExpose({ onSaved: () => {} })
               <td class="px-5 py-5 text-right">
                 <div class="flex items-center justify-end gap-2">
                   <!-- 预览 -->
-                  <NuxtLink
-                    :to="`/h5/${cam.subdomain}`"
+                  <a
+                    :href="getPreviewUrl(cam.subdomain)"
                     target="_blank"
+                    rel="noopener noreferrer"
                     class="text-[10px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-3 py-1.5 rounded-full border border-white/15 transition-all no-underline cursor-pointer focus:outline-none"
-                  >预览</NuxtLink>
+                  >预览</a>
                   <button
                     @click="openEdit(cam)"
                     class="text-[11px] font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-4 py-2 rounded-full border border-indigo-500/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
