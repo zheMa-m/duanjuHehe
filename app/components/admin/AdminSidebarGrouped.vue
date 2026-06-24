@@ -103,18 +103,6 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
         </template>
       </template>
     </nav>
-
-    <!-- 底部 -->
-    <div class="nav-sidebar__footer">
-      <div v-if="!collapsed" class="nav-sidebar__search-hint">
-        <span class="i-lucide-search text-[13px] text-white/25" />
-        <span class="text-[12px] text-white/30 flex-1">Quick search</span>
-        <kbd class="nav-sidebar__footer-kbd">⌘K</kbd>
-      </div>
-      <div v-else class="nav-sidebar__footer-dots">
-        <span class="i-lucide-search text-[15px] text-white/20" />
-      </div>
-    </div>
   </aside>
 </template>
 
@@ -136,9 +124,9 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 /* 背景层 */
 .nav-sidebar__bg {
   position: absolute; inset: 0;
-  background: #08080f;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+  background: linear-gradient(180deg, #08080f 0%, #0a0a14 100%);
+  border-right: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 2px 0 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
 }
 
 /* ─── Header / Logo ─── */
@@ -226,19 +214,19 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   font-size: 14px; font-weight: 450;
   color: var(--admin-text-muted, rgba(255,255,255,0.42));
   letter-spacing: -0.008em;
-  transition: all 0.15s ease;
-  margin-bottom: 2px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-bottom: 1px;
 }
 .nav-item:hover {
   color: var(--admin-text-secondary, rgba(255,255,255,0.82));
-  background: rgba(255,255,255,0.035);
+  background: rgba(255,255,255,0.04);
 }
 .nav-item--active {
   color: var(--admin-text-primary, #fff) !important;
   background: rgba(99,102,241,0.08) !important;
 }
 .nav-item--active:hover {
-  background: rgba(99,102,241,0.12) !important;
+  background: rgba(99,102,241,0.10) !important;
 }
 .nav-item--compact {
   justify-content: center; padding: 10px 0;
@@ -290,12 +278,12 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   background: transparent; border: none; cursor: pointer;
 }
 .nav-group__label {
-  font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: rgba(255,255,255,0.2);
-  transition: color 0.15s;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.16);
+  transition: color 0.2s;
 }
-.nav-group__header:hover .nav-group__label { color: rgba(255,255,255,0.38); }
+.nav-group__header:hover .nav-group__label { color: rgba(255,255,255,0.32); }
 
 .nav-group__chevron {
   font-size: 12px; color: rgba(255,255,255,0.12);
@@ -312,35 +300,6 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-group__items {
   overflow: hidden;
   transition: max-height 0.25s ease;
-}
-
-/* ─── 底部 ─── */
-.nav-sidebar__footer {
-  position: relative; z-index: 1;
-  flex-shrink: 0;
-  padding: 12px;
-  border-top: 1px solid rgba(255,255,255,0.04);
-}
-.nav-sidebar__search-hint {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border-radius: 8px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  transition: all 0.15s;
-}
-.nav-sidebar__search-hint:hover {
-  background: rgba(255,255,255,0.035);
-  border-color: rgba(255,255,255,0.07);
-}
-.nav-sidebar__footer-kbd {
-  font-size: 9px; font-family: ui-monospace, monospace;
-  padding: 2px 6px; border-radius: 4px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.18);
-}
-.nav-sidebar__footer-dots {
-  display: flex; justify-content: center;
 }
 
 /* ─── 过渡 ─── */

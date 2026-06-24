@@ -658,13 +658,17 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 0 24px;
   height: 58px;
-  background: rgba(10, 16, 32, 0.65);
+  background: rgba(10, 16, 32, 0.7);
   backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
   max-width: 1200px;
   margin: 0 auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.home-header:hover {
+  border-color: rgba(255, 255, 255, 0.09);
 }
 
 .home-header-left {
@@ -1730,13 +1734,21 @@ onBeforeUnmount(() => {
 /* ===== SCROLL REVEAL ANIMATION ===== */
 .reveal {
   opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(24px);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 /* Stagger delay for list / grid children */

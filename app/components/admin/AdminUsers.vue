@@ -158,13 +158,13 @@ const planBadge = (plan: string) => {
 
 const providerIcon = (provider: string) => {
   const map: Record<string, string> = {
-    email: '📧',
-    google: '🔍',
-    facebook: '📘',
-    apple: '🍎',
-    anonymous: '👻',
+    email: 'i-lucide-mail',
+    google: 'i-lucide-chrome',
+    facebook: 'i-lucide-facebook',
+    apple: 'i-lucide-apple',
+    anonymous: 'i-lucide-ghost',
   }
-  return map[provider] || '❓'
+  return map[provider] || 'i-lucide-help-circle'
 }
 
 // ── 中文标签映射 ─────────────────────────────────────────────
@@ -197,9 +197,9 @@ const providerLabel: Record<string, string> = {
       <button
         @click="$emit('refresh')"
         :disabled="isLoading"
-        class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+        class="text-xs bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-50 text-white/70 hover:text-white/90 font-medium px-4 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5 border border-white/[0.06] hover:border-white/[0.10]"
       >
-        <span :class="{'animate-spin': isLoading}">🔄</span>
+        <span :class="{'animate-spin': isLoading}" class="i-lucide-refresh-cw text-[13px]" />
         刷新用户
       </button>
     </div>
@@ -232,25 +232,40 @@ const providerLabel: Record<string, string> = {
 
     <!-- 用户统计摘要（全局数据，来自 /api/admin/users/stats） -->
     <div v-if="stats" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-      <div class="bg-white/[0.04] rounded-xl px-4 py-3.5 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">总用户</div>
-        <div class="text-white font-bold text-xl">{{ stats.total }}</div>
+      <div class="relative p-5 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-white/[0.08] hover:-translate-y-px group">
+        <div class="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-blue-500/[0.04] blur-3xl group-hover:bg-blue-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 block mb-1">总用户</span>
+          <span class="text-[28px] font-bold text-white font-mono leading-none">{{ stats.total }}</span>
+        </div>
       </div>
-      <div class="bg-white/[0.04] rounded-xl px-4 py-3.5 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">管理员</div>
-        <div class="text-[#bf5af2] font-bold text-xl">{{ stats.byRole?.admin || 0 }}</div>
+      <div class="relative p-5 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#bf5af2]/15 hover:-translate-y-px group">
+        <div class="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-purple-500/[0.04] blur-3xl group-hover:bg-purple-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 block mb-1">管理员</span>
+          <span class="text-[28px] font-bold text-[#bf5af2] font-mono leading-none">{{ stats.byRole?.admin || 0 }}</span>
+        </div>
       </div>
-      <div class="bg-white/[0.04] rounded-xl px-4 py-3.5 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">付费用户</div>
-        <div class="text-[#30d158] font-bold text-xl">{{ (stats.byPlan?.pro || 0) + (stats.byPlan?.enterprise || 0) }}</div>
+      <div class="relative p-5 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#30d158]/15 hover:-translate-y-px group">
+        <div class="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-emerald-500/[0.04] blur-3xl group-hover:bg-emerald-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 block mb-1">付费用户</span>
+          <span class="text-[28px] font-bold text-[#30d158] font-mono leading-none">{{ (stats.byPlan?.pro || 0) + (stats.byPlan?.enterprise || 0) }}</span>
+        </div>
       </div>
-      <div class="bg-white/[0.04] rounded-xl px-4 py-3.5 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">匿名用户</div>
-        <div class="text-[#ff9f0a] font-bold text-xl">{{ stats.anonymousCount || 0 }}</div>
+      <div class="relative p-5 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#ff9f0a]/15 hover:-translate-y-px group">
+        <div class="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-amber-500/[0.04] blur-3xl group-hover:bg-amber-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 block mb-1">匿名用户</span>
+          <span class="text-[28px] font-bold text-[#ff9f0a] font-mono leading-none">{{ stats.anonymousCount || 0 }}</span>
+        </div>
       </div>
-      <div class="bg-white/[0.04] rounded-xl px-4 py-3.5 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">已验证邮箱</div>
-        <div class="text-[#64d2ff] font-bold text-xl">{{ stats.verifiedCount || 0 }}</div>
+      <div class="relative p-5 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#64d2ff]/15 hover:-translate-y-px group">
+        <div class="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-sky-500/[0.04] blur-3xl group-hover:bg-sky-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 block mb-1">已验证邮箱</span>
+          <span class="text-[28px] font-bold text-[#64d2ff] font-mono leading-none">{{ stats.verifiedCount || 0 }}</span>
+        </div>
       </div>
     </div>
 
@@ -284,7 +299,7 @@ const providerLabel: Record<string, string> = {
                     <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs flex-shrink-0"
                       :class="user.avatar_url ? '' : 'bg-white/10 ring-1 ring-white/20'">
                       <img v-if="user.avatar_url" :src="user.avatar_url" class="w-8 h-8 rounded-full object-cover" alt="" />
-                      <span v-else>{{ providerIcon(user.auth_provider) }}</span>
+                      <span v-else :class="providerIcon(user.auth_provider)" class="text-[14px] text-white/50" />
                     </div>
                     <div class="min-w-0">
                       <div class="text-white/90 font-medium text-sm truncate">{{ user.display_name || '-' }}</div>
@@ -305,7 +320,7 @@ const providerLabel: Record<string, string> = {
                 </td>
                 <td class="px-6 py-5">
                   <div class="flex items-center gap-1.5 text-white/50">
-                    <span>{{ providerIcon(user.auth_provider) }}</span>
+                    <span :class="providerIcon(user.auth_provider)" class="text-[14px]" />
                     <span class="text-xs">{{ providerLabel[user.auth_provider] || user.auth_provider }}</span>
                     <span v-if="user.is_anonymous" class="text-[8px] text-[#ff9f0a] ml-1">(匿名)</span>
                   </div>
@@ -351,7 +366,8 @@ const providerLabel: Record<string, string> = {
                     <div>
                       <div class="text-white/30 text-[10px] uppercase tracking-widest font-mono mb-1">邮箱验证</div>
                       <div :class="user.email_verified ? 'text-[#30d158]' : 'text-[#ff9f0a]'">
-                        {{ user.email_verified ? '✓ 已验证' : '✗ 未验证' }}
+                        <span v-if="user.email_verified" class="inline-flex items-center gap-1"><span class="i-lucide-check-circle text-[12px]" />已验证</span>
+                        <span v-else class="inline-flex items-center gap-1"><span class="i-lucide-x-circle text-[12px]" />未验证</span>
                       </div>
                     </div>
                     <div>

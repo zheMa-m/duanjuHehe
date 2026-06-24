@@ -111,7 +111,7 @@ async function submit() {
           class="mt-[2px] size-[18px] rounded-[4px] border flex items-center justify-center shrink-0"
           :class="agreed ? 'bg-[#bab3f3] border-[#bab3f3]' : 'bg-white/10 border-white/40'"
         >
-          <span v-if="agreed" class="text-[10px] text-white">✓</span>
+          <span v-if="agreed" class="i-lucide-check text-[10px] text-white" />
         </div>
         <span class="text-[12px] text-starpath-text-muted leading-[18px]">
           {{ t('starpath.email.terms') }}

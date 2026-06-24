@@ -749,10 +749,10 @@ async function copyToClipboard(text: string) {
 // ── 文件图标 ─────────────────────────────────────────────────
 function getFileIcon(kind: string, ext: string): string {
   const iconMap: Record<string, string> = {
-    image: '🖼️', video: '🎬', audio: '🎵',
-    document: '📄', other: '📦',
+    image: 'i-lucide-image', video: 'i-lucide-video', audio: 'i-lucide-music',
+    document: 'i-lucide-file-text', other: 'i-lucide-package',
   }
-  return iconMap[kind] || '📦'
+  return iconMap[kind] || 'i-lucide-package'
 }
 
 // ── 快捷键 ───────────────────────────────────────────────────
@@ -1146,7 +1146,7 @@ defineExpose({ refresh: fetchFiles })
 
     <!-- ── 空状态 ─────────────────────────────────────────────── -->
     <div v-else-if="activeView === 'files' && !isFetching && filteredFiles.length === 0" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
-      <div class="text-5xl opacity-30">{{ (searchQuery || dateFrom || dateTo || uploaderFilter) ? '🔍' : '📭' }}</div>
+      <span :class="(searchQuery || dateFrom || dateTo || uploaderFilter) ? 'i-lucide-search text-[48px]' : 'i-lucide-inbox text-[48px]'" class="opacity-30 text-white/40" />
       <p v-if="searchQuery || dateFrom || dateTo || uploaderFilter" class="text-white/40 text-sm">
         未找到匹配的文件<span v-if="files.length > 0" class="text-white/20">（共 {{ files.length }} 个文件被筛选）</span>
       </p>
@@ -1199,7 +1199,7 @@ defineExpose({ refresh: fetchFiles })
               class="w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer"
               :class="isSelected(file.path) ? 'bg-[#ff9f0a] border-[#ff9f0a] text-black' : 'border-white/30 bg-black/50'"
             >
-              <span v-if="isSelected(file.path)" class="text-[10px] font-bold">✓</span>
+              <span v-if="isSelected(file.path)" class="i-lucide-check text-[12px] font-bold" />
             </div>
           </div>
 
@@ -1234,7 +1234,7 @@ defineExpose({ refresh: fetchFiles })
           <!-- hover 操作按钮 -->
           <div class="absolute top-2 right-2 hidden group-hover:flex gap-1" @click.stop>
             <button @click="openRename(file)" class="w-6 h-6 rounded-md bg-black/60 hover:bg-black/80 text-white/70 text-[10px] flex items-center justify-center cursor-pointer" title="重命名">✏️</button>
-            <button @click="openMove(file)" class="w-6 h-6 rounded-md bg-black/60 hover:bg-black/80 text-white/70 text-[10px] flex items-center justify-center cursor-pointer" title="移动">📦</button>
+            <button @click="openMove(file)" class="w-6 h-6 rounded-md bg-black/60 hover:bg-black/80 text-white/70 text-[10px] flex items-center justify-center cursor-pointer" title="移动"><span class="i-lucide-folder-input text-[12px]" /></button>
           </div>
         </div>
       </div>
@@ -1386,7 +1386,7 @@ defineExpose({ refresh: fetchFiles })
           <div>
             <label class="text-[11px] text-white/40 uppercase tracking-wider">新文件名</label>
             <input v-model="renameForm.newName" type="text" class="w-full mt-1 bg-white/[0.03] border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50" :class="renameConflict ? 'border-[#ff453a]/50' : 'border-white/[0.08]'" />
-            <p v-if="renameConflict" class="text-[10px] text-[#ff453a] mt-1">⚠️ {{ renameConflict }}</p>
+            <p v-if="renameConflict" class="text-[10px] text-[#ff453a] mt-1">{{ renameConflict }}</p>
           </div>
           <div class="flex gap-3 pt-2">
             <button @click="handleRename" :disabled="!renameForm.newName || renameForm.newName === renameForm.oldName || !!renameConflict" class="flex-1 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 text-white rounded-xl py-2.5 transition-all cursor-pointer disabled:opacity-40">确认</button>

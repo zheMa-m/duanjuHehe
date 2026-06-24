@@ -42,7 +42,7 @@ async function handleLogout() {
     <!-- 匿名用户 -->
     <template v-else-if="isAnonymous">
       <div class="guest-info">
-        <span class="guest-icon">👤</span>
+        <span class="i-lucide-user guest-icon" />
         <span class="guest-label">{{ t('userBar.guest') }}</span>
       </div>
       <button class="register-btn" @click="emit('register')">{{ t('userBar.signUpForMore') }}</button>
@@ -51,7 +51,7 @@ async function handleLogout() {
     <!-- 未登录 -->
     <template v-else>
       <div class="guest-info">
-        <span class="guest-icon">👤</span>
+        <span class="i-lucide-user guest-icon" />
         <span class="guest-label">{{ t('userBar.notSignedIn') }}</span>
       </div>
       <button class="login-btn" @click="emit('login')">{{ t('userBar.signIn') }}</button>
@@ -89,7 +89,7 @@ async function handleLogout() {
 .logout-btn:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.2); color: #f1f5f9; }
 
 .guest-info { display: flex; align-items: center; gap: 0.35rem; }
-.guest-icon { font-size: 1rem; opacity: 0.7; }
+.guest-icon { font-size: 14px; opacity: 0.7; }
 .guest-label { color: #94a3b8; font-weight: 500; font-size: 0.75rem; }
 
 .login-btn {

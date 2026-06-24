@@ -268,8 +268,8 @@ onMounted(async () => {
 
           <!-- 预约成功态 (3D折扣电子票) -->
           <div v-else-if="isSubmitted" class="text-center space-y-6 py-4 animate-fade-in">
-            <div class="w-14 h-14 border-2 border-[#39ff14] bg-[#39ff14]/10 text-[#39ff14] flex items-center justify-center text-2xl mx-auto shadow-[4px_4px_0px_0px_rgba(57,255,20,0.2)]">
-              ✔
+            <div class="w-14 h-14 border-2 border-[#39ff14] bg-[#39ff14]/10 text-[#39ff14] flex items-center justify-center mx-auto shadow-[4px_4px_0px_0px_rgba(57,255,20,0.2)]">
+              <span class="i-lucide-check text-[28px]" />
             </div>
             <h2 class="text-lg font-black text-white uppercase tracking-tight">预约成功 REGISTERED</h2>
             
@@ -349,7 +349,7 @@ onMounted(async () => {
       <template v-else>
         <div class="neo-card p-8 bg-slate-900 border-2 border-white shadow-[6px_6px_0px_0px_#ff453a] text-center space-y-6 py-12">
           <div class="w-16 h-16 border-2 border-[#ff453a] bg-[#ff453a]/10 text-[#ff453a] flex items-center justify-center text-3xl mx-auto shadow-[4px_4px_0px_0px_rgba(255,69,58,0.2)]">
-            📴
+            <span class="i-lucide-power-off text-[24px]" />
           </div>
           <div class="space-y-2">
             <h2 class="text-base font-black text-white uppercase tracking-tight">活动未激活 OFF-LINE</h2>
@@ -394,13 +394,14 @@ onMounted(async () => {
   100% { transform: translate3d(-50%, 0, 0); }
 }
 .animate-marquee {
-  animation: marquee 25s linear infinite;
+  animation: marquee 28s linear infinite;
   display: inline-flex;
 }
 
-/* 扫光动效 */
+/* 扫光动效 — 绿光渐变 */
 .ticket-card {
   position: relative;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .ticket-card::after {
   content: '';
@@ -408,23 +409,40 @@ onMounted(async () => {
   inset: 0;
   transform: translateX(-100%);
   background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(57, 255, 20, 0.15),
-    transparent
+    105deg,
+    transparent 30%,
+    rgba(57, 255, 20, 0.08) 45%,
+    rgba(57, 255, 20, 0.18) 50%,
+    rgba(57, 255, 20, 0.08) 55%,
+    transparent 70%
   );
-  animation: shimmer 4s infinite;
+  animation: shimmer 4s ease-in-out infinite;
+  pointer-events: none;
 }
 @keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* 3D 卡片浮动动效 */
 .ticket-card:hover {
-  transform: translateY(-2px) rotateX(4deg) rotateY(-4deg);
+  transform: translateY(-2px) rotateX(3deg) rotateY(-3deg);
   box-shadow: 8px 8px 0px 0px rgba(57, 255, 20, 0.25);
+}
+
+/* Reduced motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+  .ticket-card::after {
+    animation: none;
+    display: none;
+  }
+  .ticket-card:hover {
+    transform: none;
+  }
 }
 
 .toast-fade-enter-active,

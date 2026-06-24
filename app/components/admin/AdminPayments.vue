@@ -204,7 +204,7 @@ onMounted(() => fetchConfigs())
             <div class="flex justify-between">
               <span class="text-white/35">后端私钥状态</span>
               <span class="font-medium" :class="hasSecretsConfigured(cfg) ? 'text-[#30d158]' : 'text-white/20'">
-                {{ hasSecretsConfigured(cfg) ? '🔒 已安全加密归集' : '⚠️ 未配置' }}
+                {{ hasSecretsConfigured(cfg) ? '已安全加密归档' : '未配置' }}
               </span>
             </div>
           </div>
@@ -284,7 +284,7 @@ onMounted(() => fetchConfigs())
               <!-- 后端私密密钥（Secrets） -->
               <div class="mb-5 space-y-4">
                 <h3 class="text-xs font-semibold uppercase tracking-wider text-white/35">后端私密密钥（仅服务器端）</h3>
-                <p class="text-[10px] text-red-400/70 -mt-2 mb-2">⚠️ 这些密钥绝对不要暴露到前端！填写后即加密存储，仅显示占位符。</p>
+                <p class="text-[10px] text-red-400/70 -mt-2 mb-2">这些密钥绝对不要暴露到前端！填写后即加密存储，仅显示占位符。</p>
 
                 <template v-if="editingPayment.provider === 'stripe'">
                   <div>

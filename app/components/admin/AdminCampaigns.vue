@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AdminMedia from './AdminMedia.vue'
-import { getRootDomain } from '~/utils/subdomain'
+import { resolveCampaignPreviewHref } from '~/utils/subdomain'
 
 interface Campaign {
   id: string
@@ -234,27 +234,45 @@ defineExpose({ onSaved: () => {} })
         <button
           @click="$emit('refresh')"
           :disabled="isLoading"
-          class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+          class="text-xs bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-50 text-white/70 hover:text-white/90 font-medium px-4 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5 border border-white/[0.06] hover:border-white/[0.10]"
         >
-          <span :class="{'animate-spin': isLoading}">🔄</span>
+          <span :class="{'animate-spin': isLoading}" class="i-lucide-refresh-cw text-[13px]" />
           刷新活动
         </button>
       </div>
     </div>
 
     <!-- 指标卡 -->
-    <div v-if="campaigns" class="grid grid-cols-3 gap-3">
-      <div class="bg-white/[0.04] rounded-xl px-5 py-4 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">全部活动</div>
-        <div class="text-white font-bold text-2xl">{{ totalCampaigns }}</div>
+    <div v-if="campaigns" class="grid grid-cols-3 gap-5">
+      <div class="relative p-6 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-white/[0.08] hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-blue-500/[0.04] blur-3xl group-hover:bg-blue-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="i-lucide-megaphone text-[13px] text-blue-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">全部活动</span>
+          </div>
+          <span class="text-[32px] font-bold tracking-tight text-white font-mono leading-none">{{ totalCampaigns }}</span>
+        </div>
       </div>
-      <div class="bg-white/[0.04] rounded-xl px-5 py-4 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">运行中</div>
-        <div class="text-[#30d158] font-bold text-2xl">{{ activeCampaigns }}</div>
+      <div class="relative p-6 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#30d158]/15 hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-emerald-500/[0.04] blur-3xl group-hover:bg-emerald-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="i-lucide-zap text-[13px] text-emerald-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">运行中</span>
+          </div>
+          <span class="text-[32px] font-bold tracking-tight text-[#30d158] font-mono leading-none">{{ activeCampaigns }}</span>
+        </div>
       </div>
-      <div class="bg-white/[0.04] rounded-xl px-5 py-4 shadow-lg shadow-black/20">
-        <div class="text-white/30 text-[11px] uppercase tracking-widest font-mono mb-1">留资总数</div>
-        <div class="text-indigo-400 font-bold text-2xl">{{ totalLeads }}</div>
+      <div class="relative p-6 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-indigo-400/15 hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-indigo-500/[0.04] blur-3xl group-hover:bg-indigo-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="i-lucide-users text-[13px] text-indigo-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">留资总数</span>
+          </div>
+          <span class="text-[32px] font-bold tracking-tight text-indigo-400 font-mono leading-none">{{ totalLeads }}</span>
+        </div>
       </div>
     </div>
 
@@ -474,7 +492,7 @@ defineExpose({ onSaved: () => {} })
                     @click="showMediaPicker = true"
                     class="text-xs bg-white/[0.05] hover:bg-white/[0.10] border border-dashed border-white/[0.15] hover:border-indigo-500/40 rounded-xl px-5 py-4 text-white/50 hover:text-indigo-400 transition-all cursor-pointer w-full text-left"
                   >
-                    🖼️ 点击从媒体库选取配图...
+                    <span class="i-lucide-image text-[14px] mr-1.5" /> 点击从媒体库选取配图...
                   </button>
                 </div>
               </div>
@@ -602,7 +620,7 @@ defineExpose({ onSaved: () => {} })
           <button
             @click="$emit('exportLeads', filterSubdomain || undefined)"
             class="text-[11px] font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-4 py-2 rounded-full border border-indigo-500/20 transition-all active:scale-[0.98] cursor-pointer focus:outline-none"
-          >📥 导出 CSV</button>
+          ><span class="i-lucide-download text-[12px] mr-1" />导出 CSV</button>
           <select v-model="filterSubdomain" class="bg-[#141416] border border-white/[0.08] text-xs text-white/80 rounded-full px-4 py-2 outline-none cursor-pointer">
             <option value="">全部渠道</option>
             <option v-for="sub in uniqueSubdomains" :key="sub" :value="sub">{{ sub }}</option>

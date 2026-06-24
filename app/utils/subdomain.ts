@@ -138,3 +138,50 @@ export function resolveSubdomainHref(
 export function resolveAdminHref(origin: string): string {
   return resolveSubdomainHref(ADMIN_SUBDOMAIN, ADMIN_LOCAL_PATH, origin)
 }
+
+/** 主站入口 URL（从 admin/api 子域名跳回 www 或根域名） */
+export function resolveMainSiteHref(origin: string): string {
+  const normalizedOrigin = origin.replace(/\/$/, '')
+  let hostname: string
+  try {
+    hostname = new URL(normalizedOrigin).hostname
+  } catch {
+    return normalizedOrigin || '/'
+  }
+
+  if (isLocalHost(hostname)) {
+    return normalizedOrigin || '/'
+  }
+
+  const root = getRootDomain(hostname)
+  return `https://${root}/`
+}
+
+/** API 文档入口 URL（/_scalar 在生产环境需通过 api 子域名访问） */
+export function resolveApiDocHref(origin: string, docPath: string = '/_scalar'): string {
+  const normalizedOrigin = origin.replace(/\/$/, '')
+  let hostname: string
+  try {
+    hostname = new URL(normalizedOrigin).hostname
+  } catch {
+    return `${normalizedOrigin}${docPath}`
+  }
+
+  if (isLocalHost(hostname)) {
+    return `${normalizedOrigin}${docPath}`
+  }
+
+  const root = getRootDomain(hostname)
+  return `https://${root}${docPath}`
+}
+
+/** 活动预览本地路径（StarPath 入口为 welcome 页） */
+export function getCampaignLocalPath(subdomain: string): string {
+  if (subdomain === 'starpath') return '/h5/starpath/welcome'
+  return `/h5/${subdomain}`
+}
+
+/** 管理后台 / 活动列表「预览」链接 */
+export function resolveCampaignPreviewHref(subdomain: string, origin: string): string {
+  return resolveSubdomainHref(subdomain, getCampaignLocalPath(subdomain), origin)
+}

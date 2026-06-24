@@ -153,7 +153,7 @@ const handleClose = () => {
         <!-- 错误与成功提示 -->
         <Transition name="slide-up">
           <div v-if="profileError" class="text-[11px] text-red-400 bg-red-500/5 border border-red-500/20 px-3.5 py-2.5 rounded-xl flex items-center gap-2">
-            ⚠️ <span class="font-light tracking-wide">{{ profileError }}</span>
+            <span class="i-lucide-alert-triangle text-[12px] mr-1" /> <span class="font-light tracking-wide">{{ profileError }}</span>
           </div>
         </Transition>
         <Transition name="slide-up">
@@ -178,7 +178,7 @@ const handleClose = () => {
                 alt="avatar"
                 class="w-full h-full object-cover"
               />
-              <span v-else class="text-white/30 text-lg">👤</span>
+              <span v-else class="i-lucide-user text-white/30 text-lg" />
               <span v-if="isUploading" class="absolute w-14 h-14 rounded-full bg-black/60 flex items-center justify-center">
                 <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
               </span>

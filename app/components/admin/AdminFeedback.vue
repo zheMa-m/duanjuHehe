@@ -87,24 +87,39 @@ const handlePageChange = (page: number) => {
     </div>
 
     <!-- KPI -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white/[0.04] p-7 rounded-2xl relative group overflow-hidden shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/25 transition-all">
-        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-blue-500/8 blur-2xl"></div>
-        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-2 font-mono">反馈总量</div>
-        <div class="text-4xl font-bold tracking-tight text-white font-mono relative z-10">{{ feedbacksTotal }}</div>
-        <div class="text-xs text-white/30 mt-2">用户反馈总量</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="relative p-7 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-white/[0.08] hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-blue-500/[0.04] blur-3xl group-hover:bg-blue-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-message-square text-[13px] text-blue-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">反馈总量</span>
+          </div>
+          <span class="text-[42px] font-bold tracking-tight text-white font-mono leading-none">{{ feedbacksTotal }}</span>
+          <div class="text-[11px] text-white/20 mt-2 font-light leading-relaxed">用户反馈总量</div>
+        </div>
       </div>
-      <div class="bg-white/[0.04] p-7 rounded-2xl relative group overflow-hidden shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/25 transition-all">
-        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-yellow-500/8 blur-2xl"></div>
-        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-2 font-mono">平均评分</div>
-        <div class="text-4xl font-bold tracking-tight text-[#ff9f0a] font-mono relative z-10">{{ avgRating }} / 5</div>
-        <div class="text-xs text-white/30 mt-2">平均评分</div>
+      <div class="relative p-7 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#ff9f0a]/15 hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-amber-500/[0.04] blur-3xl group-hover:bg-amber-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-star text-[13px] text-amber-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">平均评分</span>
+          </div>
+          <span class="text-[42px] font-bold tracking-tight text-[#ff9f0a] font-mono leading-none">{{ avgRating }} <span class="text-[20px] text-white/20">/ 5</span></span>
+          <div class="text-[11px] text-white/20 mt-2 font-light leading-relaxed">平均评分</div>
+        </div>
       </div>
-      <div class="bg-white/[0.04] p-7 rounded-2xl relative group overflow-hidden shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/25 transition-all">
-        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-emerald-500/8 blur-2xl"></div>
-        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-2 font-mono">已审批</div>
-        <div class="text-4xl font-bold tracking-tight text-[#30d158] font-mono relative z-10">{{ feedbacks.filter(f => f.is_approved).length }}</div>
-        <div class="text-xs text-white/30 mt-2">已审批通过</div>
+      <div class="relative p-7 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#30d158]/15 hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-emerald-500/[0.04] blur-3xl group-hover:bg-emerald-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-check-circle text-[13px] text-emerald-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">已审批</span>
+          </div>
+          <span class="text-[42px] font-bold tracking-tight text-[#30d158] font-mono leading-none">{{ feedbacks.filter(f => f.is_approved).length }}</span>
+          <div class="text-[11px] text-white/20 mt-2 font-light leading-relaxed">已审批通过</div>
+        </div>
       </div>
     </div>
 

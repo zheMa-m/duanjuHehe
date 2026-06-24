@@ -120,7 +120,7 @@ const copyCode = async (event: MouseEvent) => {
   try {
     await navigator.clipboard.writeText(text)
     const original = btn.textContent
-    btn.textContent = '✓ 已复制'
+    btn.textContent = '已复制'
     btn.classList.add('copied')
     setTimeout(() => {
       btn.textContent = original
@@ -135,7 +135,7 @@ const copyCode = async (event: MouseEvent) => {
     ta.select()
     document.execCommand('copy')
     document.body.removeChild(ta)
-    btn.textContent = '✓ 已复制'
+    btn.textContent = '已复制'
     setTimeout(() => { btn.textContent = '复制代码' }, 2000)
   }
 }
@@ -290,9 +290,9 @@ WHERE id = (
 const seedSql = `-- 插入营销活动种子数据（H5 页面依赖 campaigns 表，迁移后必须执行）
 -- 来源：supabase/migrations/0003_campaign.sql
 INSERT INTO campaigns (subdomain, title, subtitle, badge, color_from, color_to, is_active, cta_text, description, features) VALUES
-('ai', '🤖 HEHE AI 协作者首发', '基于先进智能体的全自动化提效工作流上线。立即预约，锁定首月免费体验资格。', '限时 10,000 名', 'from-purple-600', 'to-indigo-600', true, '立即预约', '基于先进智能体的全自动化提效工作流', '[{"icon":"⚡","text":"一键生成"},{"icon":"🔒","text":"安全沙盒"},{"icon":"🌐","text":"全球分发"}]'::jsonb),
-('cloud', '☁️ HEHE 云原生企业私有化', '一键输出物理隔离安全沙盒，专为合规与核心系统容灾设计。首发限时 7 折特惠。', '企业专属首发', 'from-blue-600', 'to-cyan-600', true, '立即预约', '专为合规与核心系统容灾设计', '[{"icon":"🛡️","text":"物理隔离"},{"icon":"📊","text":"实时监控"},{"icon":"🔄","text":"自动容灾"}]'::jsonb),
-('promo', '🚀 HEHE 全栈单仓极速版', '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。', '开发者特惠季', 'from-rose-600', 'to-orange-600', true, '立即预约', '单人全栈闭环交付', '[{"icon":"🧑‍💻","text":"单人交付"},{"icon":"💰","text":"降本提效"},{"icon":"🚀","text":"极速上线"}]'::jsonb);
+('ai', 'HEHE AI 协作者首发', '基于先进智能体的全自动化提效工作流上线。立即预约，锁定首月免费体验资格。', '限时 10,000 名', 'from-purple-600', 'to-indigo-600', true, '立即预约', '基于先进智能体的全自动化提效工作流', '[{"icon":"⚡","text":"一键生成"},{"icon":"🔒","text":"安全沙盒"},{"icon":"🌐","text":"全球分发"}]'::jsonb),
+('cloud', 'HEHE 云原生企业私有化', '一键输出物理隔离安全沙盒，专为合规与核心系统容灾设计。首发限时 7 折特惠。', '企业专属首发', 'from-blue-600', 'to-cyan-600', true, '立即预约', '专为合规与核心系统容灾设计', '[{"icon":"🛡️","text":"物理隔离"},{"icon":"📊","text":"实时监控"},{"icon":"🔄","text":"自动容灾"}]'::jsonb),
+('promo', 'HEHE 全栈单仓极速版', '仅需单人即可撬动完整的全球边缘分发与 Supabase 强类型契约防御。', '开发者特惠季', 'from-rose-600', 'to-orange-600', true, '立即预约', '单人全栈闭环交付', '[{"icon":"🧑‍💻","text":"单人交付"},{"icon":"💰","text":"降本提效"},{"icon":"🚀","text":"极速上线"}]'::jsonb);
 
 -- 插入商品种子数据（支付功能可选，来源：supabase/migrations/0002_iap.sql）
 INSERT INTO products (name, price, tenant_id) VALUES
@@ -707,7 +707,7 @@ const paymentComposableRows = [
               @focus="onSearchFocus"
               @blur="onSearchBlur"
             />
-            <span class="search-icon">🔍</span>
+            <span class="search-icon"><span class="i-lucide-search" /></span>
             <div v-if="searchResults.length && searchFocused" class="search-dropdown">
               <div
                 v-for="id in searchResults"
@@ -738,7 +738,7 @@ const paymentComposableRows = [
         <div class="hero-content">
           <div class="hero-tags">
             <span class="hero-tag tag-blue">{{ '📚 Nuxt 4' }}</span>
-            <span class="hero-tag tag-green">{{ '🗄️ Supabase' }}</span>
+            <span class="hero-tag tag-green">{{ 'Supabase' }}</span>
             <span class="hero-tag tag-purple">{{ '▲ Vercel' }}</span>
             <span class="hero-tag tag-cyan">{{ '🔐 Auth' }}</span>
           </div>
@@ -987,7 +987,7 @@ const paymentComposableRows = [
                 </table>
               </div>
               <div class="alert alert-warn">
-                <div class="alert-icon">⚠️</div>
+                <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
                 <div class="alert-body">
                   <strong>{{ '安全红线' }}</strong>
                   <p>{{ 'SUPABASE_SERVICE_ROLE_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。支付密钥已迁移至 DB 管理，不再通过环境变量传递。' }}</p>
@@ -1028,7 +1028,7 @@ const paymentComposableRows = [
               <p><strong>ISR：</strong>{{ '首次构建 + 后台静默刷新 — 首次请求渲染并写入边缘缓存（TTL=3600s）。缓存期内直接返回（~5ms），过期后先返回旧缓存，后台触发重新计算。用户无感知，永远不等待。' }}</p>
               <p><strong>SWR：</strong>{{ '过期即用旧缓存 + 后台异步更新 — 首次请求渲染并写入缓存（maxAge=600s）。缓存期内 ~5ms 返回，过期后立即返回旧缓存同时后台异步刷新。与 ISR 行为几乎一致，区别在时间窗口语义。' }}</p>
               <div class="alert alert-info">
-                <div class="alert-icon">💡</div>
+                <div class="alert-icon"><span class="i-lucide-lightbulb" /></div>
                 <div class="alert-body">
                   <strong>{{ '关键结论' }}</strong>
                   <p>{{ 'ISR 和 SWR 在「过期后先返回旧缓存、后台异步刷新」行为上几乎完全一致。核心区别：ISR 适合小时/天级低频更新内容，SWR 适合分钟级中频更新内容。' }}</p>
@@ -1675,13 +1675,13 @@ CREATE TRIGGER on_auth_user_created
                 </table>
               </div>
               <div class="alert alert-warn">
-                <div class="alert-icon">🔒</div>
+                <div class="alert-icon"><span class="i-lucide-lock" /></div>
                 <div class="alert-body">
                   <strong>{{ '安全红线' }}</strong>
                   <p>{{ 'SUPABASE_SERVICE_ROLE_KEY 绝对不能加 NUXT_PUBLIC_ 前缀。只有 NUXT_PUBLIC_ 前缀的变量才会暴露给浏览器端。支付密钥已迁移至 DB。' }}</p>
                 </div>
               </div>
-              <p>{{ '⚠️ 环境变量修改后需重新部署才能生效。可推送一个空 commit 触发：' }}</p>
+              <p>{{ '环境变量修改后需重新部署才能生效。可推送一个空 commit 触发：' }}</p>
               <div class="code-block">
                 <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
                 <pre><code>git commit --allow-empty -m "chore: redeploy for env update" && git push</code></pre>
@@ -1756,7 +1756,7 @@ CREATE TRIGGER on_auth_user_created
             <div class="subsection">
               <h3>{{ '部署检查清单' }}</h3>
               <ul class="checklist">
-                <li v-for="(item, i) in checklistItems" :key="i">✅ {{ item }}</li>
+                <li v-for="(item, i) in checklistItems" :key="i">{{ item }}</li>
               </ul>
             </div>
             <div class="subsection">
@@ -1986,7 +1986,7 @@ dist/
 .vercel/</code></pre>
               </div>
               <div class="alert alert-warn">
-                <div class="alert-icon">🔒</div>
+                <div class="alert-icon"><span class="i-lucide-lock" /></div>
                 <div class="alert-body">
                   <strong>{{ '安全红线' }}</strong>
                   <p>{{ '.env 文件包含 Supabase 和 Stripe 密钥，绝对不能提交到 GitHub。如果误提交，需要立即在服务商后台重置/轮换所有密钥，并使用 git-filter-repo 彻底清理 Git 历史。' }}</p>
@@ -2094,7 +2094,7 @@ dist/
             <div class="subsection">
               <h3>{{ '安全实践' }}</h3>
               <div class="alert alert-warn">
-                <div class="alert-icon">⚠️</div>
+                <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
                 <div class="alert-body">
                   <strong>{{ '密钥泄露应急处理' }}</strong>
                   <p>{{ '如果密钥被意外提交到 Git 仓库：' }}</p>

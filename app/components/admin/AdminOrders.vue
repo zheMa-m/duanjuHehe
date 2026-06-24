@@ -124,7 +124,7 @@ const providerRefundHint = (provider: string): string => {
     stripe: '将通过 Stripe API 发起退款',
     paypal: '将通过 PayPal REST API 发起退款',
     google_pay: '将通过 Stripe 网关发起退款',
-    apple_iap: '⚠️ Apple IAP 不支持服务端退款，请前往 App Store Connect 人工处理。系统将记录退款状态。',
+    apple_iap: 'Apple IAP 不支持服务端退款，请前往 App Store Connect 人工处理。系统将记录退款状态。',
     alipay: '将通过支付宝开放平台发起退款',
     wechat: '将通过微信支付 API v3 发起退款',
   }
@@ -224,9 +224,9 @@ const handlePageChange = (page: number) => {
         <button
           @click="$emit('refresh')"
           :disabled="isLoading"
-          class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+          class="text-xs bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-50 text-white/70 hover:text-white/90 font-medium px-4 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5 border border-white/[0.06] hover:border-white/[0.10]"
         >
-          <span :class="{'animate-spin': isLoading}">🔄</span>
+          <span :class="{'animate-spin': isLoading}" class="i-lucide-refresh-cw text-[13px]" />
           刷新订单
         </button>
       </div>

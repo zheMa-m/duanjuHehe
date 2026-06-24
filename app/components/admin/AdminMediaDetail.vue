@@ -57,8 +57,8 @@ const previewUrl = computed(() => {
 })
 
 function getFileIcon(kind: string): string {
-  const map: Record<string, string> = { image: '🖼️', video: '🎬', audio: '🎵', document: '📄', other: '📦' }
-  return map[kind] || '📦'
+  const map: Record<string, string> = { image: 'i-lucide-image', video: 'i-lucide-video', audio: 'i-lucide-music', document: 'i-lucide-file-text', other: 'i-lucide-package' }
+  return map[kind] || 'i-lucide-package'
 }
 
 function confirmDelete() {
@@ -92,7 +92,7 @@ function confirmDelete() {
               class="max-w-full max-h-full object-contain"
             />
             <div v-else class="text-center text-white/30 text-xs space-y-2">
-              <div class="text-4xl">🖼️</div>
+              <span class="i-lucide-image-off text-[32px] inline-block" />
               <p>无法预览</p>
             </div>
           </template>

@@ -283,9 +283,9 @@ onMounted(async () => {
                     type="tel" 
                     :placeholder="t('h5.phonePlaceholder')"
                     required
-                    class="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                    class="w-full bg-slate-900/80 border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
                   />
-                  <span v-if="phoneError" class="text-[9px] text-rose-500 mt-1 block text-left animate-pulse">{{ phoneError }}</span>
+                  <span v-if="phoneError" class="text-[9px] text-rose-400 mt-1.5 block text-left">{{ phoneError }}</span>
                 </div>
                 <div>
                   <input 
@@ -293,16 +293,17 @@ onMounted(async () => {
                     type="email" 
                     :placeholder="t('h5.emailPlaceholder')"
                     required
-                    class="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                    class="w-full bg-slate-900/80 border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
                   />
-                  <span v-if="emailError" class="text-[9px] text-rose-500 mt-1 block text-left animate-pulse">{{ emailError }}</span>
+                  <span v-if="emailError" class="text-[9px] text-rose-400 mt-1.5 block text-left">{{ emailError }}</span>
                 </div>
                 <button 
                   type="submit" 
                   :disabled="isLoading || !!phoneError || !!emailError"
-                  class="w-full font-bold text-xs py-3 rounded-xl transition-all shadow-md active:scale-95 text-white flex items-center justify-center gap-2"
-                  :class="[isLoading || !!phoneError || !!emailError ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-500']"
+                  class="w-full font-bold text-xs py-3 rounded-xl transition-all shadow-lg active:scale-[0.97] text-white flex items-center justify-center gap-2"
+                  :class="[isLoading || !!phoneError || !!emailError ? 'opacity-40 cursor-not-allowed bg-slate-700 text-slate-400' : 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 shadow-indigo-500/25']"
                 >
+                  <span v-if="isLoading" class="i-lucide-loader-circle animate-spin text-[13px]" />
                   {{ isLoading ? t('h5.submitting') : t('h5.submitRegister') }}
                 </button>
               </form>
@@ -311,8 +312,8 @@ onMounted(async () => {
 
             <!-- 预约成功态（虚拟票券） -->
             <div v-else-if="isSubmitted" class="text-center space-y-6 animate-fade-in">
-              <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mx-auto mb-2">
-                ✔
+              <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2">
+                <span class="i-lucide-check text-[20px]" />
               </div>
               <h2 class="text-lg font-bold text-white">{{ t('h5.registerSuccess') }}</h2>
               
@@ -357,9 +358,10 @@ onMounted(async () => {
               <button
                 @click="handlePurchase"
                 :disabled="isPurchasing"
-                class="w-full font-bold text-[11px] py-3 rounded-xl transition-all shadow-md active:scale-95 text-white flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 cursor-pointer"
-                :class="[isPurchasing ? 'opacity-50' : '']"
+                class="w-full font-bold text-[11px] py-3 rounded-xl transition-all shadow-lg active:scale-[0.97] text-white flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-orange-500/20 cursor-pointer"
+                :class="[isPurchasing ? 'opacity-50 cursor-wait' : '']"
               >
+                <span v-if="isPurchasing" class="i-lucide-loader-circle animate-spin text-[13px]" />
                 {{ isPurchasing ? t('h5.processing') : `升级 ${currentProduct.name} ($${currentProduct.price})` }}
               </button>
 
@@ -391,8 +393,8 @@ onMounted(async () => {
 
         <template v-else>
           <div class="flex-1 flex flex-col items-center justify-center text-center space-y-5 my-auto py-10 animate-fade-in">
-            <div class="w-14 h-14 rounded-full bg-slate-900 border border-slate-800/80 flex items-center justify-center text-2xl shadow-inner shadow-white/5">
-              📴
+            <div class="w-14 h-14 rounded-full bg-slate-900 border border-slate-800/80 flex items-center justify-center shadow-inner shadow-white/5">
+              <span class="i-lucide-power-off text-[20px] text-slate-500" />
             </div>
             <div class="space-y-2">
               <h2 class="text-sm font-bold text-slate-200">活动已结束或不存在</h2>
@@ -428,9 +430,10 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* 扫光动效 */
+/* 扫光动效 — 更平滑的渐变过渡 */
 .shimmer-card {
   position: relative;
+  overflow: hidden;
 }
 .shimmer-card::after {
   content: '';
@@ -438,19 +441,30 @@ onMounted(async () => {
   inset: 0;
   transform: translateX(-100%);
   background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.08),
-    transparent
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 55%,
+    transparent 70%
   );
-  animation: shimmer 3s infinite;
+  animation: shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
 }
 @keyframes shimmer {
-  100% {
-    transform: translateX(100%);
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-card::after {
+    animation: none;
+    display: none;
   }
 }
 
+/* Toast 动画 */
 .toast-fade-enter-active,
 .toast-fade-leave-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -460,4 +474,5 @@ onMounted(async () => {
   opacity: 0;
   transform: translate(-50%, -20px);
 }
+
 </style>

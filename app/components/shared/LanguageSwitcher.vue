@@ -14,7 +14,7 @@ const { localeLabel, toggleLocale } = useLocaleDetect()
     :title="localeLabel === '中文' ? 'Switch to English' : '切换到中文'"
     @click="toggleLocale"
   >
-    <span class="lang-icon">🌐</span>
+    <span class="i-lucide-globe lang-icon" />
     <span class="lang-label">{{ localeLabel === '中文' ? 'EN' : '中' }}</span>
   </button>
 </template>
@@ -41,7 +41,7 @@ const { localeLabel, toggleLocale } = useLocaleDetect()
   color: #fff;
 }
 .lang-icon {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
 }
 .lang-label {

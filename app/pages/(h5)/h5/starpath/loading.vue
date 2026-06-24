@@ -51,7 +51,7 @@ onMounted(() => {
               class="size-[20px] rounded-full flex items-center justify-center"
               :class="i < currentStep ? 'bg-[#bab3f3]' : i === currentStep ? 'border-2 border-[#bab3f3]' : 'border border-starpath-text-muted'"
             >
-              <span v-if="i < currentStep" class="text-[10px] text-white">✓</span>
+              <span v-if="i < currentStep" class="i-lucide-check text-[10px] text-white" />
             </div>
             <span class="text-sm text-white">{{ step }}</span>
           </div>

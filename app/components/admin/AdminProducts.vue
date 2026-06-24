@@ -311,26 +311,41 @@ async function syncStripe() {
     </div>
 
     <!-- KPI 卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white/[0.03] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden shadow-lg shadow-black/20">
-        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-blue-500/5 blur-2xl"></div>
-        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1 font-mono">商品总量</div>
-        <div class="text-3xl font-bold tracking-tight text-white font-mono">{{ filteredProducts.length }}</div>
-        <div class="text-xs text-white/30 mt-2">包含本地商品与已同步的渠道商品</div>
-      </div>
-      <div class="bg-white/[0.03] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden shadow-lg shadow-black/20">
-        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-emerald-500/5 blur-2xl"></div>
-        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1 font-mono">在售商品</div>
-        <div class="text-3xl font-bold tracking-tight text-[#30d158] font-mono">{{ products.filter(p => p.is_active !== false).length }}</div>
-        <div class="text-xs text-white/30 mt-2">允许前台及 H5 下单付款的商品</div>
-      </div>
-      <div class="bg-white/[0.03] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden shadow-lg shadow-black/20">
-        <div class="absolute -top-12 -left-12 w-24 h-24 rounded-full bg-purple-500/5 blur-2xl"></div>
-        <div class="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-1 font-mono">平台均价</div>
-        <div class="text-3xl font-bold tracking-tight text-indigo-400 font-mono">
-          ${{ products.length ? (products.reduce((s, p) => s + (Number(p.price) || 0), 0) / products.length).toFixed(2) : '0.00' }}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="relative p-7 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-white/[0.08] hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-blue-500/[0.04] blur-3xl group-hover:bg-blue-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-package text-[13px] text-blue-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">商品总量</span>
+          </div>
+          <span class="text-[42px] font-bold tracking-tight text-white font-mono leading-none">{{ filteredProducts.length }}</span>
+          <div class="text-[11px] text-white/20 mt-2 font-light leading-relaxed">本地商品与渠道同步商品</div>
         </div>
-        <div class="text-xs text-white/30 mt-2">在售产品均价</div>
+      </div>
+      <div class="relative p-7 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-[#30d158]/15 hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-emerald-500/[0.04] blur-3xl group-hover:bg-emerald-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-check-circle text-[13px] text-emerald-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">在售商品</span>
+          </div>
+          <span class="text-[42px] font-bold tracking-tight text-[#30d158] font-mono leading-none">{{ products.filter(p => p.is_active !== false).length }}</span>
+          <div class="text-[11px] text-white/20 mt-2 font-light leading-relaxed">允许前台及 H5 下单付款</div>
+        </div>
+      </div>
+      <div class="relative p-7 rounded-[14px] bg-white/[0.03] border border-white/[0.05] overflow-hidden transition-all duration-300 hover:bg-white/[0.045] hover:border-indigo-400/15 hover:-translate-y-px hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] group">
+        <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-indigo-500/[0.04] blur-3xl group-hover:bg-indigo-500/[0.07] transition-all duration-500"></div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="i-lucide-trending-up text-[13px] text-indigo-400/60" />
+            <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25">平台均价</span>
+          </div>
+          <span class="text-[42px] font-bold tracking-tight text-indigo-400 font-mono leading-none">
+            ${{ products.length ? (products.reduce((s, p) => s + (Number(p.price) || 0), 0) / products.length).toFixed(2) : '0.00' }}
+          </span>
+          <div class="text-[11px] text-white/20 mt-2 font-light leading-relaxed">在售产品均价</div>
+        </div>
       </div>
     </div>
 
@@ -367,7 +382,7 @@ async function syncStripe() {
                                 platform === 'alipay' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
                                 'bg-green-500/10 text-green-400 border border-green-500/20'"
                       >{{ platform === 'apple_iap' ? 'Apple' : platform === 'google_pay' ? 'GPay' : platform.charAt(0).toUpperCase() + platform.slice(1) }}</span>
-                      <span class="text-white/60">{{ p.payment_meta[platform].priceId || p.payment_meta[platform].planId || p.payment_meta[platform].productId || p.payment_meta[platform].productCode || '✓' }}</span>
+                      <span class="text-white/60">{{ p.payment_meta[platform].priceId || p.payment_meta[platform].planId || p.payment_meta[platform].productId || p.payment_meta[platform].productCode || '已绑定' }}</span>
                     </div>
                   </div>
                   <span v-if="!p.payment_meta || !Object.keys(p.payment_meta).filter(k => ['stripe','paypal','apple_iap','google_pay','alipay','wechat'].includes(k)).length" class="text-white/20 text-xs">无计费绑定</span>

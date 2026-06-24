@@ -90,10 +90,10 @@ const formatUptime = (seconds: number) => {
       <button 
         @click="$emit('refresh')"
         :disabled="isLoading"
-        class="text-sm bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-full transition-all flex items-center gap-1.5 active:scale-[0.98] cursor-pointer focus:outline-none"
+        class="text-sm bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-50 text-white/70 hover:text-white/90 font-medium px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 active:scale-[0.98] cursor-pointer border border-white/[0.06] hover:border-white/[0.10]"
       >
-        <span :class="{'animate-spin': isLoading}" class="inline-block">🔄</span>
-        {{ isLoading ? '正在更新...' : '刷新指标' }}
+        <span :class="{'animate-spin': isLoading}" class="i-lucide-refresh-cw text-[13px]" />
+        {{ isLoading ? '同步中...' : '刷新指标' }}
       </button>
     </div>
 
@@ -241,7 +241,7 @@ const formatUptime = (seconds: number) => {
               :disabled="isSimulating"
               class="text-[11px] font-semibold bg-[#ff9f0a]/10 hover:bg-[#ff9f0a]/20 text-[#ff9f0a] px-4 py-2 rounded-full border border-[#ff9f0a]/20 transition-all active:scale-[0.96] disabled:opacity-50 cursor-pointer focus:outline-none"
             >
-              ⚠️ WARNING 警报
+              WARNING 警报
             </button>
             <button 
               @click="$emit('simulate', 'critical', '服务器物理磁盘剩余可用空间不足 5%！(APM 模拟)')"

@@ -59,9 +59,9 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 
 .nav-tabbed__bg {
   position: absolute; inset: 0;
-  background: #08080f;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 3px 0 20px rgba(0,0,0,0.35);
+  background: linear-gradient(180deg, #08080f 0%, #0a0a14 100%);
+  border-right: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 2px 0 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
 }
 
 /* Header */
@@ -130,14 +130,14 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 }
 .nav-tab-item:hover {
   color: var(--admin-text-secondary, rgba(255,255,255,0.78));
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.04);
 }
 .nav-tab-item--active {
   color: var(--admin-text-primary, #fff) !important;
   background: rgba(99,102,241,0.08) !important;
 }
 .nav-tab-item--active:hover {
-  background: rgba(99,102,241,0.12) !important;
+  background: rgba(99,102,241,0.10) !important;
 }
 
 /* 圆点指示器 */
@@ -183,6 +183,6 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 .nav-tabbed__footer {
   position: relative; z-index: 1;
   flex-shrink: 0; padding: 12px 20px;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.03);
 }
 </style>

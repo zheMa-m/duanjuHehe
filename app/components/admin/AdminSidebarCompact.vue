@@ -2,7 +2,7 @@
 import { useAdminMenu } from '~/composables/useAdminMenu'
 
 const props = defineProps<{ activeTab: string }>()
-const emit = defineEmits<{ navigate: [key: string]; 'open-palette': [] }>()
+const emit = defineEmits<{ navigate: [key: string] }>()
 
 const { getCompactItems } = useAdminMenu()
 const compactItems = getCompactItems()
@@ -51,24 +51,6 @@ const hovered = ref(false)
 
     <!-- 分隔 -->
     <div class="nav-compact__spacer" />
-
-    <!-- Cmd+K -->
-    <div class="nav-compact__footer">
-      <button
-        class="nav-compact__search-btn"
-        :class="{ 'nav-compact__search-btn--expanded': hovered }"
-        @click="$emit('open-palette')"
-        title="命令面板 (⌘K)"
-      >
-        <span class="i-lucide-search nav-compact__search-icon" />
-        <transition name="compact-fade">
-          <div v-if="hovered" class="nav-compact__search-text">
-            <span class="text-[12px] text-white/40">搜索</span>
-            <kbd class="nav-compact__search-kbd">⌘K</kbd>
-          </div>
-        </transition>
-      </button>
-    </div>
   </aside>
 </template>
 
@@ -85,9 +67,9 @@ const hovered = ref(false)
 
 .nav-compact__bg {
   position: absolute; inset: 0;
-  background: #08080f;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+  background: linear-gradient(180deg, #08080f 0%, #0a0a14 100%);
+  border-right: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 2px 0 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
 }
 
 /* Header */
@@ -140,14 +122,14 @@ const hovered = ref(false)
 }
 .nav-compact-item:hover {
   color: rgba(255,255,255,0.78);
-  background: rgba(255,255,255,0.035);
+  background: rgba(255,255,255,0.04);
 }
 .nav-compact-item--active {
   color: #fff !important;
   background: rgba(99,102,241,0.08) !important;
 }
 .nav-compact-item--active:hover {
-  background: rgba(99,102,241,0.12) !important;
+  background: rgba(99,102,241,0.10) !important;
 }
 
 .nav-compact-item__bar {
@@ -175,41 +157,6 @@ const hovered = ref(false)
 
 /* Spacer */
 .nav-compact__spacer { flex: 1; }
-
-/* Footer */
-.nav-compact__footer {
-  position: relative; z-index: 1;
-  flex-shrink: 0; padding: 12px;
-  border-top: 1px solid rgba(255,255,255,0.04);
-}
-.nav-compact__search-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 10px 0;
-  border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
-  background: rgba(255,255,255,0.02);
-  color: rgba(255,255,255,0.25);
-  cursor: pointer; transition: all 0.15s;
-}
-.nav-compact__search-btn--expanded {
-  justify-content: flex-start; padding: 8px 12px;
-}
-.nav-compact__search-btn:hover {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.5);
-}
-.nav-compact__search-icon { font-size: 16px; flex-shrink: 0; }
-.nav-compact__search-text {
-  display: flex; align-items: center; gap: 8px; flex: 1;
-}
-.nav-compact__search-kbd {
-  font-size: 10px; font-family: ui-monospace, monospace;
-  padding: 2px 6px; border-radius: 4px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.16);
-  margin-left: auto;
-}
 
 /* Transition */
 .compact-fade-enter-active, .compact-fade-leave-active {

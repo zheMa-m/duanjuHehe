@@ -30,7 +30,7 @@ const planLabel = computed(() => PLAN_LABELS[planName.value] || planName.value)
     <div class="starpath-frame pt-safe-top flex flex-col items-center justify-center min-h-screen px-4">
       <div class="relative z-10 flex flex-col items-center w-full max-w-[360px]">
         <div class="size-[80px] rounded-full bg-[#1a1a2e] border border-[#bab3f3] flex items-center justify-center">
-          <span class="text-[32px]">✓</span>
+          <span class="i-lucide-check text-[32px]" />
         </div>
 
         <h1 class="mt-[24px] text-center text-xl font-bold text-white">

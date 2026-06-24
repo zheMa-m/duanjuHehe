@@ -114,10 +114,10 @@ onBeforeUnmount(() => {
     <div class="hero-grid"></div>
     <div class="hero-content">
       <div class="hero-tags">
-        <span class="hero-tag tag-blue">⚡ Nuxt 4</span>
-        <span class="hero-tag tag-green">🗄️ Supabase</span>
+        <span class="hero-tag tag-blue">Nuxt 4</span>
+        <span class="hero-tag tag-green">Supabase</span>
         <span class="hero-tag tag-purple">▲ Vercel</span>
-        <span class="hero-tag tag-cyan">☁️ Cloudflare</span>
+        <span class="hero-tag tag-cyan">Cloudflare</span>
         <span class="hero-tag tag-orange">🔷 Vue 3</span>
       </div>
       <h1>{{ t('hero.title') }}</h1>
@@ -200,22 +200,22 @@ onBeforeUnmount(() => {
           <div class="av-layer-label">② Cloudflare 边缘层（可选·免费）</div>
           <div class="av-nodes av-nodes-4">
             <div class="av-node an-cf">
-              <div class="an-icon">🌐</div>
+              <div class="an-icon"><span class="i-lucide-globe" /></div>
               <div class="an-name">DNS 代理</div>
               <div class="an-sub">泛域名通配符解析</div>
             </div>
             <div class="av-node an-cf">
-              <div class="an-icon">🚀</div>
+              <div class="an-icon"><span class="i-lucide-zap" /></div>
               <div class="an-name">全球 CDN</div>
               <div class="an-sub">静态资源加速</div>
             </div>
             <div class="av-node an-cf">
-              <div class="an-icon">🛡️</div>
+              <div class="an-icon"><span class="i-lucide-shield" /></div>
               <div class="an-name">WAF 防火墙</div>
               <div class="an-sub">DDoS / 恶意流量</div>
             </div>
             <div class="av-node an-cf">
-              <div class="an-icon">🔒</div>
+              <div class="an-icon"><span class="i-lucide-lock" /></div>
               <div class="an-name">SSL 终止</div>
               <div class="an-sub">Full (Strict) 模式</div>
             </div>
@@ -232,17 +232,17 @@ onBeforeUnmount(() => {
           <div class="av-layer-label">③ Vercel Edge Runtime 层</div>
           <div class="av-nodes av-nodes-3">
             <div class="av-node an-vercel">
-              <div class="an-icon">🔀</div>
+              <div class="an-icon"><span class="i-lucide-shuffle" /></div>
               <div class="an-name">Edge Middleware</div>
               <div class="an-sub">子域名分流路由</div>
             </div>
             <div class="av-node an-vercel">
-              <div class="an-icon">⚡</div>
+              <div class="an-icon"><span class="i-lucide-zap" /></div>
               <div class="an-name">ISR / SWR 缓存</div>
               <div class="an-sub">静态边缘缓存策略</div>
             </div>
             <div class="av-node an-vercel">
-              <div class="an-icon">🖼️</div>
+              <div class="an-icon"><span class="i-lucide-image" /></div>
               <div class="an-name">图片优化</div>
               <div class="an-sub">AVIF / WebP 转换</div>
             </div>
@@ -295,7 +295,7 @@ onBeforeUnmount(() => {
 
         <!-- Nuxt 4 单仓横条 -->
         <div class="av-monorepo-bar">
-          <span class="avmb-icon">⚡</span>
+          <span class="avmb-icon"><span class="i-lucide-zap" /></span>
           <span class="avmb-text"><strong>Nuxt 4 混合单仓 · Nitro 引擎</strong>  统一 Auth 中间件 · 统一响应格式 · 统一错误处理</span>
           <span class="avmb-path">server/middleware/ · server/utils/</span>
         </div>
@@ -310,21 +310,21 @@ onBeforeUnmount(() => {
           <div class="av-layer-label">⑤ 后端数据与服务层</div>
           <div class="av-nodes av-nodes-3">
             <div class="av-node an-data an-supabase">
-              <div class="an-icon">🗄️</div>
+              <div class="an-icon"><span class="i-lucide-database" /></div>
               <div class="an-name">Supabase</div>
               <div class="an-chips">
                 <span>PostgreSQL</span><span>Auth</span><span>RLS</span><span>Realtime</span><span>Storage</span>
               </div>
             </div>
             <div class="av-node an-data an-analytics">
-              <div class="an-icon">📊</div>
+              <div class="an-icon"><span class="i-lucide-bar-chart-3" /></div>
               <div class="an-name">Analytics</div>
               <div class="an-chips">
                 <span>Dashboard</span><span>Reports</span><span>实时监控</span>
               </div>
             </div>
             <div class="av-node an-data an-third">
-              <div class="an-icon">🔗</div>
+              <div class="an-icon"><span class="i-lucide-link" /></div>
               <div class="an-name">第三方服务</div>
               <div class="an-chips">
                 <span>Resend 邮件</span><span>短信</span><span>AI API</span>
@@ -379,12 +379,12 @@ onBeforeUnmount(() => {
     </div>
     <div class="tech-grid">
       <div class="tech-card"><div class="tech-emoji">🔷</div><div><div class="tech-name">Vue 3</div><div class="tech-role">管理后台 UI 与官网渲染</div><div class="tech-version">3.5+ · script setup · Composition API</div></div></div>
-      <div class="tech-card"><div class="tech-emoji">⚡</div><div><div class="tech-name">Nuxt 4 + Nitro</div><div class="tech-role">SSR/ISR/SWR 路由 · Server API 引擎</div><div class="tech-version">4.x · Hybrid Rendering</div></div></div>
-      <div class="tech-card"><div class="tech-emoji">🗄️</div><div><div class="tech-name">Supabase 团队版</div><div class="tech-role">PostgreSQL · RLS · Auth · Realtime · DB Branching</div><div class="tech-version">Team Plan · $25/mo/project</div></div></div>
+      <div class="tech-card"><div class="tech-emoji"><span class="i-lucide-zap" /></div><div><div class="tech-name">Nuxt 4 + Nitro</div><div class="tech-role">SSR/ISR/SWR 路由 · Server API 引擎</div><div class="tech-version">4.x · Hybrid Rendering</div></div></div>
+      <div class="tech-card"><div class="tech-emoji"><span class="i-lucide-database" /></div><div><div class="tech-name">Supabase 团队版</div><div class="tech-role">PostgreSQL · RLS · Auth · Realtime · DB Branching</div><div class="tech-version">Team Plan · $25/mo/project</div></div></div>
       <div class="tech-card"><div class="tech-emoji">▲</div><div><div class="tech-name">Vercel 团队版</div><div class="tech-role">Serverless 部署 · 边缘函数 · 图片优化</div><div class="tech-version">Team Plan · $20/mo/member</div></div></div>
       <div class="tech-card"><div class="tech-emoji">🐙</div><div><div class="tech-name">GitHub 团队版</div><div class="tech-role">代码审查 · 分支保护 · Actions CI/CD</div><div class="tech-version">Team Plan · Actions 2000min/mo</div></div></div>
-      <div class="tech-card"><div class="tech-emoji">☁️</div><div><div class="tech-name">Cloudflare 免费版</div><div class="tech-role">泛域名代理 · 全球 CDN · WAF · SSL</div><div class="tech-version">Free · 100G 出口流量免费</div></div></div>
-      <div class="tech-card"><div class="tech-emoji">📊</div><div><div class="tech-name">Google Analytics</div><div class="tech-role">用户行为分析 · 转化漏斗 · 实时监控</div><div class="tech-version">GA4 · 免费额度充足</div></div></div>
+      <div class="tech-card"><div class="tech-emoji"><span class="i-lucide-cloud" /></div><div><div class="tech-name">Cloudflare 免费版</div><div class="tech-role">泛域名代理 · 全球 CDN · WAF · SSL</div><div class="tech-version">Free · 100G 出口流量免费</div></div></div>
+      <div class="tech-card"><div class="tech-emoji"><span class="i-lucide-bar-chart-3" /></div><div><div class="tech-name">Google Analytics</div><div class="tech-role">用户行为分析 · 转化漏斗 · 实时监控</div><div class="tech-version">GA4 · 免费额度充足</div></div></div>
       <div class="tech-card"><div class="tech-emoji">🎨</div><div><div class="tech-name">UnoCSS</div><div class="tech-role">轻量原子化 CSS · 官网/H5 零全局污染</div><div class="tech-version">Atomic CSS · 极轻量打包</div></div></div>
     </div>
   </section>
@@ -495,7 +495,7 @@ onBeforeUnmount(() => {
     </div>
     <div class="render-grid">
       <div class="render-card" style="border-color:rgba(16,185,129,0.3);">
-        <div class="render-icon">🚀</div>
+        <div class="render-icon"><span class="i-lucide-zap" /></div>
         <div class="render-name">ISR</div>
         <div class="render-full">Incremental Static Regeneration</div>
         <div class="render-ttl" style="color:var(--accent-green);">3600s</div>
@@ -504,7 +504,7 @@ onBeforeUnmount(() => {
         <div class="render-detail">官网页面。首字节 0ms，SEO 100 分，边缘节点后台异步刷新，完全不阻塞用户请求。</div>
       </div>
       <div class="render-card" style="border-color:rgba(34,211,238,0.3);">
-        <div class="render-icon">⚡</div>
+        <div class="render-icon"><span class="i-lucide-zap" /></div>
         <div class="render-name">SWR</div>
         <div class="render-full">Stale While Revalidate</div>
         <div class="render-ttl" style="color:var(--accent-cyan);">600s</div>
@@ -513,7 +513,7 @@ onBeforeUnmount(() => {
         <div class="render-detail">营销 H5。支持动态配置实时更新，活动高峰流量直接命中边缘节点，零服务器压力。</div>
       </div>
       <div class="render-card" style="border-color:rgba(139,92,246,0.3);">
-        <div class="render-icon">🔒</div>
+        <div class="render-icon"><span class="i-lucide-lock" /></div>
         <div class="render-name">SPA</div>
         <div class="render-full">Client-Side Rendering (ssr: false)</div>
         <div class="render-ttl" style="color:var(--accent-purple);">无缓存</div>
@@ -522,7 +522,7 @@ onBeforeUnmount(() => {
         <div class="render-detail">管理后台。完全禁用 SSR，防止敏感数据在服务端泄露，彻底隔离重型 Admin 组件包。</div>
       </div>
       <div class="render-card" style="border-color:rgba(245,158,11,0.3);">
-        <div class="render-icon">🌐</div>
+        <div class="render-icon"><span class="i-lucide-globe" /></div>
         <div class="render-name">API</div>
         <div class="render-full">Pure Serverless API (No Render)</div>
         <div class="render-ttl" style="color:var(--accent-orange);">no-store</div>
@@ -543,7 +543,7 @@ onBeforeUnmount(() => {
       <h3>多层拦截鉴权机制</h3>
       <div class="security-layers">
         <div class="security-layer sl-1">
-          <div class="sl-icon">🛡️</div>
+          <div class="sl-icon"><span class="i-lucide-shield" /></div>
           <div class="sl-content">
             <div class="sl-title">第一层：Cloudflare WAF</div>
             <div class="sl-desc">拦截恶意爬虫、DDoS 流量，对 /api/admin/** 来源非 admin 域名的请求直接封锁</div>
@@ -551,7 +551,7 @@ onBeforeUnmount(() => {
           <div class="sl-badge">CF 边缘</div>
         </div>
         <div class="security-layer sl-2">
-          <div class="sl-icon">🌐</div>
+          <div class="sl-icon"><span class="i-lucide-globe" /></div>
           <div class="sl-content">
             <div class="sl-title">第二层：Edge Middleware 域名重写</div>
             <div class="sl-desc">api 域名强制限制在 /api/v1/* 路由，admin 域名拦截非后台请求越界访问</div>
@@ -631,7 +631,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <div class="alert alert-caution">
-      <div class="alert-icon">⚠️</div>
+      <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
       <div class="alert-body"><strong>AI 编码强制约束</strong>所有 /api/admin/ 路由中涉及数据写入、删除、状态变更的操作，必须在业务逻辑执行后、响应返回前调用 writeAuditLog()。否则 CI 静态扫描将阻断合入。</div>
     </div>
   </section>
@@ -668,16 +668,16 @@ onBeforeUnmount(() => {
           <thead><tr><th>指标</th><th>目标值</th><th>CI 强制阻断阈值</th></tr></thead>
           <tbody>
             <tr><td><strong>LCP 最大内容绘制</strong></td><td style="color:var(--accent-green);">&lt; 1.5s</td><td style="color:var(--accent-red);">⛔ &gt; 2.0s 强制打回</td></tr>
-            <tr><td><strong>INP 交互延迟</strong></td><td style="color:var(--accent-green);">&lt; 100ms</td><td style="color:var(--accent-orange);">⚠️ &gt; 200ms 警告</td></tr>
+            <tr><td><strong>INP 交互延迟</strong></td><td style="color:var(--accent-green);">&lt; 100ms</td><td style="color:var(--accent-orange);">> 200ms 警告</td></tr>
             <tr><td><strong>CLS 布局偏移</strong></td><td style="color:var(--accent-green);">&lt; 0.05</td><td style="color:var(--accent-red);">⛔ &gt; 0.1 强制打回</td></tr>
             <tr><td><strong>SEO 评分 Lighthouse</strong></td><td style="color:var(--accent-green);">100 分</td><td style="color:var(--accent-red);">⛔ &lt; 95 分强制打回</td></tr>
-            <tr><td><strong>无障碍 a11y</strong></td><td style="color:var(--accent-green);">≥ 95 分</td><td style="color:var(--accent-orange);">⚠️ &lt; 90 分警告</td></tr>
+            <tr><td><strong>无障碍 a11y</strong></td><td style="color:var(--accent-green);">≥ 95 分</td><td style="color:var(--accent-orange);">< 90 分警告</td></tr>
           </tbody>
         </table>
       </div>
     </div>
     <div class="alert alert-tip">
-      <div class="alert-icon">💡</div>
+      <div class="alert-icon"><span class="i-lucide-lightbulb" /></div>
       <div class="alert-body"><strong>AI 图片规范</strong>官网和 H5 中所有图片必须使用 &lt;NuxtImg&gt; 代替原生 &lt;img&gt;。首屏 Banner 必须添加 preload、fetchpriority="high" 和 loading="eager"，确保 LCP 资产最优先下载。</div>
     </div>
   </section>
@@ -904,7 +904,7 @@ onBeforeUnmount(() => {
         <div class="check-item"><div class="check-box"></div>GitHub Actions CI 验证门禁配置完成</div>
       </div>
       <div class="checklist-group">
-        <h4>🚀 性能</h4>
+        <h4><span class="i-lucide-zap" style="display:inline-block;vertical-align:middle;margin-right:6px" />性能</h4>
         <div class="check-item"><div class="check-box"></div>@nuxt/image 模块配置，官网首屏图片使用 preload</div>
         <div class="check-item"><div class="check-box"></div>useAppSEO() 封装完成，官网/H5 强制调用</div>
         <div class="check-item"><div class="check-box"></div>Lighthouse CI 预算文件配置（LCP &lt; 2s 门禁）</div>
@@ -938,12 +938,12 @@ onBeforeUnmount(() => {
         <table>
           <thead><tr><th>重叠能力</th><th>选择平台</th><th>核心决策理由</th></tr></thead>
           <tbody>
-            <tr><td><strong>关系型数据库</strong></td><td style="color:var(--accent-green);font-weight:700;">✅ Supabase PG</td><td>RLS 行级安全 + Auth 深度集成 + DB 分支不可替代；Vercel Postgres 不具备这些企业级能力</td></tr>
-            <tr><td><strong>文件存储</strong></td><td style="color:var(--accent-cyan);font-weight:700;">✅ 场景分治</td><td>用户私密文件 → Supabase Storage（RLS）；公开营销素材 → public/ 目录 + Cloudflare CDN</td></tr>
-            <tr><td><strong>HTTP API 路由</strong></td><td style="color:var(--accent-blue);font-weight:700;">✅ Vercel Nitro</td><td>所有业务 HTTP API 由 Nuxt 4 Nitro 承接；Supabase Edge Functions 仅用于 DB 触发器增强</td></tr>
-            <tr><td><strong>KV 缓存（限流）</strong></td><td style="color:var(--accent-blue);font-weight:700;">✅ Vercel KV</td><td>Supabase 无内置 Redis；Vercel KV（Upstash Redis）直接补位</td></tr>
-            <tr><td><strong>用户身份鉴权</strong></td><td style="color:var(--accent-green);font-weight:700;">✅ Supabase Auth</td><td>Vercel 无原生 Auth；Supabase Auth 提供完整 OAuth/邮箱验证并与 DB/RLS 深度集成</td></tr>
-            <tr><td><strong>Analytics 监控</strong></td><td style="color:var(--accent-cyan);font-weight:700;">✅ 两者互补</td><td>Supabase 看后端基础设施（DB 负载）；Vercel 看前端体验（Web Vitals）；维度不重叠</td></tr>
+            <tr><td><strong>关系型数据库</strong></td><td style="color:var(--accent-green);font-weight:700;">Supabase PG</td><td>RLS 行级安全 + Auth 深度集成 + DB 分支不可替代；Vercel Postgres 不具备这些企业级能力</td></tr>
+            <tr><td><strong>文件存储</strong></td><td style="color:var(--accent-cyan);font-weight:700;">场景分治</td><td>用户私密文件 → Supabase Storage（RLS）；公开营销素材 → public/ 目录 + Cloudflare CDN</td></tr>
+            <tr><td><strong>HTTP API 路由</strong></td><td style="color:var(--accent-blue);font-weight:700;">Vercel Nitro</td><td>所有业务 HTTP API 由 Nuxt 4 Nitro 承接；Supabase Edge Functions 仅用于 DB 触发器增强</td></tr>
+            <tr><td><strong>KV 缓存（限流）</strong></td><td style="color:var(--accent-blue);font-weight:700;">Vercel KV</td><td>Supabase 无内置 Redis；Vercel KV（Upstash Redis）直接补位</td></tr>
+            <tr><td><strong>用户身份鉴权</strong></td><td style="color:var(--accent-green);font-weight:700;">Supabase Auth</td><td>Vercel 无原生 Auth；Supabase Auth 提供完整 OAuth/邮箱验证并与 DB/RLS 深度集成</td></tr>
+            <tr><td><strong>Analytics 监控</strong></td><td style="color:var(--accent-cyan);font-weight:700;">两者互补</td><td>Supabase 看后端基础设施（DB 负载）；Vercel 看前端体验（Web Vitals）；维度不重叠</td></tr>
           </tbody>
         </table>
       </div>
@@ -953,24 +953,24 @@ onBeforeUnmount(() => {
       <h3>职责边界全景图</h3>
       <div class="boundary-grid">
         <div class="boundary-box bb-supabase">
-          <h4>🗄️ Supabase 专属领土</h4>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>数据持久化</strong><span>PostgreSQL 所有业务表与关系设计</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>用户身份</strong><span>Auth：邮箱 / OAuth / Magic Link / JWT</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>行级安全</strong><span>RLS Policy 所有权限控制逻辑</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>用户私密文件</strong><span>上传文件：头像 / 文档 / 付费内容</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>实时推送</strong><span>Realtime WebSocket 数据变更订阅</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>数据库分支</strong><span>PR 级别的 Schema 隔离测试</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>定时任务</strong><span>pg_cron 刷新物化视图 / 定期清理</span></div></div>
+          <h4>Supabase 专属领土</h4>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>数据持久化</strong><span>PostgreSQL 所有业务表与关系设计</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>用户身份</strong><span>Auth：邮箱 / OAuth / Magic Link / JWT</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>行级安全</strong><span>RLS Policy 所有权限控制逻辑</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>用户私密文件</strong><span>上传文件：头像 / 文档 / 付费内容</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>实时推送</strong><span>Realtime WebSocket 数据变更订阅</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>数据库分支</strong><span>PR 级别的 Schema 隔离测试</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>定时任务</strong><span>pg_cron 刷新物化视图 / 定期清理</span></div></div>
         </div>
         <div class="boundary-box bb-vercel">
           <h4>▲ Vercel 专属领土</h4>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>代码构建与托管</strong><span>Nuxt 4 全栈应用 Serverless 部署</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>静态资源 CDN</strong><span>JS / CSS / 字体 / 公开图片全球分发</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>图片优化</strong><span>边缘压缩与 AVIF/WebP 格式转换</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>Preview 部署</strong><span>PR 自动生成隔离预览环境</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>API 路由执行</strong><span>Nitro Serverless & Edge Runtime</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>Web Vitals 监控</strong><span>真实用户 LCP / INP / CLS 数据采集</span></div></div>
-          <div class="boundary-item"><div class="bi-icon">✅</div><div class="bi-text"><strong>KV 高频缓存</strong><span>Vercel KV（Upstash Redis）限流 / 计数</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>代码构建与托管</strong><span>Nuxt 4 全栈应用 Serverless 部署</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>静态资源 CDN</strong><span>JS / CSS / 字体 / 公开图片全球分发</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>图片优化</strong><span>边缘压缩与 AVIF/WebP 格式转换</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>Preview 部署</strong><span>PR 自动生成隔离预览环境</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>API 路由执行</strong><span>Nitro Serverless & Edge Runtime</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>Web Vitals 监控</strong><span>真实用户 LCP / INP / CLS 数据采集</span></div></div>
+          <div class="boundary-item"><div class="bi-icon"><span class="i-lucide-check" /></div><div class="bi-text"><strong>KV 高频缓存</strong><span>Vercel KV（Upstash Redis）限流 / 计数</span></div></div>
         </div>
       </div>
       <div class="boundary-box bb-forbidden" style="margin-top:16px;">
@@ -986,21 +986,21 @@ onBeforeUnmount(() => {
     <div class="subsection">
       <h3>AI Coding 三大平台陷阱</h3>
       <div class="alert alert-caution">
-        <div class="alert-icon">⚠️</div>
+        <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
         <div class="alert-body">
           <strong>陷阱一：双平台存储冗余</strong>
           AI 可能在 Nuxt 4 API 层先上传文件到 Vercel Blob，再触发 Supabase Storage 同步，造成同一份文件两处冗余、成本翻倍。<br>→ .cursorrules 约束：公开静态资产走 public/ 目录，用户上传走 Supabase Storage，禁止引入 Vercel Blob。
         </div>
       </div>
       <div class="alert alert-caution">
-        <div class="alert-icon">⚠️</div>
+        <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
         <div class="alert-body">
           <strong>陷阱二：HTTP 路由写入 Supabase Edge Function</strong>
           AI 有时将新业务接口写成 Supabase Edge Function，导致两套 API 体系并行，安全策略无法统一。<br>→ .cursorrules 约束：所有 HTTP API 路由只能在 /server/api/ 下，严禁写 Supabase Edge Function 承接 HTTP 路由。
         </div>
       </div>
       <div class="alert alert-caution">
-        <div class="alert-icon">⚠️</div>
+        <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
         <div class="alert-body">
           <strong>陷阱三：Service Role Key 位置错误</strong>
           AI 可能将 SUPABASE_SERVICE_ROLE_KEY 误打包进前端 Bundle，造成超级管理员权限泄漏。<br>→ .cursorrules 约束：Service Role Key 只能存放在 Vercel 服务端专用环境变量（非 NUXT_PUBLIC_ 前缀）。
@@ -1009,7 +1009,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="alert alert-tip">
-      <div class="alert-icon">💡</div>
+      <div class="alert-icon"><span class="i-lucide-lightbulb" /></div>
       <div class="alert-body">
         <strong>成本控制三问原则</strong>
         在引入任何新服务前，先回答：① 这个能力是否已被 Supabase 或 Vercel 其中之一覆盖？② 若两者都覆盖，与"数据安全/用户身份"更强相关？→ 选 Supabase。③ 若两者都覆盖，与"交付性能/计算速度"更强相关？→ 选 Vercel。
@@ -1024,7 +1024,7 @@ onBeforeUnmount(() => {
     </div>
     
     <div class="alert alert-important">
-      <div class="alert-icon">💡</div>
+      <div class="alert-icon"><span class="i-lucide-lightbulb" /></div>
       <div class="alert-body">
         <strong>工程自动化与开发协同</strong>
         单人全栈模式侧重于通过构建自动化验证门禁与强类型契约，来大幅缩减测试与维护周期。以下是常用的提效工程实践。
@@ -1038,21 +1038,21 @@ onBeforeUnmount(() => {
         <div class="decision-box">
           <h4>1. 端到端全自动类型闭环</h4>
           <div class="decision-item">
-            <div class="di-icon" style="color:var(--accent-green)">✓</div>
+            <div class="di-icon" style="color:var(--accent-green)"><span class="i-lucide-check" /></div>
             <div class="di-content">
               <div class="di-title">自动抽取 DB Schema 类型</div>
               <div class="di-desc">通过自动化脚本将 Supabase 生成的 database.types.ts 转换为前端/API 复用的 TableRow&lt;T&gt; 强类型。</div>
             </div>
           </div>
           <div class="decision-item">
-            <div class="di-icon" style="color:var(--accent-green)">✓</div>
+            <div class="di-icon" style="color:var(--accent-green)"><span class="i-lucide-check" /></div>
             <div class="di-content">
               <div class="di-title">Nuxt 4 接口自动推断</div>
               <div class="di-desc">借助 Nitro 引擎，前端 useFetch 调用 API 时完全无需手动声明返回类型，AI 在前端编码时可 100% 自动补全。</div>
             </div>
           </div>
           <div class="decision-item">
-            <div class="di-icon" style="color:var(--accent-green)">✓</div>
+            <div class="di-icon" style="color:var(--accent-green)"><span class="i-lucide-check" /></div>
             <div class="di-content">
               <div class="di-title">Zod/Valibot 统一契约</div>
               <div class="di-desc">用 Schema-Driven 方式编写输入校验，AI 可据此同步生成前端 UI 表单验证与后端过滤逻辑，消灭类型漂移。</div>
@@ -1109,14 +1109,14 @@ onBeforeUnmount(() => {
         <div class="decision-box">
           <h4>5. SQL 注释驱动 RLS 与安全测试环</h4>
           <div class="decision-item">
-            <div class="di-icon" style="color:var(--accent-orange)">🛡️</div>
+            <div class="di-icon" style="color:var(--accent-orange)"><span class="i-lucide-shield" /></div>
             <div class="di-content">
               <div class="di-title">SQL 注释驱动声明</div>
               <div class="di-desc">在 migrations 中使用 <code>-- @rls: enable</code> 等元数据声明，本地校验脚本强制 AI 必须同步编写安全策略。</div>
             </div>
           </div>
           <div class="decision-item">
-            <div class="di-icon" style="color:var(--accent-orange)">🛡️</div>
+            <div class="di-icon" style="color:var(--accent-orange)"><span class="i-lucide-shield" /></div>
             <div class="di-content">
               <div class="di-title">单元越权模拟测试</div>
               <div class="di-desc">编写 <code>rls.test.ts</code>，模拟不同权限的越权请求，100% 阻断 AI 因不理解 RLS policy 而导致的写表越权和漏配漏洞。</div>
@@ -1145,14 +1145,14 @@ onBeforeUnmount(() => {
         <div class="decision-box">
           <h4>7. 全球合规与安全基线</h4>
           <div class="decision-item">
-            <div class="di-icon" style="color:var(--accent-cyan)">✓</div>
+            <div class="di-icon" style="color:var(--accent-cyan)"><span class="i-lucide-check" /></div>
             <div class="di-content">
               <div class="di-title">RLS + JWT 双重防御</div>
               <div class="di-desc">数据库层面通过 RLS Policy 强制数据隔离，API 层面通过 JWT 令牌 + assertUser 断言双重保障，任何越权操作在物理层被拦截。</div>
             </div>
           </div>
           <div class="decision-item">
-            <div class="di-icon" style="color:var(--accent-cyan)">✓</div>
+            <div class="di-icon" style="color:var(--accent-cyan)"><span class="i-lucide-check" /></div>
             <div class="di-content">
               <div class="di-title">GDPR Cookie 声明代码化</div>
               <div class="di-desc">在 Layout 中使用轻量 <code>cookieconsent</code> 声明，仅在用户同意后才初始化第三方分析统计，彻底规避欧盟巨额罚款风险。</div>
@@ -1162,7 +1162,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="alert alert-caution" style="margin-top:16px;">
-        <div class="alert-icon">⚠️</div>
+        <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
         <div class="alert-body" style="font-size:12.5px;">
           <strong style="margin-bottom:6px;color:#fca5a5;">Capacitor 移动端与热更新审核红线警告 (Apple App Store Compliance)</strong>
           <ul style="padding-left:18px;margin-top:4px;line-height:1.6;">
@@ -1249,7 +1249,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <div class="alert alert-caution">
-      <div class="alert-icon">⚠️</div>
+      <div class="alert-icon"><span class="i-lucide-alert-triangle" /></div>
       <div class="alert-body"><strong>安全强制约束</strong>Stripe Secret Key 严禁出现在前端代码；Webhook 端点必须验证签名（02.auth.ts 中已加白名单）；所有金额计算必须使用 NUMERIC 类型，严禁浮点数。</div>
     </div>
     <div class="subsection">

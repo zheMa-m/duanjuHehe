@@ -23,6 +23,7 @@ import AdminSidebarTabbed from '~/components/admin/AdminSidebarTabbed.vue'
 import { useAdminNav, navModeOptions } from '~/composables/useAdminNav'
 import { useAdminMenu, tabDomains } from '~/composables/useAdminMenu'
 import { useAdminTheme } from '~/composables/useAdminTheme'
+import { resolveMainSiteHref, resolveApiDocHref } from '~/utils/subdomain'
 
 const { user, isAdmin, signInAsAdmin, signOut, refreshUser } = useAuth()
 const { mode, sidebarCollapsed, switchMode, toggleSidebar, trackRecent } = useAdminNav()
@@ -30,6 +31,21 @@ const { getItemByKey, getDomainForItem, getGroupLabel } = useAdminMenu()
 const { resolvedTheme, colorScheme } = useAdminTheme()
 
 useSeoMeta({ title: '项目管理后台' })
+
+// ── 跨子域名链接（兼容生产环境任意域名）──────────────────────
+const mainSiteHref = computed(() => {
+  if (!import.meta.client) return '/'
+  return resolveMainSiteHref(window.location.origin)
+})
+const helpHref = computed(() => {
+  if (!import.meta.client) return '/help'
+  // help 页面在主站域下
+  return resolveMainSiteHref(window.location.origin).replace(/\/$/, '') + '/help'
+})
+const apiDocHref = computed(() => {
+  if (!import.meta.client) return '/_scalar'
+  return resolveApiDocHref(window.location.origin, '/_scalar')
+})
 
 // ── Toast 通知 ─────────────────────────────────────────────────
 const toastRef = ref<InstanceType<typeof AdminToast> | null>(null)
@@ -474,7 +490,7 @@ const handleDeleteUser = async (id: string) => {
 
 <template>
   <div
-    class="admin-dashboard-root flex min-h-screen font-sans relative overflow-hidden"
+    class="admin-dashboard-root flex h-screen font-sans relative overflow-hidden"
     :class="'theme-' + resolvedTheme"
     :style="{ colorScheme: colorScheme }"
   >
@@ -506,9 +522,9 @@ const handleDeleteUser = async (id: string) => {
       />
 
       <!-- 右侧主工作区 -->
-      <main class="flex-1 flex flex-col min-w-0 relative z-10 bg-[#08080f]/60 backdrop-blur-3xl">
+      <main class="flex-1 flex flex-col min-w-0 relative z-10 bg-[#08080f]/60 backdrop-blur-3xl overflow-hidden">
         <!-- 顶栏 -->
-        <header class="admin-header">
+        <header class="admin-header flex-shrink-0">
           <!-- 左侧区域 -->
           <div class="flex items-center gap-3">
             <!-- LIVE 徽章 -->
@@ -540,22 +556,25 @@ const handleDeleteUser = async (id: string) => {
           </div>
 
           <!-- 右侧区域 -->
-          <div class="flex items-center gap-3">
-            <NuxtLink to="/" class="admin-header__link">主站</NuxtLink>
-            <span class="admin-header__sep" />
-            <NuxtLink to="/help" class="admin-header__link">帮助文档</NuxtLink>
-            <span class="admin-header__sep" />
+          <div class="flex items-center gap-2">
+            <a :href="mainSiteHref" target="_blank" rel="noopener" class="admin-header__icon-btn" title="主站">
+              <span class="i-lucide-home text-[14px]" />
+            </a>
+            <a :href="helpHref" target="_blank" rel="noopener" class="admin-header__icon-btn" title="帮助文档">
+              <span class="i-lucide-help-circle text-[14px]" />
+            </a>
+            <a :href="apiDocHref" target="_blank" rel="noopener" class="admin-header__icon-btn" title="OpenAPI 文档">
+              <span class="i-lucide-code-2 text-[14px]" />
+            </a>
 
             <!-- 任务全局入口（右上角） -->
-            <button @click="showTasksPanel = !showTasksPanel" class="admin-header__task-btn" :class="{ 'admin-header__task-btn--active': showTasksPanel }">
-              <span class="i-lucide-clipboard-list text-[13px]" />
+            <button @click="showTasksPanel = !showTasksPanel" class="admin-header__icon-btn admin-header__icon-btn--task" :class="{ 'admin-header__icon-btn--active': showTasksPanel }" title="任务中心">
+              <span class="i-lucide-clipboard-list text-[14px]" />
               <span v-if="tasksRes?.data?.pagination?.total && tasksRes.data.pagination.total > 0" class="admin-header__task-badge">{{ tasksRes.data.pagination.total > 99 ? '99+' : tasksRes.data.pagination.total }}</span>
             </button>
 
-            <span class="admin-header__sep" />
-
             <!-- 用户头像 + 下拉菜单 -->
-            <div class="admin-header__user-wrapper">
+            <div class="admin-header__user-wrapper ml-1">
               <button @click="showUserDropdown = !showUserDropdown" class="admin-header__user">
                 <img v-if="user?.avatarUrl" :src="user.avatarUrl" class="admin-header__avatar" alt="avatar" />
                 <div v-else class="admin-header__avatar-fallback">{{ (user?.displayName || user?.username || 'A').charAt(0).toUpperCase() }}</div>
@@ -611,7 +630,7 @@ const handleDeleteUser = async (id: string) => {
         </header>
 
         <!-- Tab 内容区 -->
-        <div class="p-10 space-y-10 overflow-y-auto flex-1 scrollbar-none max-w-[1400px] w-full mx-auto">
+        <div class="p-6 lg:p-8 space-y-6 overflow-y-auto flex-1 scrollbar-none max-w-[1400px] w-full mx-auto">
           <AdminOverview v-if="activeTab === 'dashboard'" :logs="logRes?.data?.items ?? null" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.dashboard" :stats="auditStatsRes?.data ?? null" @refresh="handleRefresh" />
           <AdminProducts v-else-if="activeTab === 'products'" :is-loading="!!refreshing.products" @refresh="handleRefresh" @toast="toast" />
           <!-- 注意：tasks 已迁移至右上角全局面板，不再在主内容区渲染 -->
@@ -673,26 +692,31 @@ const handleDeleteUser = async (id: string) => {
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ─── 任务全局入口按钮 ─── */
-.admin-header__task-btn {
+/* ─── 右上角图标按钮 ─── */
+.admin-header__icon-btn {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.38);
-  cursor: pointer; transition: all 0.15s;
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.32);
+  cursor: pointer; transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
 }
-.admin-header__task-btn:hover {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.7);
+.admin-header__icon-btn:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.75);
+  transform: scale(1.05);
 }
-.admin-header__task-btn--active {
-  background: rgba(99,102,241,0.1) !important;
-  border-color: rgba(99,102,241,0.25) !important;
+.admin-header__icon-btn--active {
+  background: rgba(99,102,241,0.12) !important;
+  border-color: rgba(99,102,241,0.3) !important;
   color: #818cf8 !important;
+}
+.admin-header__icon-btn--task:hover {
+  color: rgba(255,255,255,0.75);
 }
 .admin-header__task-badge {
   position: absolute; top: -4px; right: -4px;
@@ -712,9 +736,9 @@ const handleDeleteUser = async (id: string) => {
 .admin-tasks-panel {
   position: absolute; right: 0; top: 0; bottom: 0;
   width: 560px; max-width: 90vw;
-  background: #0a0a14;
-  border-left: 1px solid rgba(255,255,255,0.06);
-  box-shadow: -16px 0 48px rgba(0,0,0,0.6);
+  background: linear-gradient(180deg, #0a0a14 0%, #08080f 100%);
+  border-left: 1px solid rgba(255,255,255,0.05);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.7);
   display: flex; flex-direction: column;
   overflow: hidden;
 }
@@ -741,10 +765,10 @@ const handleDeleteUser = async (id: string) => {
 }
 
 /* ─── 任务面板动画 ─── */
-.tasks-panel-enter-active { transition: opacity 0.2s ease; }
-.tasks-panel-enter-active .admin-tasks-panel { transition: transform 0.25s cubic-bezier(0.16,1,0.3,1); }
-.tasks-panel-leave-active { transition: opacity 0.15s ease; }
-.tasks-panel-leave-active .admin-tasks-panel { transition: transform 0.15s ease; }
+.tasks-panel-enter-active { transition: opacity 0.25s ease; }
+.tasks-panel-enter-active .admin-tasks-panel { transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
+.tasks-panel-leave-active { transition: opacity 0.2s ease; }
+.tasks-panel-leave-active .admin-tasks-panel { transition: transform 0.2s cubic-bezier(0.16,1,0.3,1); }
 .tasks-panel-enter-from,
 .tasks-panel-leave-to { opacity: 0; }
 .tasks-panel-enter-from .admin-tasks-panel,
@@ -755,23 +779,23 @@ const handleDeleteUser = async (id: string) => {
   height: 64px; padding: 0 24px;
   display: flex; align-items: center; justify-content: space-between;
   z-index: 10; flex-shrink: 0;
-  background: rgba(8,8,15,0.8);
-  backdrop-filter: blur(24px);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.3);
+  background: rgba(8,8,15,0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 4px 24px rgba(0,0,0,0.25);
 }
 
 .admin-header__badge {
   display: flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
-  color: rgba(255,255,255,0.55);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.45);
   padding: 4px 12px; border-radius: 20px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 .admin-header__badge-dot {
-  width: 5px; height: 5px; border-radius: 50%;
+  width: 6px; height: 6px; border-radius: 50%;
   background: #30d158;
-  box-shadow: 0 0 6px rgba(48,209,88,0.5);
+  box-shadow: 0 0 8px rgba(48,209,88,0.6);
   animation: pulse-glow 2.5s ease-in-out infinite;
 }
 
@@ -785,11 +809,12 @@ const handleDeleteUser = async (id: string) => {
   font-size: 10px;
 }
 .admin-header__breadcrumb-item {
-  color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.22);
   transition: color 0.15s;
 }
 .admin-header__breadcrumb-item--current {
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.55);
+  font-weight: 500;
 }
 
 .admin-header__domain-tabs {
@@ -848,11 +873,11 @@ const handleDeleteUser = async (id: string) => {
 }
 
 .admin-header__link {
-  font-size: 12px; color: rgba(255,255,255,0.38);
-  text-decoration: none; transition: color 0.15s;
+  font-size: 12px; color: rgba(255,255,255,0.32);
+  text-decoration: none; transition: color 0.2s;
   letter-spacing: 0.01em;
 }
-.admin-header__link:hover { color: rgba(255,255,255,0.8); }
+.admin-header__link:hover { color: rgba(255,255,255,0.75); }
 
 .admin-header__sep {
   width: 1px; height: 14px;
@@ -876,10 +901,15 @@ const handleDeleteUser = async (id: string) => {
 
 .admin-header__user {
   display: flex; align-items: center; gap: 0;
-  cursor: pointer; transition: all 0.15s;
+  cursor: pointer; transition: all 0.18s ease;
   background: none; border: none; padding: 0;
+  border-radius: 50%;
 }
-.admin-header__user:hover { opacity: 0.85; }
+.admin-header__user:hover { 
+  opacity: 0.85; 
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
 .admin-header__user-wrapper { position: relative; }
 .admin-header__avatar {
   width: 28px; height: 28px; border-radius: 50%;
@@ -896,14 +926,14 @@ const handleDeleteUser = async (id: string) => {
 
 /* ─── 用户下拉菜单 ─── */
 .admin-user-dropdown {
-  position: absolute; right: 0; top: calc(100% + 8px);
+  position: absolute; right: 0; top: calc(100% + 10px);
   width: 256px; z-index: 50;
-  background: #0e0e11;
+  background: rgba(14,14,17,0.95);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 6px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
-  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 .admin-user-dropdown__header {
   display: flex; align-items: center; gap: 10px;

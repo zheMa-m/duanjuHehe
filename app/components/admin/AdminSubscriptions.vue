@@ -165,9 +165,9 @@ async function handleChangePlan() {
       <button
         @click="$emit('refresh')"
         :disabled="isLoading"
-        class="text-xs bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
+        class="text-xs bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-50 text-white/70 hover:text-white/90 font-medium px-4 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5 border border-white/[0.06] hover:border-white/[0.10]"
       >
-        <span :class="{'animate-spin': isLoading}">🔄</span>
+        <span :class="{'animate-spin': isLoading}" class="i-lucide-refresh-cw text-[13px]" />
         刷新订阅
       </button>
     </div>

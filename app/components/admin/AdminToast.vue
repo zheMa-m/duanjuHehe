@@ -36,7 +36,7 @@ defineExpose({ show })
         >
           <!-- 状态视觉修饰前缀图标 -->
           <span v-if="t.type === 'success'" class="text-xs">✔</span>
-          <span v-else-if="t.type === 'error'" class="text-xs">⚠️</span>
+          <span v-else-if="t.type === 'error'" class="i-lucide-alert-triangle text-xs" />
           <span v-else class="text-xs">ℹ</span>
           
           <span class="tracking-wide font-light flex-1 leading-relaxed text-white/90">{{ t.message }}</span>

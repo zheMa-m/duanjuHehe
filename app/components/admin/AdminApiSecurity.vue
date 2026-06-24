@@ -580,8 +580,9 @@ const refreshAll = async () => {
           <div class="space-y-3">
             <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
               <span class="text-xs text-white/60">速率限制</span>
-              <span :class="configStatus?.rate_limit ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold">
-                {{ configStatus?.rate_limit ? '✓ 已启用' : '✗ 未启用' }}
+              <span :class="configStatus?.rate_limit ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold flex items-center gap-1">
+                <span :class="configStatus?.rate_limit ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
+                {{ configStatus?.rate_limit ? '已启用' : '未启用' }}
               </span>
             </div>
             <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
@@ -592,14 +593,16 @@ const refreshAll = async () => {
             </div>
             <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
               <span class="text-xs text-white/60">国家限制</span>
-              <span :class="configStatus?.country_policy ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold">
-                {{ configStatus?.country_policy ? '✓ 已启用' : '未启用' }}
+              <span :class="configStatus?.country_policy ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold flex items-center gap-1">
+                <span :class="configStatus?.country_policy ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
+                {{ configStatus?.country_policy ? '已启用' : '未启用' }}
               </span>
             </div>
             <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
               <span class="text-xs text-white/60">请求签名 (HMAC-SHA256)</span>
-              <span :class="configStatus?.signature_required ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold">
-                {{ configStatus?.signature_required ? '✓ 已启用' : '✗ 未启用' }}
+              <span :class="configStatus?.signature_required ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold flex items-center gap-1">
+                <span :class="configStatus?.signature_required ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
+                {{ configStatus?.signature_required ? '已启用' : '未启用' }}
               </span>
             </div>
             <div class="flex items-center justify-between py-2">
@@ -785,7 +788,7 @@ const refreshAll = async () => {
         <div class="relative flex-1 max-w-xs">
           <input v-model="keysSearch" @keyup.enter="searchKeys" placeholder="搜索 Key 名称..."
             class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" />
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-xs">🔍</span>
+          <span class="i-lucide-search absolute left-3 top-1/2 -translate-y-1/2 text-white/20 text-[14px]" />
         </div>
         <button @click="searchKeys"
           class="text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/70 px-4 py-2 rounded-xl transition-all cursor-pointer">
@@ -837,7 +840,10 @@ const refreshAll = async () => {
                   <span v-for="p in key.permissions" :key="p" class="text-[10px] px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-white/60 mr-1">{{ p }}</span>
                 </td>
                 <td class="px-5 py-5">
-                  <span :class="key.require_signature ? 'text-[#30d158]' : 'text-white/30'" class="text-xs">{{ key.require_signature ? '✓ 必须' : '可选' }}</span>
+                  <span :class="key.require_signature ? 'text-[#30d158]' : 'text-white/30'" class="text-xs flex items-center gap-1">
+                    <span v-if="key.require_signature" class="i-lucide-check text-[11px]" />
+                    {{ key.require_signature ? '必须' : '可选' }}
+                  </span>
                 </td>
                 <td class="px-5 py-5">
                   <span class="text-[10px] px-2 py-0.5 rounded-full border inline-block"
@@ -973,7 +979,7 @@ const refreshAll = async () => {
       <!-- 限流统计面板 -->
       <div v-if="overviewRateTop.topIps.length || overviewRateTop.topKeys.length" class="bg-white/[0.04] rounded-2xl p-5 space-y-3 shadow-lg shadow-black/20 border-l-2 border-[#ff9f0a]/30">
         <div class="flex items-center gap-2">
-          <span class="text-sm font-semibold text-white">⚡ 今日限流统计</span>
+          <span class="text-sm font-semibold text-white">今日限流统计</span>
           <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#ff9f0a]/10 text-[#ff9f0a] border border-[#ff9f0a]/20">全局数据</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1150,7 +1156,7 @@ const refreshAll = async () => {
             </div>
 
             <div class="bg-[#ff453a]/[0.04] rounded-xl p-4 border border-[#ff453a]/10">
-              <p class="text-xs text-white/60">⚠️ 在验证成功之前，2FA 不会生效。如果关闭此窗口，未验证的密钥将被覆盖。</p>
+              <p class="text-xs text-white/60">在验证成功之前，2FA 不会生效。如果关闭此窗口，未验证的密钥将被覆盖。</p>
             </div>
           </div>
         </div>
@@ -1201,7 +1207,7 @@ const refreshAll = async () => {
             <button @click="showKeyResultModal = false" class="text-white/40 hover:text-white text-lg cursor-pointer bg-transparent border-0">×</button>
           </div>
           <div class="bg-[#ff9f0a]/10 border border-[#ff9f0a]/20 rounded-xl px-4 py-3 text-sm text-[#ff9f0a]">
-            ⚠️ 请立即复制以下密钥，关闭窗口后将无法再次查看！
+            请立即复制以下密钥，关闭窗口后将无法再次查看！
           </div>
           <div>
             <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">API Key</label>
