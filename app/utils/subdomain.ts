@@ -67,7 +67,7 @@ export function stripPrefix(path: string, prefix: string): string {
 
 /** 需要跳过子域名处理的路径前缀 */
 export const SKIP_PATH_PREFIXES = [
-  '/_nuxt/', '/_ipx/', '/_payload', '/api/', '/__nuxt_error', '/favicon.ico',
+  '/_nuxt/', '/_ipx/', '/_i18n/', '/_payload', '/api/', '/__nuxt_error', '/favicon.ico',
 ]
 
 /** Nuxt 内部路由前缀（路由重写时必须透传，不能过滤） */

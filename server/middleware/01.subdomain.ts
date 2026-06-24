@@ -24,7 +24,7 @@ function isLocalEnv(hostname: string): boolean {
   return !hostname || hostname === 'localhost' || hostname.endsWith('.vercel.app')
 }
 
-const SKIP_PREFIXES = ['/_nuxt/', '/_ipx/', '/_payload', '/api/', '/__nuxt_error', '/favicon.ico']
+const SKIP_PREFIXES = ['/_nuxt/', '/_ipx/', '/_i18n/', '/_payload', '/api/', '/__nuxt_error', '/favicon.ico']
 
 // ── 中间件 ──
 
