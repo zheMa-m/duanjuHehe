@@ -99,3 +99,43 @@ export function shouldExcludeRouteFromMainSite(path: string): boolean {
   if (path.startsWith('/h5') || path.startsWith('/h5-v2')) return true
   return false
 }
+
+// ── 子域名入口 URL（官网链接、换域名部署）────────────────
+
+export const ADMIN_SUBDOMAIN = 'admin'
+export const ADMIN_LOCAL_PATH = '/admin'
+
+function isLocalHost(hostname: string): boolean {
+  return !hostname || hostname === 'localhost' || hostname.endsWith('.vercel.app')
+}
+
+/**
+ * 解析子域名应用完整 URL。
+ * 生产：https://{subdomain}.{root}/
+ * 本地 / Vercel 预览：{origin}{localPath}
+ */
+export function resolveSubdomainHref(
+  subdomain: string,
+  localPath: string,
+  origin: string,
+): string {
+  const normalizedOrigin = origin.replace(/\/$/, '')
+  let hostname: string
+  try {
+    hostname = new URL(normalizedOrigin).hostname
+  } catch {
+    return `${normalizedOrigin}${localPath}`
+  }
+
+  if (isLocalHost(hostname)) {
+    return `${normalizedOrigin}${localPath}`
+  }
+
+  const root = getRootDomain(hostname)
+  return `https://${subdomain}.${root}/`
+}
+
+/** 管理后台入口 URL */
+export function resolveAdminHref(origin: string): string {
+  return resolveSubdomainHref(ADMIN_SUBDOMAIN, ADMIN_LOCAL_PATH, origin)
+}

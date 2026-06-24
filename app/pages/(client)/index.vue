@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import { useH5DemoLinks } from '~/composables/useH5DemoLinks'
+import { useAdminUrl } from '~/composables/useAdminUrl'
 
 const { t } = useI18n()
 const { localeLabel, toggleLocale } = useLocaleDetect()
@@ -13,6 +14,7 @@ useAppSEO({
 const showH5Dropdown = ref(false)
 const showHeroH5Dropdown = ref(false)
 const { demos: h5Demos } = useH5DemoLinks()
+const { href: adminHref } = useAdminUrl()
 
 const { user, isLoggedIn, isAnonymous, signOut, initAuth } = useAuth()
 const showLoginModal = ref(false)
@@ -233,10 +235,10 @@ onBeforeUnmount(() => {
             </div>
           </Transition>
         </div>
-        <NuxtLink to="/admin" class="nav-link nav-link-primary" target="_blank">
+        <a :href="adminHref" class="nav-link nav-link-primary" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg-icon"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
           <span>{{ t('home.navAdmin') }}</span>
-        </NuxtLink>
+        </a>
         <a href="https://github.com/astrayon/hehe-app" class="nav-link github-btn" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-svg-icon"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           <span>{{ t('home.navGitHub') }}</span>
@@ -493,10 +495,10 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
-            <NuxtLink to="/admin" target="_blank" class="bento-action-link">
+            <a :href="adminHref" target="_blank" rel="noopener" class="bento-action-link">
               <span>{{ t('header.adminPortal') }}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow-svg"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </NuxtLink>
+            </a>
           </div>
 
           <!-- Card 3 (Small): Marketing H5 -->

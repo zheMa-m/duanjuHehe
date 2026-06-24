@@ -1,7 +1,7 @@
 /**
- * 官网 H5 营销页演示入口 — 路径与子域名双通道，适配换域名部署。
+ * 官网 H5 营销页演示入口 — 子域名访问，适配换域名部署。
  */
-import { getRootDomain } from '~/utils/subdomain'
+import { resolveSubdomainHref } from '~/utils/subdomain'
 
 export interface H5DemoEntry {
   id: 'v1' | 'v2' | 'starpath'
@@ -18,24 +18,7 @@ export const H5_DEMO_ENTRIES: readonly H5DemoEntry[] = [
   { id: 'starpath', labelKey: 'home.navH5_starpath', path: '/h5/starpath/welcome', cardClass: 'starpath', subdomain: 'starpath' },
 ]
 
-function isLocalHost(hostname: string): boolean {
-  return !hostname || hostname === 'localhost' || hostname.endsWith('.vercel.app')
-}
-
 /** 解析演示页完整 URL（新标签打开用） */
 export function resolveH5DemoHref(entry: H5DemoEntry, origin: string): string {
-  const normalizedOrigin = origin.replace(/\/$/, '')
-  let hostname: string
-  try {
-    hostname = new URL(normalizedOrigin).hostname
-  } catch {
-    return `${normalizedOrigin}${entry.path}`
-  }
-
-  if (isLocalHost(hostname)) {
-    return `${normalizedOrigin}${entry.path}`
-  }
-
-  const root = getRootDomain(hostname)
-  return `https://${entry.subdomain}.${root}/`
+  return resolveSubdomainHref(entry.subdomain, entry.path, origin)
 }

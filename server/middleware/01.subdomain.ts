@@ -32,8 +32,14 @@ export default defineEventHandler((event) => {
 
   const rootDomain = getRootDomain(host)
 
-  // www / 根域名：放行
-  if (host === rootDomain || host === `www.${rootDomain}`) return
+  // www / 根域名：/admin 路径 301 到 admin 子域名
+  if (host === rootDomain || host === `www.${rootDomain}`) {
+    if (path === '/admin' || path.startsWith('/admin/')) {
+      const subPath = path.slice('/admin'.length) || '/'
+      return sendRedirect(event, `https://admin.${rootDomain}${subPath}`, 301)
+    }
+    return
+  }
 
   // api 子域名：非 API 路径 301 到主站
   if (host.startsWith('api.')) {
