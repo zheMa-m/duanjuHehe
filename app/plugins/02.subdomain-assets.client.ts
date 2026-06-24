@@ -7,6 +7,32 @@
  */
 import { parseSubdomain } from '~/utils/subdomain'
 
+function rewriteSubdomainAssetUrl(request: string, origin: string): string | null {
+  const prefixedI18n = request.match(/^\/h5\/[^/]+\/_i18n\/(.+)$/)
+  if (prefixedI18n) return `/_i18n/${prefixedI18n[1]}`
+
+  const prefixedIpx = request.match(/^\/h5\/[^/]+\/_ipx\/[^/]+\/(.+)$/)
+  if (prefixedIpx) return `${origin}/${prefixedIpx[1]}`
+
+  const ipx = request.match(/^\/_ipx\/[^/]+\/(.+)$/)
+  if (ipx) return `${origin}/${ipx[1]}`
+
+  return null
+}
+
+function patchRequest<T extends (input: RequestInfo | URL, init?: object) => Promise<unknown>>(
+  raw: T,
+  origin: string,
+): T {
+  return ((input: RequestInfo | URL, init?: object) => {
+    if (typeof input === 'string') {
+      const rewritten = rewriteSubdomainAssetUrl(input, origin)
+      if (rewritten) return raw(rewritten, init)
+    }
+    return raw(input, init)
+  }) as T
+}
+
 export default defineNuxtPlugin({
   name: 'subdomain-assets',
   enforce: 'pre',
@@ -16,21 +42,12 @@ export default defineNuxtPlugin({
     if (isLocal || !subdomain) return
 
     const origin = window.location.origin
-    const rawFetch = globalThis.$fetch
 
-    globalThis.$fetch = ((request: RequestInfo, opts?: Parameters<typeof rawFetch>[1]) => {
-      if (typeof request === 'string') {
-        const prefixedI18n = request.match(/^\/h5\/[^/]+\/_i18n\/(.+)$/)
-        if (prefixedI18n) {
-          return rawFetch(`/_i18n/${prefixedI18n[1]}`, opts)
-        }
+    globalThis.$fetch = patchRequest(
+      globalThis.$fetch as (input: RequestInfo | URL, init?: object) => Promise<unknown>,
+      origin,
+    ) as typeof globalThis.$fetch
 
-        const ipx = request.match(/^\/_ipx\/[^/]+\/(.+)$/)
-        if (ipx) {
-          return rawFetch(`${origin}/${ipx[1]}`, opts)
-        }
-      }
-      return rawFetch(request, opts)
-    }) as typeof globalThis.$fetch
+    globalThis.fetch = patchRequest(globalThis.fetch.bind(globalThis), origin)
   },
 })

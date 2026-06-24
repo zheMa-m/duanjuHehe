@@ -1,0 +1,36 @@
+name: Production Promote
+
+# CI 通过后，等待 Vercel Git 部署完成并将自定义域名切到最新 Production 部署。
+# 需在 GitHub Secrets 配置 VERCEL_TOKEN（Vercel Account Settings → Tokens）
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: production-promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Promote latest Vercel production deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
+          PRODUCTION_DOMAIN: www.aihomeworkscan.com
+          VERCEL_PROJECT: hehe-app
+        run: node scripts/vercel-promote-production.mjs

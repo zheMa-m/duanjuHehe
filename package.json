@@ -33,7 +33,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "deps:check": "npx npm-check-updates"
+    "deps:check": "npx npm-check-updates",
+    "deploy:promote": "node scripts/vercel-promote-production.mjs"
   },
   "dependencies": {
     "@nuxtjs/i18n": "^10.4.0",

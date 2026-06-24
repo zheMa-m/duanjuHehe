@@ -2,45 +2,37 @@
 // 优先级：显式 NUXT_PUBLIC_BASE_URL > Vercel VERCEL_URL > 本地默认值
 // Vercel 会自动注入 VERCEL_URL：Preview 为分支 URL，Production 为绑定的自定义域名
 import { resolve } from 'path'
+import {
+  BROWSER_HTML_CACHE,
+  CDN_HTML_CACHE_H5,
+  CDN_HTML_CACHE_SITE,
+  resolveBuildId,
+} from './app/utils/build-id'
+
+const _buildId = resolveBuildId()
 const _resolveBaseUrl = (): string => {
   if (process.env.NUXT_PUBLIC_BASE_URL) return process.env.NUXT_PUBLIC_BASE_URL
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
   return 'http://localhost:3000'
 }
 
-/** 从 baseUrl 提取根域名，用于 Vercel 边缘重写 */
-const _resolveRootDomain = (): string => {
-  if (process.env.NUXT_PUBLIC_ROOT_DOMAIN) return process.env.NUXT_PUBLIC_ROOT_DOMAIN
-  try {
-    const host = new URL(_resolveBaseUrl()).hostname.replace(/^www\./, '')
-    if (!host || host === 'localhost' || host.endsWith('.vercel.app')) {
-      throw new Error('no production host')
-    }
-    const parts = host.split('.')
-    return parts.length <= 2 ? host : parts.slice(-2).join('.')
-  } catch {
-    // Vercel 构建时 VERCEL_URL 常为 *.vercel.app，生产环境应配置 NUXT_PUBLIC_BASE_URL
-    return 'aihomeworkscan.com'
-  }
-}
-
-const _wwwOrigin = (): string => `https://www.${_resolveRootDomain()}`
-
 // Sentry 模块仅在配置了有效 DSN 时才启用
 const _hasSentry = !!(process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_DSN)
+
+// Vercel 构建/运行时用 vercel image provider；本地 dev/build 用 ipx
+const _useVercelImage = !!(process.env.VERCEL || process.env.VERCEL_ENV)
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: { enabled: true },
 
-  // StarPath #shell/http 兼容别名
-  alias: {
-    '#shell/http': resolve(__dirname, './app/utils/http-client.ts'),
-  },
-
+  // 每次部署唯一 ID 写入 HTML meta，变更文档 ETag，迫使浏览器重新验证
   app: {
     head: {
+      meta: [
+        { name: 'hehe-build-id', content: _buildId },
+      ],
       link: [
         // 🚀 字体预加载（全部自托管 woff2，零外部依赖）
         { rel: 'preload', href: '/fonts/inter-v18-latin-400.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
@@ -55,11 +47,17 @@ export default defineNuxtConfig({
     },
   },
 
+  // StarPath #shell/http 兼容别名
+  alias: {
+    '#shell/http': resolve(__dirname, './app/utils/http-client.ts'),
+  },
+
   runtimeConfig: {
 
     // Sentry DSN（服务器端，不暴露给浏览器）
     sentryDSN: process.env.SENTRY_DSN || '',
     public: {
+      buildId: _buildId,
       baseUrl: _resolveBaseUrl(),
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || '',
       supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY || '',
@@ -82,15 +80,56 @@ export default defineNuxtConfig({
     // 管理后台强制设为 SPA 纯客户端渲染，完全隔离 SSR 安全隐患
     // /admin/** 路径由 01.subdomain-rewrite 中间件将 admin. 子域名重写而来
     '/admin/**': { ssr: false },
-    // 营销 H5 页面走 ISR 短间隔 + swr CDN 缓存
-    '/h5/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
-    '/h5-v2/**': { isr: 600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=600, stale-while-revalidate=3600' } },
-    // ── 客户端页面：ISR 3600s + CDN swr 24h，新增页面需同步注册 ──
-    '/': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
-    '/architecture': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
-    '/help': { isr: 3600, headers: { 'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400' } },
+    // 营销 H5：浏览器不缓存 HTML，CDN 走 ISR（子域名剥离路径由 00.build-cache 中间件覆盖）
+    '/h5/**': {
+      isr: 600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_H5,
+        Pragma: 'no-cache',
+      },
+    },
+    '/h5-v2/**': {
+      isr: 600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_H5,
+        Pragma: 'no-cache',
+      },
+    },
+    // ── 客户端页面：ISR 3600s + CDN swr ──
+    '/': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_SITE,
+        Pragma: 'no-cache',
+      },
+    },
+    '/architecture': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_SITE,
+        Pragma: 'no-cache',
+      },
+    },
+    '/help': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_SITE,
+        Pragma: 'no-cache',
+      },
+    },
     // 静态资源 (hashed 文件名，内容永不变) — 1 年浏览器缓存
     '/_nuxt/**': { headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
+    '/starpath/**': { headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
+    '/fonts/**': { headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
+    // i18n 懒加载：允许 CDN 缓存，但浏览器每次验证（部署后尽快拿到新 hash）
+    '/_i18n/**': { headers: { 'Cache-Control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=86400' } },
+    // IPX 遗留 URL 仅做 301 跳转，禁止缓存 404/旧重定向
+    '/_ipx/**': { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
     // API 接口绝对禁止缓存，确保每次请求实时响应
     '/api/**': { cors: true, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
     // 公开 API 端点允许短时 CDN 缓存（读多写少，高频访问）
@@ -104,12 +143,9 @@ export default defineNuxtConfig({
   },
 
   image: {
-    // 生产构建用 vercel；本地 dev 用 ipx
-    // 注意：ipx 键会触发 @nuxt/image 注册内置 IPX 处理器，生产环境不可保留
-    provider: process.env.NODE_ENV === 'development' ? 'ipx' : 'vercel',
-    ...(process.env.NODE_ENV === 'development'
-      ? { ipx: { maxAge: 60 * 60 * 24 * 7 } }
-      : {}),
+    // 注意：ipx 键会触发 @nuxt/image 注册内置 IPX 处理器，Vercel 构建不可保留
+    provider: _useVercelImage ? 'vercel' : 'ipx',
+    ...(_useVercelImage ? {} : { ipx: { maxAge: 60 * 60 * 24 * 7 } }),
   },
 
   nitro: {
@@ -117,25 +153,6 @@ export default defineNuxtConfig({
     minify: true,
     // Vercel 部署需指定 preset，确保 Nitro 生成正确的 Serverless Function
     preset: 'vercel',
-    // 边缘层重写：在 Serverless 之前处理子域名 _i18n/_ipx 请求
-    vercel: {
-      config: {
-        redirects: [
-          { source: '/_ipx/:modifier/:path*', destination: '/:path*', permanent: true },
-        ],
-        rewrites: [
-          {
-            source: '/h5/:biz/_i18n/:path*',
-            destination: `${_wwwOrigin()}/_i18n/:path*`,
-          },
-          {
-            source: '/_i18n/:path*',
-            has: [{ type: 'host', value: `(?<sub>[^.]+)\\.${_resolveRootDomain().replace(/\./g, '\\.')}` }],
-            destination: `${_wwwOrigin()}/_i18n/:path*`,
-          },
-        ],
-      },
-    },
     prerender: {
       crawlLinks: true,
     },
