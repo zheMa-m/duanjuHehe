@@ -11,9 +11,11 @@
  *  - 其他任意子域名 → 动态映射 /h5/{子域名}（无需手动注册）
  */
 
-/** 固定映射（非 H5 子域名） */
+/** 固定映射（非默认 /h5/{子域名} 规则） */
 const FIXED_SUBDOMAINS: Record<string, string> = {
   admin: '/admin',
+  /** 新野兽派 V2 模板 — 活动 subdomain 与 DB 种子一致 */
+  'h5-v2': '/h5-v2/h5-v2',
 }
 
 /** 保留子域名（不映射到 H5） */
@@ -23,6 +25,7 @@ const RESERVED_SUBDOMAINS = new Set(['www', 'api'])
  * 根据子域名获取路径前缀
  * 例: getPrefix('admin')     → '/admin'         (固定)
  *     getPrefix('starpath')   → '/h5/starpath'   (动态 H5)
+ *     getPrefix('h5-v2')      → '/h5-v2/h5-v2'   (固定 V2 模板)
  *     getPrefix('promo2024')  → '/h5/promo2024'  (动态 H5)
  *     getPrefix('api')        → null             (保留)
  *     getPrefix(null)         → null             (无子域名)

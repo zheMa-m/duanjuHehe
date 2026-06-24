@@ -11,14 +11,7 @@
  *   - 其余放行（前端路由层处理）
  */
 import { defineEventHandler, getHeader, sendRedirect } from 'h3'
-
-// ── 纯函数（与服务端 app/utils/subdomain.ts 逻辑一致，避免跨构建目标导入）──
-
-function getRootDomain(hostname: string): string {
-  const parts = hostname.split('.')
-  if (parts.length <= 2) return hostname
-  return parts.slice(-2).join('.')
-}
+import { getPrefix, getRootDomain } from '~/utils/subdomain'
 
 function isLocalEnv(hostname: string): boolean {
   return !hostname || hostname === 'localhost' || hostname.endsWith('.vercel.app')
@@ -51,18 +44,15 @@ export default defineEventHandler((event) => {
   }
 
   // 子域名下访问完整前缀路径 → 301 剥离前缀
-  // starpath.aihomeworkscan.com/h5/starpath/welcome → /welcome
-  // admin.aihomeworkscan.com/admin/users → /users
+  // promo.aihomeworkscan.com/h5/promo → /
+  // h5-v2.aihomeworkscan.com/h5-v2/h5-v2 → /
   const parts = host.split('.')
   if (parts.length > 2) {
     const sd = parts[0]
     if (sd && sd !== 'www' && sd !== 'api') {
-      const h5Prefix = `/h5/${sd}`
-      if (path === h5Prefix || path.startsWith(h5Prefix + '/')) {
-        return sendRedirect(event, path.slice(h5Prefix.length) || '/', 301)
-      }
-      if (sd === 'admin' && (path === '/admin' || path.startsWith('/admin/'))) {
-        return sendRedirect(event, path.slice('/admin'.length) || '/', 301)
+      const prefix = getPrefix(sd)
+      if (prefix && (path === prefix || path.startsWith(prefix + '/'))) {
+        return sendRedirect(event, path.slice(prefix.length) || '/', 301)
       }
     }
   }
