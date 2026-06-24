@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { inject } from '@vercel/analytics'
 import { injectSpeedInsights } from '@vercel/speed-insights'
-import { onErrorCaptured, ref } from 'vue'
+import { onErrorCaptured, ref, onMounted } from 'vue'
+import { useLocaleDetect } from '~/composables/useLocaleDetect'
 
 // 仅在生产环境注入 Vercel Analytics + Speed Insights
 if (import.meta.client && import.meta.env.PROD) {
   inject()
   injectSpeedInsights()
 }
+
+// 自动检测并应用多语言
+const { autoDetect } = useLocaleDetect()
+onMounted(() => {
+  autoDetect()
+})
 
 // 🔗 预连接关键域名（消减 DNS/TCP/TLS 耗时）
 const supabaseUrl = useRuntimeConfig().public.supabaseUrl as string

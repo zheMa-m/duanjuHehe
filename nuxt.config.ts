@@ -90,7 +90,7 @@ export default defineNuxtConfig({
   },
 
   image: {
-    provider: 'ipx',
+    provider: process.env.VERCEL ? 'vercel' : 'ipx',
     ipx: {
       maxAge: 60 * 60 * 24 * 7, // 7 天缓存
     },

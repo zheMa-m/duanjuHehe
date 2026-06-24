@@ -57,15 +57,6 @@ export default defineEventHandler((event) => {
     return
   }
 
-  // ── 后台管理子域名 → 302 重定向到 /admin/ ──
-  if (host.startsWith('admin.')) {
-    if (!path.startsWith('/admin')) {
-      const target = `/admin${path === '/' ? '' : path}`
-      return sendRedirect(event, target, 302)
-    }
-    return
-  }
-
   // ── API 子域名：非 API 路径 301 重定向到主站 ──
   if (host.startsWith('api.')) {
     if (!path.startsWith('/api/v1/')) {
@@ -75,15 +66,5 @@ export default defineEventHandler((event) => {
     return
   }
 
-  // ── 营销 H5 子域名 → 302 重定向到 /h5/${subdomain} ──
-  const parts = host.split('.')
-  if (parts.length >= 3) {
-    const subdomain = parts[0] || ''
-    if (subdomain && subdomain !== 'admin' && subdomain !== 'api' && subdomain !== 'www') {
-      if (!path.startsWith(`/h5/${subdomain}`)) {
-        const target = `/h5/${subdomain}${path === '/' ? '' : path}`
-        return sendRedirect(event, target, 302)
-      }
-    }
-  }
+  // ── 其他子域名 (admin, H5 营销域名等) 不在此处进行 302/301 重定向，放行并由 router.options.ts 在前端和 SSR 端完成 URL 重写 ──
 })
