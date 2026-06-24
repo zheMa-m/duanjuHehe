@@ -72,7 +72,7 @@ const planLabel = computed(() => PLAN_LABELS[planName.value] || planName.value)
           rel="noopener noreferrer"
           class="mt-[24px] inline-flex items-center gap-[8px] px-[24px] py-[12px] rounded-[10px] bg-[#bab3f3] text-[#0a0a1a] font-semibold text-[14px]"
         >
-          <NuxtImg :src="figmaAssets['google-play-badge']" alt="Google Play" class="h-[32px]" format="webp" loading="lazy" />
+          <img :src="figmaAssets['google-play-badge']" alt="Google Play" class="h-[32px]" loading="lazy" />
         </a>
 
         <p class="mt-[16px] text-center text-xs text-starpath-text-muted">

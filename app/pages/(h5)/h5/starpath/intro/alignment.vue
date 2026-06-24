@@ -30,11 +30,10 @@ function confirm() {
     data-node-id="1:4568"
   >
     <div class="flex flex-col items-center mt-[60px]">
-      <NuxtImg
+      <img
         :src="figmaAssets['page-10-badge']"
         alt="stars"
         class="w-[200px] h-[56px] object-contain"
-        format="webp"
         loading="lazy"
       />
       <h1 class="mx-auto mt-[28px] w-[280px] text-center text-[20px] font-bold text-white leading-[normal] whitespace-pre-line">

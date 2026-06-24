@@ -30,8 +30,16 @@ function getHostname(): string {
   return window.location.hostname
 }
 
+// ── Nuxt 内部路由前缀（必须透传，不能过滤）──
+const INTERNAL_ROUTE_PREFIXES = ['/_nuxt', '/_i18n', '/_ipx', '/_payload', '/__nuxt_error', '/api/']
+
+function isInternalRoute(path: string): boolean {
+  return INTERNAL_ROUTE_PREFIXES.some((p) => path.startsWith(p))
+}
+
 // ── 重写子域名路由 ──
 // 匹配前缀的所有路由 + i18n 语言前缀（/en/h5/starpath/welcome → /en/welcome）
+// Nuxt 内部路由（/_i18n, /_nuxt, /_ipx 等）原样透传
 function buildSubdomainRoutes(
   _routes: readonly RouteRecordRaw[],
   prefix: string,
@@ -41,6 +49,12 @@ function buildSubdomainRoutes(
   const result: RouteRecordRaw[] = []
 
   for (const route of _routes) {
+    // 透传 Nuxt 内部路由（/_i18n, /_nuxt, /_ipx 等）
+    if (isInternalRoute(route.path)) {
+      result.push(route)
+      continue
+    }
+
     const match = route.path.match(regex)
     if (!match) continue
 

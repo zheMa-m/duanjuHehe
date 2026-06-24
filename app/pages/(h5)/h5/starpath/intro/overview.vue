@@ -47,7 +47,7 @@ const features = computed(() => {
         :key="f.label"
         class="flex items-center gap-[4px] text-[14px] text-white whitespace-nowrap"
       >
-        <NuxtImg :src="f.img" :alt="f.label" class="size-[14px] object-cover shrink-0" format="webp" loading="lazy" />
+        <img :src="f.img" :alt="f.label" class="size-[14px] object-cover shrink-0" loading="lazy" />
         <span>{{ f.label }}</span>
       </li>
     </ul>

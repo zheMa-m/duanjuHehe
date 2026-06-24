@@ -58,7 +58,7 @@ function next() {
         :class="selected.has(opt.label) ? 'border border-[#bab3f3]' : ''"
         @click="toggle(opt.label)"
       >
-        <NuxtImg :src="opt.icon" alt="" class="size-[24px] object-cover shrink-0" format="webp" loading="lazy" />
+        <img :src="opt.icon" alt="" class="size-[24px] object-cover shrink-0" loading="lazy" />
         <span class="text-[14px] text-white leading-[normal]">{{ opt.label }}</span>
       </button>
     </div>
