@@ -1,10 +1,10 @@
 /**
- * IPX 兜底路由 — 将遗留 /_ipx/ URL 代理到 CDN 静态资源
+ * IPX 兜底路由 — 将遗留 /_ipx/ URL 301 重定向到 public 静态资源
  *
- * Vercel 上 public 文件由 CDN 托管，Serverless 内无法 readFile。
- * ISR 缓存 HTML 中的 <img src="/_ipx/..."> 不走客户端 $fetch 拦截。
+ * ISR 旧 HTML 可能仍含 <NuxtImg> 生成的 /_ipx/ URL。
+ * 静态文件由 Vercel CDN 托管，直接重定向即可。
  */
-import { defineEventHandler, getRequestURL, proxyRequest } from 'h3'
+import { defineEventHandler, sendRedirect } from 'h3'
 
 export default defineEventHandler((event) => {
   const path = event.path
@@ -20,7 +20,5 @@ export default defineEventHandler((event) => {
     return new Response('Forbidden', { status: 403 })
   }
 
-  const url = getRequestURL(event)
-  url.pathname = `/${filePath}`
-  return proxyRequest(event, url.toString())
+  return sendRedirect(event, `/${filePath}`, 301)
 })

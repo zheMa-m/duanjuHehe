@@ -104,10 +104,12 @@ export default defineNuxtConfig({
   },
 
   image: {
-    provider: process.env.VERCEL ? 'vercel' : 'ipx',
-    ipx: {
-      maxAge: 60 * 60 * 24 * 7, // 7 天缓存
-    },
+    // 生产构建用 vercel；本地 dev 用 ipx
+    // 注意：ipx 键会触发 @nuxt/image 注册内置 IPX 处理器，生产环境不可保留
+    provider: process.env.NODE_ENV === 'development' ? 'ipx' : 'vercel',
+    ...(process.env.NODE_ENV === 'development'
+      ? { ipx: { maxAge: 60 * 60 * 24 * 7 } }
+      : {}),
   },
 
   nitro: {
