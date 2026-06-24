@@ -43,13 +43,15 @@ const QUESTIONNAIRE = {
 // ─── HTTP 封装 ─────────────────────────────────────────
 let accessToken = null
 
-async function req(method, path, { body, headers = {}, baseUrl = BASE_URL } = {}) {
+async function req(method, path, { body, headers = {}, baseUrl = BASE_URL, noAuth = false } = {}) {
   const url = baseUrl + path
   const start = Date.now()
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   const finalHeaders = { 'Content-Type': 'application/json', ...headers }
-  if (accessToken) finalHeaders['Authorization'] = `Bearer ${accessToken}`
+  // starpath 公开端点不带 token（避免 anon token 触发 RLS authenticated 策略冲突）
+  const isStarpathPublic = path.startsWith('/api/starpath/')
+  if (accessToken && !noAuth && !isStarpathPublic) finalHeaders['Authorization'] = `Bearer ${accessToken}`
 
   try {
     const res = await fetch(url, {

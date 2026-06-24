@@ -171,7 +171,7 @@ export function getDB(event?: any) {
   if (!dbClient) {
     dbClient = createClient(
       process.env.SUPABASE_URL || process.env.NUXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NUXT_SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
     )
   }
   return dbClient
