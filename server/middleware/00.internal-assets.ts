@@ -5,7 +5,7 @@
  * event.node.req.url 重写于 Vercel Serverless 无效。
  * 在最早阶段将请求代理到 www 主域名的对应路径。
  */
-import { defineEventHandler, getHeader, proxyRequest } from 'h3'
+import { defineEventHandler, getHeader, getRequestURL, proxyRequest } from 'h3'
 
 function getRootDomain(hostname: string): string {
   const parts = hostname.split('.')
@@ -42,6 +42,8 @@ export default defineEventHandler((event) => {
 
   const ipxMatch = path.match(PREFIXED_IPX)
   if (ipxMatch?.[1]) {
-    return proxyRequest(event, `${wwwBase}/_ipx/${ipxMatch[1]}`)
+    const url = getRequestURL(event)
+    url.pathname = `/${ipxMatch[1]}`
+    return proxyRequest(event, url.toString())
   }
 })
