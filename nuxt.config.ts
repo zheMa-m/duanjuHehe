@@ -223,6 +223,7 @@ export default defineNuxtConfig({
 
   pwa: {
     registerType: 'autoUpdate',
+    injectRegister: false,
     scope: '/admin/',
     manifest: {
       name: 'HEHE Admin',
@@ -238,9 +239,18 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      // 仅缓存 admin SPA 静态资源，不缓存其他页面
       navigateFallback: '/admin/',
-      globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+      navigateFallbackAllowlist: [/^\/admin/],
+      additionalManifestEntries: [
+        { url: '/admin/', revision: _buildId },
+      ],
+      globPatterns: ['_nuxt/**/*.{js,css}', 'fonts/**/*.woff2', 'favicon.svg'],
+      globIgnores: [
+        '**/node_modules/**',
+        'starpath/**',
+        '**/_swagger/**',
+        '**/_scalar/**',
+      ],
       runtimeCaching: [
         {
           urlPattern: /\/api\/admin\//,
@@ -250,6 +260,7 @@ export default defineNuxtConfig({
       ],
     },
     client: {
+      registerPlugin: false,
       installPrompt: true,
     },
   },
