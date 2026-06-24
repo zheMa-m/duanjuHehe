@@ -39,7 +39,7 @@ defineRouteMeta({
 const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
   price: z.number().min(0).optional(),
-  paymentMeta: z.record(z.any()).optional(),
+  paymentMeta: z.record(z.string(), z.any()).optional(),
   isActive: z.boolean().optional(),
   category: z.enum(['subscription', 'one_time', 'addon']).optional(),
 })

@@ -70,5 +70,10 @@ export const SKIP_PATH_PREFIXES = [
   '/_nuxt/', '/_ipx/', '/_payload', '/api/', '/__nuxt_error', '/favicon.ico',
 ]
 
+/** Nuxt 内部路由前缀（路由重写时必须透传，不能过滤） */
+export const INTERNAL_ROUTE_PREFIXES = [
+  '/_nuxt', '/_i18n', '/_ipx', '/_payload', '/__nuxt_error', '/api/',
+]
+
 /** 主站需要过滤掉的子应用路由前缀 */
 export const MAIN_DOMAIN_EXCLUDE_PREFIXES = ['/admin', '/h5', '/h5-v2']

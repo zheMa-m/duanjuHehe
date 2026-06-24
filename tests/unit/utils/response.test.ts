@@ -15,7 +15,7 @@ describe('sendSuccess', () => {
     expect(result).toHaveProperty('timestamp')
     expect(result).toHaveProperty('data')
     expect(result.data).toEqual({ id: 1, name: '测试' })
-    expect(globalThis.setResponseStatus).toHaveBeenCalled()
+    expect((globalThis as any).setResponseStatus).toHaveBeenCalled()
   })
 
   it('应使用默认状态码 200 和默认消息', () => {

@@ -1,7 +1,7 @@
 // @api-auth: public
 import { z } from 'zod'
 import { sendSuccess } from '~~/server/utils/response'
-import { starpathService } from '~~/server/utils/starpath-service'
+import { starpathService } from '~~/server/services/starpath-service'
 import { logPaymentTransaction } from '~~/server/utils/payment-transaction'
 
 const cardSchema = z.object({

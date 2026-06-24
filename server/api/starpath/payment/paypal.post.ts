@@ -1,7 +1,7 @@
 // @api-auth: public
 import { z } from 'zod'
 import { sendSuccess } from '~~/server/utils/response'
-import { starpathService } from '~~/server/utils/starpath-service'
+import { starpathService } from '~~/server/services/starpath-service'
 import { getPaymentStrategy } from '~~/server/utils/payment-strategies/factory'
 import { logPaymentTransaction } from '~~/server/utils/payment-transaction'
 

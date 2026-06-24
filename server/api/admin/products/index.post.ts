@@ -35,7 +35,7 @@ defineRouteMeta({
 const createProductSchema = z.object({
   name: z.string().min(1, 'Product name cannot be empty'),
   price: z.number().min(0, 'Price must be a non-negative number'),
-  paymentMeta: z.record(z.any()).optional().default({}),
+  paymentMeta: z.record(z.string(), z.any()).optional().default({}),
   category: z.enum(['subscription', 'one_time', 'addon']).optional().default('subscription'),
 })
 

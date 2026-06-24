@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useStarpathStore } from '~/stores/starpath'
 import { figmaAssets } from '~/components/starpath/_figma-assets'
-import { getStarpathIntroData } from '~/utils/starpath-intro-data'
+import { getStarpathIntroData } from '~/utils/starpath-data'
 
 const { t, locale } = useI18n()
 definePageMeta({

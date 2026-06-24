@@ -30,7 +30,7 @@ const BodySchema = z.object({
     countries: z.array(z.string().length(2)).optional(),
   }).optional(),
   signature_required: z.boolean().optional(),
-  endpoint_overrides: z.record(z.object({
+  endpoint_overrides: z.record(z.string(), z.object({
     enabled: z.boolean().optional(),
     rateLimit: z.number().int().min(1).optional(),
   })).optional(),

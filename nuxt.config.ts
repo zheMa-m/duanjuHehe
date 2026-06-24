@@ -13,7 +13,7 @@ const _hasSentry = !!(process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_D
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2024-04-03',
+  compatibilityDate: '2025-01-01',
   devtools: { enabled: true },
 
   // StarPath #shell/http 兼容别名
@@ -60,10 +60,6 @@ export default defineNuxtConfig({
     },
   },
   
-  future: {
-    compatibilityVersion: 4,
-  },
-
   routeRules: {
     // 管理后台强制设为 SPA 纯客户端渲染，完全隔离 SSR 安全隐患
     // /admin/** 路径由 01.subdomain-rewrite 中间件将 admin. 子域名重写而来

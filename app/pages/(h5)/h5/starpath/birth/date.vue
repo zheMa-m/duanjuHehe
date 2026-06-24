@@ -16,9 +16,9 @@ const months = [
 const days = Array.from({ length: 31 }, (_, i) => String(i + 1))
 const years = Array.from({ length: 80 }, (_, i) => String(new Date().getFullYear() - i))
 
-const month = ref(months[0])
-const day = ref(days[0])
-const year = ref(years[0])
+const month = ref(months[0]!)
+const day = ref(days[0]!)
+const year = ref(years[0]!)
 
 function next() {
   const birthDate = `${month.value} ${day.value}, ${year.value}`

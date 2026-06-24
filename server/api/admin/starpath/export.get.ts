@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
       new Date(r.created_at).toISOString(),
     ])
 
-    const csv = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n')
+    const csv = [headers.join(','), ...rows.map((row: any[]) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n')
 
     await logAuditEvent(event, admin, 'STARPATH_EXPORT_EMAILS', 'SUCCESS')
 
@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
     s.completed_at ? new Date(s.completed_at).toISOString() : '',
   ])
 
-  const csv = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n')
+  const csv = [headers.join(','), ...rows.map((row: any[]) => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n')
 
   await logAuditEvent(event, admin, 'STARPATH_EXPORT_ANSWERS', 'SUCCESS')
 

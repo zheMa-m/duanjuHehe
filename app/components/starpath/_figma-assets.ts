@@ -42,6 +42,10 @@ export const figmaAssets = {
   // 问卷页面-10 (1:708)
   'page-10-badge': '/starpath/images/page-10-badge.webp',
 
+  // 应用商店徽章
+  'app-store-badge': '/starpath/images/app-store-badge.svg',
+  'google-play-badge': '/starpath/images/google-play-badge.svg',
+
   // 问卷页面-填写邮箱 (1:890)
   'page-email-illustration': '/starpath/images/page-email-illustration.png',
 

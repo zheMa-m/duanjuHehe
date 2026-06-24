@@ -12,8 +12,8 @@ const { progressOf } = useStarpathFlow()
 const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
 const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
 
-const hour = ref(hours[12])
-const minute = ref(minutes[0])
+const hour = ref(hours[12]!)
+const minute = ref(minutes[0]!)
 const unknown = ref(false)
 
 function next() {

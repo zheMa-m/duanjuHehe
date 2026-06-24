@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     throwError(500, 'Failed to query API keys for batch revoke', findErr)
   }
 
-  const keyMap = new Map((keys || []).map((k: any) => [k.id, k]))
+  const keyMap = new Map<string, any>((keys || []).map((k: any) => [k.id, k]))
 
   for (const id of ids) {
     const key = keyMap.get(id)

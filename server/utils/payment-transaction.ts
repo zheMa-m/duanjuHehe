@@ -9,11 +9,11 @@ import { getDB } from './db'
 export interface PaymentTransactionParams {
   orderId: string
   provider: string
-  type: 'payment' | 'refund' | 'cancellation' | 'verification'
+  type: 'payment' | 'refund' | 'partial_refund' | 'cancellation' | 'verification'
   gatewayTransactionId?: string
   amount?: number
   currency?: string
-  status: 'succeeded' | 'failed' | 'pending' | 'refunded'
+  status: 'succeeded' | 'failed' | 'pending' | 'refunded' | 'partial_refund'
   gatewayResponse?: any
   errorMessage?: string
   context?: Record<string, any>

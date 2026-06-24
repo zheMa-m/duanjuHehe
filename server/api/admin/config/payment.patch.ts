@@ -38,9 +38,9 @@ defineRouteMeta({
 const updatePaymentConfigSchema = z.object({
   provider: z.string().min(1),
   isEnabled: z.boolean(),
-  publicKeys: z.record(z.any()).optional().default({}),
-  extraMeta: z.record(z.any()).optional().default({}),
-  secrets: z.record(z.any()).optional().default({}),
+  publicKeys: z.record(z.string(), z.any()).optional().default({}),
+  extraMeta: z.record(z.string(), z.any()).optional().default({}),
+  secrets: z.record(z.string(), z.any()).optional().default({}),
 })
 
 /**

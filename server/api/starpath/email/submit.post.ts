@@ -2,14 +2,14 @@
 import { z } from 'zod'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
-import { starpathService } from '~~/server/utils/starpath-service'
+import { starpathService } from '~~/server/services/starpath-service'
 import { sendEmail } from '~~/server/utils/email'
 import { logAuditEvent } from '~~/server/utils/logger'
 
 const emailSchema = z.object({
   bizCode: z.literal('starpath'),
   email: z.string().email('Valid email required'),
-  agreedTerms: z.literal(true, { errorMap: () => ({ message: 'You must agree to terms' }) }),
+  agreedTerms: z.literal(true, { error: 'You must agree to terms' }),
   reportId: z.string().min(1).optional(),
   campaignId: z.string().uuid().optional(),
 })

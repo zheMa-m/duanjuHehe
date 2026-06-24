@@ -34,12 +34,12 @@ app/
   composables/  auth/ payments/ seo/ storage/ + useAdmin*/useStarpathFlow/useLocaleDetect/useExport
   pages/        (admin)/ (client)/ (h5)/
   plugins/      supabase-auth.client.ts + 01.subdomain-router.client.ts
-  utils/        http-client.ts (含 #shell/http 类型声明) + subdomain.ts (子域名路由配置)
+  utils/        http-client.ts (含 #shell/http 类型声明) + subdomain.ts (子域名路由配置) + starpath-data.ts (问卷数据)
 server/
   api/          admin/ starpath/ v1/
   middleware/   00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.api-security
-                (01.subdomain: api 重定向 + 子域名放行，路由重写由 router.options.ts + 客户端插件完成)
-  utils/        db.ts auth.ts payments.ts logger.ts response.ts
+                (01.subdomain: 静态资源跳过 + api 重定向 + 完整前缀路径 301 剥离，路由重写由 router.options.ts + 客户端插件完成)
+  utils/        db.ts auth.ts payments.ts logger.ts response.ts starpath-service.ts
                 payment-strategies/ (stripe/paypal/google-pay/apple-iap/manual + factory + types)
 supabase/migrations/  0001_core → 0099_cron_jobs (顺序编号)
 scripts/        gen-crud-api / scaffolder / generate-rls-sql / seed-demo-data / test-* / _shared.mjs
@@ -70,7 +70,7 @@ docs/           10 篇中文文档 + plan-payment-closure.md
 - `app/utils/subdomain.ts` — 单一切入点（纯函数配置）
 - `app/router.options.ts` — SSR/客户端路由表重写
 - `app/plugins/01.subdomain-router.client.ts` — 全局拦截 `router.push`，自动剥离前缀
-- `server/middleware/01.subdomain.ts` — 仅处理 api 重定向 + 放行
+- `server/middleware/01.subdomain.ts` — 静态资源跳过 + api 重定向 + 完整前缀路径 301 剥离
 
 新增营销 H5：只需创建 `app/pages/(h5)/h5/{子域名}/`，零配置。
 

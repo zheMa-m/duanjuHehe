@@ -32,7 +32,7 @@ export function throwError(
   statusCode: number, 
   message: string, 
   details: any = null
-) {
+): never {
   throw createError({
     statusCode,
     statusMessage: message,

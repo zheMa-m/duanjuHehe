@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getStarpathIntroData } from '~/utils/starpath-intro-data'
+import { getStarpathIntroData } from '~/utils/starpath-data'
 
 const { t, locale } = useI18n()
 definePageMeta({

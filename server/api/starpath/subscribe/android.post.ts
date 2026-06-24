@@ -2,7 +2,7 @@
 import { z } from 'zod'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
-import { starpathService } from '~~/server/utils/starpath-service'
+import { starpathService } from '~~/server/services/starpath-service'
 
 const subscribeSchema = z.object({
   bizCode: z.literal('starpath'),

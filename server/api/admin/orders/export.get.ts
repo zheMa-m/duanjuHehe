@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
 
   const csvContent = [
     headers.join(','),
-    ...rows.map(row => row.map(escapeCSV).join(',')),
+    ...rows.map((row: any[]) => row.map(escapeCSV).join(',')),
   ].join('\n')
 
   // 添加 BOM 以支持 Excel 中文打开
@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
 
   setHeader(event, 'Content-Type', 'text/csv; charset=utf-8')
   setHeader(event, 'Content-Disposition', `attachment; filename="orders-export-${new Date().toISOString().slice(0, 10)}.csv"`)
-  setHeader(event, 'Content-Length', buffer.length.toString())
+  setHeader(event, 'Content-Length', buffer.length)
 
   return buffer
 })

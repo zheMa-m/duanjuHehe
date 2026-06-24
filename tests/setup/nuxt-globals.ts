@@ -8,10 +8,10 @@
 import { vi } from 'vitest'
 
 // setResponseStatus — Nuxt auto-import 的 h3 函数，用于设置 HTTP 响应状态码
-globalThis.setResponseStatus ??= vi.fn()
+;(globalThis as any).setResponseStatus ??= vi.fn()
 
 // createError — Nuxt auto-import 的 h3 函数，用于创建并抛出 HTTP 错误
-globalThis.createError ??= vi.fn((opts: any) => {
+;(globalThis as any).createError ??= vi.fn((opts: any) => {
   const err: any = new Error(opts.statusMessage)
   err.statusCode = opts.statusCode
   err.statusMessage = opts.statusMessage

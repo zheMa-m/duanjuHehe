@@ -113,6 +113,7 @@ async function testConnection(provider: string) {
       { method: 'POST', body: { provider } }
     )
     const r = res.data.results[0]
+    if (!r) return
     emit('toast', `[${provider}] ${r.status === 'ok' ? '连接成功' : '连接失败'}: ${r.message}`, r.status === 'ok' ? 'success' : 'error')
   } catch (e: any) {
     emit('toast', '连接测试失败: ' + (e.data?.statusMessage || e.message), 'error')

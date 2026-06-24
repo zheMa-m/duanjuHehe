@@ -2,14 +2,14 @@
 import { z } from 'zod'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
-import { starpathService } from '~~/server/utils/starpath-service'
+import { starpathService } from '~~/server/services/starpath-service'
 
 const answerSchema = z.object({
   sessionId: z.string().min(1),
   campaignId: z.string().uuid().optional(),
   step: z.number().int().min(0),
   questionKey: z.string().min(1),
-  answerValue: z.union([z.string(), z.array(z.string()), z.record(z.any()), z.null()]),
+  answerValue: z.union([z.string(), z.array(z.string()), z.record(z.string(), z.any()), z.null()]),
   // ✅ 兼容旧格式（批量提交），逐步迁移到事件流
   // ⚠️ 标记为 optional，过渡期后移除
   gender: z.string().optional(),

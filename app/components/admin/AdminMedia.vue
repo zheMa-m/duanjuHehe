@@ -549,8 +549,8 @@ function onLightboxKeydown(e: KeyboardEvent) {
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     const images = filteredFiles.value.filter(f => f.isImage)
     const idx = images.findIndex(f => f.path === lightboxFile.value?.path)
-    if (e.key === 'ArrowLeft' && idx > 0) lightboxFile.value = images[idx - 1]
-    if (e.key === 'ArrowRight' && idx < images.length - 1) lightboxFile.value = images[idx + 1]
+    if (e.key === 'ArrowLeft' && idx > 0) lightboxFile.value = images[idx - 1] ?? null
+    if (e.key === 'ArrowRight' && idx < images.length - 1) lightboxFile.value = images[idx + 1] ?? null
   }
 }
 

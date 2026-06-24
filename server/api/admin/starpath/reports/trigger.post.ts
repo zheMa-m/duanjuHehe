@@ -4,7 +4,7 @@ import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 import { assertAdmin } from '~~/server/utils/auth'
 import { logAuditEvent } from '~~/server/utils/logger'
-import { starpathService } from '~~/server/utils/starpath-service'
+import { starpathService } from '~~/server/services/starpath-service'
 
 defineRouteMeta({
   openAPI: {

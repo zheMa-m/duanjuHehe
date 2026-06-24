@@ -1,13 +1,14 @@
 /**
  * 子域名路由中间件
  *
- * 负责：跳过静态资源、处理 api 子域名重定向。
- * 路径重写由 router.options.ts + 客户端插件完成。
+ * 负责：跳过静态资源、处理 api 子域名重定向、子域名完整前缀路径 301 剥离。
+ * 路由重写由 router.options.ts + 客户端插件完成。
  *
  * 规则：
  *   - www / 根域名 → 放行
  *   - api 子域名非 API 路径 → 301 重定向到 www
- *   - 其他子域名 → 放行（前端路由层处理）
+ *   - 其他子域名完整前缀路径 → 301 剥离前缀
+ *   - 其余放行（前端路由层处理）
  */
 import { defineEventHandler, getHeader, sendRedirect } from 'h3'
 

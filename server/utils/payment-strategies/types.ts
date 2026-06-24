@@ -80,4 +80,14 @@ export interface PaymentStrategy {
    * @param amount - Optional partial refund amount
    */
   refundPayment?(paymentIntentId: string, amount?: number): Promise<any>
+
+  /**
+   * Validate a payment token (e.g. Google Pay token, Apple IAP receipt).
+   * Only implemented by providers that support server-side token validation.
+   *
+   * @param token - The payment token to validate
+   * @param expectedAmount - The expected payment amount
+   * @param expectedCurrency - The expected currency code
+   */
+  validatePaymentToken?(token: string, expectedAmount: number, expectedCurrency: string): Promise<boolean>
 }

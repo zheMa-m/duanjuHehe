@@ -25,8 +25,6 @@ function confirm() {
     show-back
     show-lock
     :progress="progressOf('/h5/starpath/intro/alignment')"
-    bg-variant="image"
-    :bg-image="figmaAssets['page-10-bg']"
     data-node-id="1:4568"
   >
     <div class="flex flex-col items-center mt-[60px]">

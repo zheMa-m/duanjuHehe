@@ -103,37 +103,40 @@ docker compose up -d
                      Vercel Serverless
 ```
 
-### 🌐 子域名自适应重写机制
+### 🌐 子域名动态路由
 
-项目通过 [01.subdomain-rewrite.ts](server/middleware/01.subdomain-rewrite.ts) 中间件实现了自适应的多域名与单域名路由系统，支持一套代码在两种环境下无缝运行：
+Nuxt 4 不提供原生子域名路由，项目通过三层协作实现动态子域名映射，无需手动注册：
 
-#### 1. 多域名/通配符域名模式 (生产环境推荐)
-若在本地绑定了 hosts，或在生产平台（如 Vercel）绑定了自定义通配符域名（如 `*.yourdomain.com`），中间件会提取 HTTP 请求的 Host 头，与配置的 `ROOT_DOMAIN` 进行匹配并做静默重写：
-*   **官网首页** (`yourdomain.com` 或 `www.yourdomain.com`) ──▶ 映射重写至 `/client/*` 目录。
-*   **管理后台** (`admin.yourdomain.com`) ──▶ 映射重写至 `/admin/*` 目录（强制设为 `ssr: false` 的 SPA 运行态）。
-*   **API 服务网关** (`api.yourdomain.com`) ──▶ 映射重写至 `/api/v1/*`。注意：若尝试访问非 `/api/v1/` 路径，中间件会直接抛出 404 错误，形成天然的 API 域名隔离防护。
-*   **营销 H5 子域名** (`{subdomain}.yourdomain.com`) ──▶ 映射重写至 `/h5/{subdomain}/*`。例如，访问 `promo.yourdomain.com` 即可直接拉取营销后台动态落库的 `promo` 页面配置。
+| 子域名 | 映射路径 | 类型 |
+|--------|----------|------|
+| `www.*` / 根域名 | 主站路由（过滤 /admin /h5） | 固定 |
+| `admin.*` | `/admin` | 固定 |
+| `api.*` | REST API（非 API 路径 301→www） | 固定 |
+| 任意其他子域名 | `/h5/{子域名}` | 动态 |
 
-#### 2. 单域名自适应模式 (分支预览 / 零配置起步)
-当在 Vercel 分支预览环境（如 `hehe-app-git-main.vercel.app`）或本地未配置 hosts 时，Host 并不匹配已注册的 Known Host。
-此时，**重写机制会自动跳过**，系统转为单域名路由，直接通过子路径进行访问：
-*   访问 `https://<deploy-host>/` ──▶ 天然匹配 `(client)` 路由组的首页。
-*   访问 `https://<deploy-host>/admin` ──▶ 匹配 `(admin)/admin/index.vue`。
-*   访问 `https://<deploy-host>/h5/promo` ──▶ 匹配 `(h5)/h5/[subdomain]/index.vue`，其中路由参数 `subdomain` 被自适应提取为 `promo`。
+**架构**（单一配置源 + 三层协作）：
+- `app/utils/subdomain.ts` — 纯函数配置（域名解析、前缀计算、常量）
+- `app/router.options.ts` — SSR/客户端路由表重写（`buildSubdomainRoutes`）
+- `app/plugins/01.subdomain-router.client.ts` — 全局拦截 `router.push`/`replace`，自动剥离前缀
+- `server/middleware/01.subdomain.ts` — 静态资源跳过 + api 重定向 + 完整前缀路径 301 剥离
 
-这一设计完美避开了通配符域名在分支预览中无法动态映射的业界难题，使每次 Git Push 产生的预览地址都能直接访问所有子路由功能。
+**工作原理**：
+1. **路由表重写**：`router.options.ts` 根据当前 hostname 动态重写路由表，子域名下 `/h5/starpath/welcome` → `/welcome`
+2. **客户端导航**：页面代码中写完整路径 `router.push('/h5/starpath/intro/focus')`，插件自动剥离为 `/intro/focus`
+3. **URL 规范化**：用户访问 `starpath.xxx.com/h5/starpath/welcome` → 中间件 301 → `/welcome`
+
+**新增营销 H5**：只需创建 `app/pages/(h5)/h5/{子域名}/`，零配置。
 
 ### 中间件责任链
 
 请求进入后依次经过编号中间件，形成清晰的安全管道：
 
 ```
-00.apm → 01.subdomain-rewrite → 02.auth → 03.admin → 04.auth-guard → 05.api-security
-  │              │                  │           │             │                │
-  │              │                  │           │             │                │
-  性能监控     子域名路由         Bearer/      管理员        用户态          API安全
-              重写到对应路径     Cookie      断言守卫      强制认证        和防刷限制
-                               双模鉴权
+00.apm → 01.subdomain → 02.auth → 03.admin → 04.auth-guard → 05.api-security
+  │           │            │          │            │              │
+  性能监控   子域名路由   Bearer/    管理员      用户态        API安全
+             重写+重定向  Cookie    断言守卫    强制认证      和防刷限制
+                         双模鉴权
 ```
 
 ### API 安全声明
@@ -152,7 +155,7 @@ docker compose up -d
 
 | 类别 | 技术 | 说明 |
 |---|---|---|
-| **框架** | Nuxt 4 (Vue 3.4) | 全栈混合渲染框架 |
+| **框架** | Nuxt 4 (Vue 3.5+) | 全栈混合渲染框架 |
 | **语言** | TypeScript 5.5 | 全量类型覆盖 |
 | **数据库** | Supabase PostgreSQL | 云托管 PG + 内置 Auth + Storage |
 | **部署** | Vercel | Serverless 部署，零配置 |
@@ -208,12 +211,13 @@ hehe-app/
 │   │   │   ├── starpath/ storage/ subscriptions/ tasks/ users/
 │   │   ├── starpath/               # StarPath 智能问卷公开 API（questionnaire/payment/email/report/subscribe）
 │   │   └── v1/                     # 公开/用户 API
-│   ├── middleware/                  # 编号中间件链（00 → 06）
-│   └── utils/                      # 服务端工具函数
+│   ├── middleware/                  # 编号中间件链（00 → 05）
+│   └── utils/                      # 服务端工具函数 + 业务 service 层
+│       ├── starpath-service.ts      # StarPath 智能问卷 service（问卷/留资/订单/报告）
 │       ├── payment-strategies/     # 多支付策略工厂（Stripe/PayPal/Google Pay/Apple IAP/Manual）
 │       ├── db.ts auth.ts payments.ts logger.ts response.ts
 │       ├── api-security.ts apm.ts cache.ts email.ts export.ts
-│       ├── ip.ts starpath-service.ts storage.ts payment-transaction.ts
+│       ├── ip.ts storage.ts payment-transaction.ts
 ├── supabase/migrations/            # 版本化 SQL 迁移（0001 → 0099，连续编号）
 ├── locales/                        # i18n 翻译文件（zh.json / en.json）
 ├── scripts/                        # 工具链脚本
@@ -525,7 +529,6 @@ NUXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 # ── 站点 ──
 APP_NAME=HeHe App                                # 应用名称（邮件/通知等场景使用）
 NUXT_PUBLIC_BASE_URL=https://yourdomain.com     # 站点 URL（可选，自动探测）
-ROOT_DOMAIN=yourdomain.com                      # 根域名（子域名路由用）
 SITE_ACCESS_PASSWORD=                           # 站点访问密码（可选，设置后全局需要密码访问）
 ```
 

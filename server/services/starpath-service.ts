@@ -9,9 +9,9 @@
  */
 
 import { H3Event } from 'h3'
-import { getDB } from './db'
-import { throwError } from './response'
-import { logAuditEvent } from './logger'
+import { getDB } from '~~/server/utils/db'
+import { throwError } from '~~/server/utils/response'
+import { logAuditEvent } from '~~/server/utils/logger'
 
 // ── 类型 ──
 

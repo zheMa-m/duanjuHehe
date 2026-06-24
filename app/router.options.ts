@@ -16,6 +16,7 @@ import {
   parseSubdomain,
   getPrefix,
   MAIN_DOMAIN_EXCLUDE_PREFIXES,
+  INTERNAL_ROUTE_PREFIXES,
 } from '~/utils/subdomain'
 
 // ── 获取当前 hostname ──
@@ -30,8 +31,7 @@ function getHostname(): string {
   return window.location.hostname
 }
 
-// ── Nuxt 内部路由前缀（必须透传，不能过滤）──
-const INTERNAL_ROUTE_PREFIXES = ['/_nuxt', '/_i18n', '/_ipx', '/_payload', '/__nuxt_error', '/api/']
+// ── Nuxt 内部路由透传 ──
 
 function isInternalRoute(path: string): boolean {
   return INTERNAL_ROUTE_PREFIXES.some((p) => path.startsWith(p))

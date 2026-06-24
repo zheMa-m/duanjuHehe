@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getQuestionOptions } from '~/utils/starpath-questions'
+import { getQuestionOptions } from '~/utils/starpath-data'
 
 const { t, locale } = useI18n()
 definePageMeta({
