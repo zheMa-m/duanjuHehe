@@ -254,6 +254,7 @@ export const starpathService = {
     const { data: order, error } = await db
       .from('orders')
       .insert({
+        order_no: `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
         user_id: input.userId || null,
         product_name: `智能问卷 Plan: ${input.plan}`,
         amount: input.amount,
