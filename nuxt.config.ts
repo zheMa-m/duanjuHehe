@@ -8,6 +8,24 @@ const _resolveBaseUrl = (): string => {
   return 'http://localhost:3000'
 }
 
+/** 从 baseUrl 提取根域名，用于 Vercel 边缘重写 */
+const _resolveRootDomain = (): string => {
+  if (process.env.NUXT_PUBLIC_ROOT_DOMAIN) return process.env.NUXT_PUBLIC_ROOT_DOMAIN
+  try {
+    const host = new URL(_resolveBaseUrl()).hostname.replace(/^www\./, '')
+    if (!host || host === 'localhost' || host.endsWith('.vercel.app')) {
+      throw new Error('no production host')
+    }
+    const parts = host.split('.')
+    return parts.length <= 2 ? host : parts.slice(-2).join('.')
+  } catch {
+    // Vercel 构建时 VERCEL_URL 常为 *.vercel.app，生产环境应配置 NUXT_PUBLIC_BASE_URL
+    return 'aihomeworkscan.com'
+  }
+}
+
+const _wwwOrigin = (): string => `https://www.${_resolveRootDomain()}`
+
 // Sentry 模块仅在配置了有效 DSN 时才启用
 const _hasSentry = !!(process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_DSN)
 
@@ -97,6 +115,25 @@ export default defineNuxtConfig({
     minify: true,
     // Vercel 部署需指定 preset，确保 Nitro 生成正确的 Serverless Function
     preset: 'vercel',
+    // 边缘层重写：在 Serverless 之前处理子域名 _i18n/_ipx 请求
+    vercel: {
+      config: {
+        redirects: [
+          { source: '/_ipx/:modifier/:path*', destination: '/:path*', permanent: true },
+        ],
+        rewrites: [
+          {
+            source: '/h5/:biz/_i18n/:path*',
+            destination: `${_wwwOrigin()}/_i18n/:path*`,
+          },
+          {
+            source: '/_i18n/:path*',
+            has: [{ type: 'host', value: `(?<sub>[^.]+)\\.${_resolveRootDomain().replace(/\./g, '\\.')}` }],
+            destination: `${_wwwOrigin()}/_i18n/:path*`,
+          },
+        ],
+      },
+    },
     prerender: {
       crawlLinks: true,
     },
