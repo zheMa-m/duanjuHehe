@@ -9,7 +9,7 @@ const answerSchema = z.object({
   campaignId: z.string().uuid().optional(),
   step: z.number().int().min(0),
   questionKey: z.string().min(1),
-  answerValue: z.union([z.string(), z.array(z.string()), z.record(z.string(), z.any()), z.null()]),
+  answerValue: z.union([z.string(), z.array(z.string()), z.record(z.string(), z.any())]),
   // ✅ 兼容旧格式（批量提交），逐步迁移到事件流
   // ⚠️ 标记为 optional，过渡期后移除
   gender: z.string().optional(),
