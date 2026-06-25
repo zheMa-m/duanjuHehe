@@ -71,8 +71,7 @@ export default defineNuxtConfig({
   },
   
   routeRules: {
-    // 管理后台强制设为 SPA 纯客户端渲染，完全隔离 SSR 安全隐患
-    // /admin 路径由 01.subdomain 中间件将 admin. 子域名重写而来
+    // 管理后台 SPA 渲染（生产环境由 01.subdomain 中间件设置 noSSR 标记强制生效）
     '/admin': { ssr: false },
     '/admin/**': { ssr: false },
     // 营销 H5：浏览器不缓存 HTML，CDN 走 ISR（子域名剥离路径由 00.build-cache 中间件覆盖）
@@ -243,6 +242,7 @@ export default defineNuxtConfig({
         'starpath/**',
         '**/_swagger/**',
         '**/_scalar/**',
+        '**/_payload.json',   // 本项目无预渲染静态页，不生成 _payload，屏蔽此自动注入 pattern 的无匹配警告
       ],
       runtimeCaching: [
         {
