@@ -2,7 +2,7 @@
 
 > Nuxt 4 + Supabase + Vercel — 单人全栈独立闭环脚手架
 >
-> **Version**: 1.4.0 | **Last Updated**: 2026-06-24
+> **Version**: 1.0.0 | **Last Updated**: 2026-06-25
 
 ## Commands
 

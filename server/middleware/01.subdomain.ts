@@ -33,7 +33,22 @@ export default defineEventHandler((event) => {
     return sendRedirect(event, path.replace(/^\/h5-v2/, '/h5'), 301)
   }
 
-  if (isLocalEnv(host)) return
+  if (isLocalEnv(host)) {
+    // 本地开发：子域名路径重写（确保命中 routeRules）
+    // admin.localhost:3000/ → /admin   (命中 ssr: false)
+    // starpath.localhost:3000/ → /h5/starpath  (命中 ISR)
+    const parts = host.split('.')
+    if (parts.length > 2 || host.endsWith('.localhost')) {
+      const sd = parts[0]
+      if (sd && sd !== 'www' && sd !== 'api') {
+        const prefix = getPrefix(sd)
+        if (prefix && path === '/') {
+          event.node.req.url = prefix
+        }
+      }
+    }
+    return
+  }
 
   const rootDomain = getRootDomain(host)
 

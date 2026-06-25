@@ -849,6 +849,7 @@
       "payWithApple": "Unlock Report — $9.99",
       "error": "Purchase failed, please try again",
       "sessionError": "Session expired. Please restart the questionnaire.",
+            "startQuestionnaire": "Start Questionnaire",
       "securePayment": "Secure payment",
       "refundGuarantee": "30-day money-back guarantee",
       "orderSummary": "Order Summary",

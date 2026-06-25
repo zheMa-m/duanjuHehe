@@ -849,6 +849,7 @@
       "payWithApple": "解锁报告 — ¥9.99",
       "error": "购买失败，请重试",
       "sessionError": "会话已过期，请重新开始问卷。",
+            "startQuestionnaire": "开始问卷",
       "securePayment": "安全支付",
       "refundGuarantee": "30 天无条件退款保证",
       "orderSummary": "订单详情",

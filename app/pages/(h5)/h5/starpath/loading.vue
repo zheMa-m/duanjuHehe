@@ -17,23 +17,46 @@ const steps = computed(() => getStarpathIntroData(locale.value as 'zh' | 'en').c
 
 const currentStep = ref(0)
 
-onMounted(() => {
-  // 异步触发问卷完成（不阻塞动画）
+onMounted(async () => {
+  // 动画步进与问卷完成并行执行
+  const stepTimer = new Promise<void>((resolve) => {
+    const timer = setInterval(() => {
+      if (currentStep.value < steps.value.length - 1) {
+        currentStep.value++
+      } else {
+        clearInterval(timer)
+        resolve()
+      }
+    }, 1200)
+  })
+
+  // 等待问卷完成 API 成功（带重试），不阻塞动画
+  let completeOk = false
   if (store.sessionId) {
-    $fetch('/api/starpath/questionnaire/complete', {
-      method: 'POST',
-      body: { sessionId: store.sessionId },
-    }).catch((e: any) => console.warn('[Starpath] Complete failed', e))
+    for (let attempt = 0; attempt < 3 && !completeOk; attempt++) {
+      try {
+        await $fetch('/api/starpath/questionnaire/complete', {
+          method: 'POST',
+          body: { sessionId: store.sessionId },
+        })
+        completeOk = true
+      } catch (e: any) {
+        console.warn(`[Starpath] Complete attempt ${attempt + 1} failed`, e?.message || e)
+        if (!completeOk && attempt < 2) await new Promise(r => setTimeout(r, 1500))
+      }
+    }
   }
 
-  const timer = setInterval(() => {
-    if (currentStep.value < steps.value.length - 1) {
-      currentStep.value++
+  // 动画 + 完成 API 都结束后再跳转
+  await stepTimer
+  setTimeout(() => {
+    if (!completeOk && !store.sessionId) {
+      // 无 session → 回问卷首页
+      router.push('/h5/starpath/welcome')
     } else {
-      clearInterval(timer)
-      setTimeout(() => router.push('/h5/starpath/purchase'), 800)
+      router.push('/h5/starpath/purchase')
     }
-  }, 1200)
+  }, 800)
 })
 </script>
 

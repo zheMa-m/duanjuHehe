@@ -31,13 +31,44 @@ interface PurchaseState {
   plan?: string
 }
 
+const STORAGE_KEY = 'starpath-store'
+
+/** 从 localStorage 恢复关键状态（SSR 安全） */
+function hydrate(): Partial<{ sessionId: string; purchase: PurchaseState; answers: QuestionnaireAnswers }> {
+  if (import.meta.server) return {}
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch { /* 损坏则忽略 */ }
+  return {}
+}
+
 export const useStarpathStore = defineStore('starpath', () => {
-  const answers = ref<QuestionnaireAnswers>({ questions: {} })
+  const saved = hydrate()
+
+  const answers = ref<QuestionnaireAnswers>(saved.answers ?? { questions: {} })
   const contact = ref<UserContact>({ agreedTerms: false })
   const subscription = ref<SubscriptionState>({ paid: false })
-  const purchase = ref<PurchaseState>({ purchased: false })
+  const purchase = ref<PurchaseState>(saved.purchase ?? { purchased: false })
   /** 问卷 session ID（由 answer API 首次返回后保存，后续所有 API 调用复用） */
-  const sessionId = ref<string>('')
+  const sessionId = ref<string>(saved.sessionId ?? '')
+
+  // ── 持久化：每次关键状态变化时写入 localStorage ──
+  if (import.meta.client) {
+    watch(
+      [sessionId, purchase, answers],
+      () => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            sessionId: sessionId.value,
+            purchase: purchase.value,
+            answers: answers.value,
+          }))
+        } catch { /* quota exceeded 等异常静默处理 */ }
+      },
+      { deep: true },
+    )
+  }
 
   function setAnswer<K extends keyof QuestionnaireAnswers>(key: K, value: QuestionnaireAnswers[K]) {
     answers.value[key] = value
@@ -69,6 +100,9 @@ export const useStarpathStore = defineStore('starpath', () => {
     subscription.value = { paid: false }
     purchase.value = { purchased: false }
     sessionId.value = ''
+    if (import.meta.client) {
+      try { localStorage.removeItem(STORAGE_KEY) } catch {}
+    }
   }
 
   return {

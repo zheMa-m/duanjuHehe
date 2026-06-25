@@ -14,6 +14,14 @@ const { progressOf } = useStarpathFlow()
 
 const loading = ref(false)
 const errorMsg = ref('')
+const hasSession = computed(() => !!store.sessionId?.trim())
+
+// 页面加载时检查会话状态 — 无 session 说明未完成问卷，显示提示
+onMounted(() => {
+  if (!hasSession.value) {
+    errorMsg.value = t('starpath.purchase.sessionError')
+  }
+})
 
 const featureLabels = computed(() => getStarpathIntroData(locale.value as 'zh' | 'en')?.subscribeFeatures || [
   'AI Birth Chart Analysis', 'Personality Traits Decoded',
@@ -72,7 +80,16 @@ async function createPurchaseOrder(paymentMethod: string): Promise<{ orderId: st
       reportId: data.reportId || '',
     }
   } catch (e: any) {
-    errorMsg.value = e?.message || t('starpath.purchase.error')
+    // 解析 API 返回的具体错误
+    const status = e?.response?.status || e?.statusCode || e?.status
+    const msg = e?.response?._data?.statusMessage || e?.data?.statusMessage || e?.message || ''
+    if (status === 404 || msg.includes('Session not found')) {
+      errorMsg.value = t('starpath.purchase.sessionError')
+    } else if (status === 400 && msg.includes('not yet completed')) {
+      errorMsg.value = t('starpath.purchase.sessionError')
+    } else {
+      errorMsg.value = msg || t('starpath.purchase.error')
+    }
     return null
   }
 }
@@ -204,7 +221,7 @@ async function handleCardPayment() {
         <!-- ─── Apple Pay (iOS only, client-rendered) ─── -->
         <ClientOnly>
           <button
-            v-if="isIOS"
+            v-if="isIOS && hasSession"
             type="button"
             class="mt-[20px] w-full max-w-[340px] h-[52px] rounded-2xl bg-black text-white text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
             :disabled="loading"
@@ -218,15 +235,30 @@ async function handleCardPayment() {
           </button>
         </ClientOnly>
 
-        <!-- ─── PayPal / Google Pay / Card ─── -->
+        <!-- ─── PayPal / Google Pay / Card (仅在有 session 时渲染) ─── -->
         <div class="mt-[14px] w-full max-w-[340px]">
           <StarpathPaymentButtons
+            v-if="hasSession"
             :platform="platform"
             plan="trial-7d"
             order-url="/api/starpath/purchase/one-time"
             success-url="/h5/starpath/email"
             @card="handleCardPayment"
           />
+          <!-- 无 session 时的引导提示 -->
+          <div v-else class="flex flex-col items-center gap-3 py-6">
+            <span class="i-lucide-arrow-left-circle text-[28px] text-starpath-text-disabled" />
+            <p class="text-[13px] text-starpath-text-muted text-center leading-relaxed">
+              {{ t('starpath.purchase.sessionError') }}
+            </p>
+            <NuxtLink
+              to="/h5/starpath"
+              class="mt-1 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#321cff] to-[#9a2dff] text-[12px] font-bold text-white active:scale-95 transition-all"
+            >
+              <span class="i-lucide-sparkles text-[12px]" />
+              {{ t('starpath.purchase.startQuestionnaire') }}
+            </NuxtLink>
+          </div>
         </div>
 
         <!-- Loading -->

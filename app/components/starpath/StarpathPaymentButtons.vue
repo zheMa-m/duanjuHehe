@@ -93,17 +93,30 @@ async function createOrder(paymentMethod: string): Promise<{ orderId: string; am
         plan: props.plan,
         paymentMethod,
       }
-  const res = await $fetch<any>(subscribeUrl, {
-    method: 'POST',
-    body,
-  })
-  if (!res?.data?.orderId) {
-    throw new Error('Failed to create order')
-  }
-  return {
-    orderId: res.data.orderId,
-    amount: res.data.amount || 7.99,
-    currency: res.data.currency || 'USD',
+  try {
+    const res = await $fetch<any>(subscribeUrl, {
+      method: 'POST',
+      body,
+    })
+    if (!res?.data?.orderId) {
+      throw new Error('Failed to create order')
+    }
+    return {
+      orderId: res.data.orderId,
+      amount: res.data.amount || 7.99,
+      currency: res.data.currency || 'USD',
+    }
+  } catch (e: any) {
+    // 解析具体错误，翻译为用户可读消息
+    const status = e?.response?.status || e?.statusCode || e?.status
+    const msg = e?.response?._data?.statusMessage || e?.data?.statusMessage || e?.message || ''
+    if (status === 400 && msg.includes('not yet completed')) {
+      throw new Error(t('starpath.purchase.sessionError'))
+    }
+    if (status === 404 || msg.includes('Session not found')) {
+      throw new Error(t('starpath.purchase.sessionError'))
+    }
+    throw e
   }
 }
 

@@ -31,6 +31,9 @@ jobs:
         run: npm run test:unit
 
       - name: API safety scan
-        run: npm run test:api-safety
+        run: |
+          npm run dev &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/health && break; sleep 2; done
+          npm run test:api-safety
         env:
           MOCK_DB: 'true'
