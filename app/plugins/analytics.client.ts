@@ -184,7 +184,7 @@ export default defineNuxtPlugin({
 
     // H5 活动页：从当前路由的 campaign 数据中读取活动级像素覆盖
     if (getRouteType(initialPath) === 'h5') {
-      const subdomain = router.currentRoute.value.params.subdomain as string
+      const subdomain = initialPath.match(/^\/h5\/([^/]+)/)?.[1] || ''
       if (subdomain) {
         try {
           const res = await $fetch<any>(`/api/v1/campaigns/${subdomain}`)
@@ -210,7 +210,7 @@ export default defineNuxtPlugin({
       let overrides: { ga?: string | null; meta?: string | null; tiktok?: string | null } | undefined
 
       if (getRouteType(to.fullPath) === 'h5') {
-        const subdomain = to.params.subdomain as string
+        const subdomain = to.fullPath.match(/^\/h5\/([^/]+)/)?.[1] || ''
         if (subdomain) {
           try {
             const res = await $fetch<any>(`/api/v1/campaigns/${subdomain}`)

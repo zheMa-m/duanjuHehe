@@ -349,7 +349,7 @@ onBeforeUnmount(() => {
         <div class="domain-card dc-purple">
           <div class="domain-badge badge-purple">营销 H5 矩阵</div>
           <div class="domain-url">*.yourdomain.com</div>
-          <div class="domain-route">→ /app/pages/(h5)/h5/[subdomain]/</div>
+          <div class="domain-route">→ /app/pages/(h5)/h5/h5-v1/</div>
           <div><span class="domain-render render-swr">SWR · 10min</span></div>
           <div class="domain-desc">各类活动推广、拉新转化落地页。动态配置驱动，无代码发布新活动。</div>
         </div>
@@ -412,7 +412,7 @@ onBeforeUnmount(() => {
 │   │   └── auth.ts                   <span class="cm"># useAuth：客户端会话状态管理</span>
 │   └── pages/
 │       ├── (client)/                 <span class="cm"># 官网路由分组 → yourdomain.com</span>
-│       ├── (h5)/h5/[subdomain]/      <span class="cm"># 营销 H5 → *.yourdomain.com</span>
+│       ├── (h5)/h5/h5-v1/            <span class="cm"># 营销 H5 v1 → *.yourdomain.com</span>
 │       └── (admin)/admin/            <span class="cm"># 管理后台 → admin.yourdomain.com</span>
 │
 ├── server/                           <span class="cm"># Nitro 服务端层（Node.js API 引擎）</span>

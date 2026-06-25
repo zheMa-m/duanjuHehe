@@ -12,12 +12,8 @@
  * - UX: touch-action:manipulation / overscroll-contain / 底部固定 CTA
  */
 
-const route = useRoute()
-const subdomain = computed(() => {
-  const sub = route.params.subdomain
-  if (Array.isArray(sub)) return sub[0] || 'h5-v1'
-  return sub || 'h5-v1'
-})
+// 固定子域名标识（静态路由，无需动态参数）
+const subdomain = 'h5-v1'
 
 // ─── Types ──────────────────────────────────────────────
 interface Campaign {
@@ -69,7 +65,7 @@ const ticketNo = ref(Math.floor(Math.random() * 90000) + 10000)
 const { createAndRedirect } = usePayment()
 
 const currentProduct = computed(() => {
-  const sub = subdomain.value.toLowerCase()
+  const sub = subdomain.toLowerCase()
   if (sub === 'cloud') {
     return { id: 'p2', name: 'HEHE Enterprise 全套方案', price: 299.00 }
   }
@@ -94,7 +90,7 @@ const handlePurchase = async () => {
     item_name: currentProduct.value.name,
     value:     currentProduct.value.price,
     currency:  'USD',
-    channel:   subdomain.value,
+    channel:   subdomain,
   })
   isPurchasing.value = true
   try {
@@ -142,19 +138,19 @@ const handleLoginRequired = () => {
 }
 
 // ─── Campaign Data (SWR) ────────────────────────────────
-const { data: response, error: fetchError } = await useFetch<CampaignResponse>(`/api/v1/campaigns/${subdomain.value}`)
+const { data: response, error: fetchError } = await useFetch<CampaignResponse>(`/api/v1/campaigns/${subdomain}`)
 const campaign = computed(() => response.value?.data)
 const hasError = computed(() => !!fetchError.value || !campaign.value)
 
 // ─── SEO ────────────────────────────────────────────────
 useAppSEO({
-  title: () => campaign.value?.title || (hasError.value ? `${t('h5.eventEnded')} - HEHE` : subdomain.value),
+  title: () => campaign.value?.title || (hasError.value ? `${t('h5.eventEnded')} - HEHE` : subdomain),
   description: () => campaign.value?.subtitle || 'HEHE H5 Marketing Platform',
 })
 
 // ─── Theme Glow (ambient blob color per subdomain) ─────
 const themeGlow = computed(() => {
-  const sub = subdomain.value.toLowerCase()
+  const sub = subdomain.toLowerCase()
   if (sub === 'ai') return 'rgba(139, 92, 246, 0.12)'
   if (sub === 'cloud') return 'rgba(59, 130, 246, 0.12)'
   return 'rgba(94, 106, 210, 0.12)'
@@ -194,10 +190,10 @@ const handleRegister = async () => {
   try {
     await $fetch<any>('/api/v1/campaigns/register', {
       method: 'POST',
-      body: { phone: phone.value, email: email.value, subdomain: subdomain.value }
+      body: { phone: phone.value, email: email.value, subdomain: subdomain }
     })
     isSubmitted.value = true
-    trackEvent('campaign_register', { channel: subdomain.value })
+    trackEvent('campaign_register', { channel: subdomain })
   } catch (e: any) {
     triggerToast(e.data?.statusMessage || t('h5.registerFailed'), 'error')
   } finally {

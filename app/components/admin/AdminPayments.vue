@@ -367,12 +367,11 @@ onMounted(() => fetchConfigs())
             class="text-[10px] px-2.5 py-1.5 rounded-lg border border-white/[0.08] hover:bg-white/[0.06] text-white/50 hover:text-white/80 disabled:opacity-30 transition-all cursor-pointer font-semibold">
             <span v-if="testingConnection === cfg.provider" class="i-lucide-loader-circle animate-spin text-[10px] mr-1" />
             <span v-else class="i-lucide-zap text-[10px] mr-1" />
-            {{ testingConnection === cfg.provider ? '测试中' : '测试' }}
+            {{ testingConnection === cfg.provider ? '测试中' : '' }}
           </button>
           <button @click="openEdit(cfg)"
             class="text-[10px] px-2.5 py-1.5 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 font-semibold transition-all cursor-pointer">
             <span class="i-lucide-settings text-[10px] mr-1" />
-            配置
           </button>
         </div>
       </div>

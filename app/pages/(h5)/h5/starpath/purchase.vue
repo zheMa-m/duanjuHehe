@@ -31,13 +31,18 @@ const features = computed(() => featureLabels.value.map((label, i) => ({
 const ORIGINAL_PRICE = '$19.99'
 const DISCOUNT_PRICE = '$9.99'
 
-// 平台检测
-const isIOS = computed(() => process.client && /iphone|ipad|ipod/i.test(navigator.userAgent))
+// 平台检测（延迟到 mounted 后设置，避免 hydration mismatch）
+const isIOS = ref(false)
+const mounted = ref(false)
 const platform = computed<'ios' | 'android'>(() => isIOS.value ? 'ios' : 'android')
+
+onMounted(() => {
+  mounted.value = true
+  isIOS.value = /iphone|ipad|ipod/i.test(navigator.userAgent)
+})
 
 /**
  * 创建一次性购买订单
- * @returns orderId 或 null（失败时）
  */
 async function createPurchaseOrder(paymentMethod: string): Promise<{ orderId: string; amount: number; currency: string; reportId: string } | null> {
   if (!store.sessionId) {
@@ -121,8 +126,6 @@ async function handleCardPayment() {
     loading.value = false
   }
 }
-
-/** PayPal / Google Pay 通过 StarpathPaymentButtons 处理 */
 </script>
 
 <template>
@@ -130,70 +133,93 @@ async function handleCardPayment() {
     <div class="starpath-bg-gradient" />
 
     <div class="starpath-frame pt-safe-top">
-      <div class="relative z-10 flex flex-col items-center px-4 pb-8">
+      <div class="relative z-10 flex flex-col items-center px-5 pb-10">
         <!-- Badge -->
-        <p class="absolute top-[16px] inset-x-0 text-center text-xl font-extrabold tracking-tight text-[#bab3f3]">
-          {{ t('starpath.purchase.badge') }}
-        </p>
-
-        <!-- Stars -->
-        <div class="mt-[60px] flex gap-1">
-          <span
-            v-for="i in 5"
-            :key="i"
-            class="text-[20px] text-[#bab3f3]"
-          >★</span>
-        </div>
-
-        <!-- Title -->
-        <h1 class="mt-[20px] text-center text-lg font-semibold leading-tight tracking-tight text-white">
-          {{ t('starpath.purchase.title') }}
-        </h1>
-
-        <p class="mt-[8px] text-center text-sm text-starpath-text-muted max-w-[300px]">
-          {{ t('starpath.purchase.subtitle') }}
-        </p>
-
-        <!-- Features -->
-        <div class="mt-[28px] flex flex-col gap-[14px] w-full max-w-[336px]">
-          <div
-            v-for="f in features"
-            :key="f.label"
-            class="flex items-center gap-[10px]"
-          >
-            <span class="text-[22px]">{{ f.emoji }}</span>
-            <span class="text-[14px] text-white">{{ f.label }}</span>
-          </div>
-        </div>
-
-        <!-- Price: strikethrough original + discount -->
-        <div class="mt-[28px] flex flex-col items-center gap-[6px]">
-          <div class="flex items-center gap-[10px]">
-            <span class="text-sm text-starpath-text-muted line-through">{{ ORIGINAL_PRICE }}</span>
-            <span class="text-2xl font-bold text-white">{{ DISCOUNT_PRICE }}</span>
-          </div>
-          <span class="text-xs font-semibold text-[#bab3f3] uppercase tracking-wider">
-            {{ t('starpath.purchase.todayOnly') }}
+        <div class="mt-[20px] flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full bg-gradient-to-r from-[#321cff]/20 to-[#9a2dff]/20 border border-[#9a2dff]/30 text-[#d0c7ff]">
+            <span class="i-lucide-sparkles text-[12px]" />
+            {{ t('starpath.purchase.badge') }}
           </span>
         </div>
 
-        <!-- One-time purchase notice -->
-        <p class="mt-[8px] text-center text-xs text-starpath-text-muted max-w-[280px]">
-          {{ t('starpath.purchase.oneTimeNotice') }}
+        <!-- Stars -->
+        <div class="mt-[20px] flex gap-1">
+          <span v-for="i in 5" :key="i" class="text-[18px] text-[#ffc43a]">★</span>
+        </div>
+
+        <!-- Title -->
+        <h1 class="mt-[14px] text-center text-xl font-bold leading-snug tracking-tight text-white">
+          {{ t('starpath.purchase.title') }}
+        </h1>
+
+        <p class="mt-[6px] text-center text-[13px] text-starpath-text-muted max-w-[280px] leading-relaxed">
+          {{ t('starpath.purchase.subtitle') }}
         </p>
 
-        <!-- Apple Pay button (iOS only) -->
-        <StarpathPrimaryButton
-          v-if="isIOS"
-          class="mt-[24px] w-full max-w-[336px]"
-          :loading="loading"
-          @click="payWithApple"
-        >
-          {{ t('starpath.purchase.payWithApple') }}
-        </StarpathPrimaryButton>
+        <!-- ─── Glass Price Card ─── -->
+        <div class="mt-[24px] w-full max-w-[340px] rounded-2xl bg-white/[0.05] backdrop-blur-md border border-white/[0.08] p-5 relative overflow-hidden">
+          <!-- Glow accent -->
+          <div class="absolute -top-8 -right-8 w-28 h-28 bg-[#9a2dff]/15 rounded-full blur-[50px] pointer-events-none" />
 
-        <!-- PayPal & Card buttons -->
-        <div class="mt-[14px] w-full max-w-[336px]">
+          <!-- Features list -->
+          <div class="flex flex-col gap-3 mb-5">
+            <div
+              v-for="f in features"
+              :key="f.label"
+              class="flex items-center gap-3"
+            >
+              <span class="flex-shrink-0 w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center text-[16px]">
+                {{ f.emoji }}
+              </span>
+              <span class="text-[13px] text-white/90 font-medium">{{ f.label }}</span>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="border-t border-dashed border-white/[0.08] my-4" />
+
+          <!-- Price row -->
+          <div class="flex items-end justify-between">
+            <div>
+              <p class="text-[11px] text-starpath-text-muted uppercase tracking-wider font-semibold mb-1">
+                {{ t('starpath.purchase.todayOnly') }}
+              </p>
+              <div class="flex items-baseline gap-2">
+                <span class="text-sm text-starpath-text-disabled line-through">{{ ORIGINAL_PRICE }}</span>
+                <span class="text-[28px] font-extrabold text-white leading-none tracking-tight">{{ DISCOUNT_PRICE }}</span>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+              -50%
+            </span>
+          </div>
+
+          <!-- One-time notice -->
+          <div class="mt-3 flex items-center gap-1.5">
+            <span class="i-lucide-check-circle-2 text-[12px] text-emerald-400/70" />
+            <span class="text-[11px] text-starpath-text-muted">{{ t('starpath.purchase.oneTimeNotice') }}</span>
+          </div>
+        </div>
+
+        <!-- ─── Apple Pay (iOS only, client-rendered) ─── -->
+        <ClientOnly>
+          <button
+            v-if="isIOS"
+            type="button"
+            class="mt-[20px] w-full max-w-[340px] h-[52px] rounded-2xl bg-black text-white text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
+            :disabled="loading"
+            @click="payWithApple"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4c-1.09-.5-2.08-.48-3.24 0c-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8c1.18-.24 2.31-.93 3.57-.84c1.51.12 2.65.72 3.4 1.8c-3.12 1.87-2.38 5.98.48 7.13c-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25c.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            <span v-if="loading" class="i-lucide-loader-circle animate-spin text-[16px]" />
+            <span v-else>{{ t('starpath.purchase.payWithApple') }}</span>
+          </button>
+        </ClientOnly>
+
+        <!-- ─── PayPal / Google Pay / Card ─── -->
+        <div class="mt-[14px] w-full max-w-[340px]">
           <StarpathPaymentButtons
             :platform="platform"
             plan="trial-7d"
@@ -204,24 +230,31 @@ async function handleCardPayment() {
         </div>
 
         <!-- Loading -->
-        <p v-if="loading" class="mt-3 text-center text-sm text-starpath-text-muted">
-          {{ t('starpath.subscribe.processing') }}
-        </p>
-
-        <!-- Error -->
-        <p v-if="errorMsg" class="mt-3 text-center text-sm text-red-400">
-          {{ errorMsg }}
-        </p>
-
-        <!-- Security badges -->
-        <div class="mt-[24px] flex items-center gap-[12px] opacity-60">
-          <span class="i-lucide-shield-check text-[16px] text-starpath-text-muted" />
-          <span class="text-xs text-starpath-text-muted">{{ t('starpath.purchase.securePayment') }}</span>
+        <div v-if="loading" class="mt-4 flex items-center justify-center gap-2">
+          <span class="i-lucide-loader-circle animate-spin text-[14px] text-starpath-text-muted" />
+          <span class="text-[13px] text-starpath-text-muted">{{ t('starpath.subscribe.processing') }}</span>
         </div>
 
-        <p class="mt-[8px] text-center text-xs text-starpath-text-muted">
-          {{ t('starpath.purchase.refundGuarantee') }}
-        </p>
+        <!-- Error -->
+        <div v-if="errorMsg" class="mt-4 w-full max-w-[340px] px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2">
+          <span class="i-lucide-alert-circle text-[16px] text-red-400 flex-shrink-0 mt-0.5" />
+          <span class="text-[13px] text-red-400 leading-snug">{{ errorMsg }}</span>
+        </div>
+
+        <!-- ─── Trust Section ─── -->
+        <div class="mt-[28px] flex flex-col items-center gap-2">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+              <span class="i-lucide-shield-check text-[14px] text-emerald-400/60" />
+              <span class="text-[11px] text-starpath-text-disabled">{{ t('starpath.purchase.securePayment') }}</span>
+            </div>
+            <span class="text-white/10">·</span>
+            <div class="flex items-center gap-1.5">
+              <span class="i-lucide-undo-2 text-[14px] text-starpath-text-disabled" />
+              <span class="text-[11px] text-starpath-text-disabled">{{ t('starpath.purchase.refundGuarantee') }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

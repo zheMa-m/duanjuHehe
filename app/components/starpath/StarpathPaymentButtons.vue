@@ -74,12 +74,16 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 // ── 创建订单 ──
 async function createOrder(paymentMethod: string): Promise<{ orderId: string; amount: number; currency: string }> {
+  // sessionId 校验（一次性购买模式必须有 session）
+  if (props.orderUrl && !store.sessionId) {
+    throw new Error('Session expired, please restart the questionnaire')
+  }
   // 一次性购买模式：使用自定义 orderUrl；否则使用订阅 API
   const subscribeUrl = props.orderUrl || `/api/starpath/subscribe/${props.platform}`
   const body: Record<string, any> = props.orderUrl
     ? {
         bizCode: 'starpath',
-        sessionId: store.sessionId || '',
+        sessionId: store.sessionId,
         platform: props.platform,
         paymentMethod,
       }
@@ -201,7 +205,7 @@ async function handleGooglePay() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const order = await createOrder('google_iap')
+    const order = await createOrder('google-pay')
     currentOrder.value = { ...order, provider: 'google_pay' }
 
     const env = googlePayEnv.value
@@ -276,66 +280,84 @@ function handleCard() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-[14px] w-full">
-    <!-- PayPal -->
-    <div v-if="paypalEnabled && !showingPaypal">
+  <div class="flex flex-col gap-3 w-full">
+    <!-- ── Loading skeleton while fetching configs ── -->
+    <template v-if="!paymentConfigs">
+      <div class="w-full h-[48px] rounded-2xl bg-white/[0.04] animate-pulse" />
+      <div class="w-full h-[48px] rounded-2xl bg-white/[0.04] animate-pulse" />
+    </template>
+
+    <template v-else>
+      <!-- PayPal -->
+      <div v-if="paypalEnabled && !showingPaypal">
+        <button
+          type="button"
+          class="group w-full h-[48px] rounded-2xl bg-[#ffc43a] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:brightness-105 disabled:opacity-50 disabled:pointer-events-none"
+          :disabled="loading"
+          @click="handlePayPal"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.793c2.374 0 4.135.48 5.055 1.44.432.45.708.948.84 1.514.138.59.14 1.288.003 2.133l-.01.06v.527l.407.23a2.67 2.67 0 0 1 .732.56c.35.374.572.85.66 1.416.092.585.043 1.28-.144 2.065-.214.9-.56 1.683-1.03 2.328a4.68 4.68 0 0 1-1.606 1.435c-.62.355-1.34.6-2.142.73a14.3 14.3 0 0 1-2.49.195h-.55a1.603 1.603 0 0 0-1.586 1.35l-.04.236-.674 4.28-.031.144c-.02.12-.035.17-.06.216a.283.283 0 0 1-.13.104.39.39 0 0 1-.16.034" fill="#003087"/>
+            <path d="M18.33 7.146c-.022.143-.047.29-.077.443-.96 4.906-4.227 6.6-8.392 6.6h-.553a1.029 1.029 0 0 0-1.017.869l-.04.238-.674 4.278-.032.145c-.02.12-.034.17-.06.216a.283.283 0 0 1-.129.103.39.39 0 0 1-.16.034H4.063a.36.36 0 0 1-.358-.417l1.778-11.29a.486.486 0 0 1 .48-.415h5.676c3.295 0 5.868.692 6.691 3.396z" fill="#009cde"/>
+          </svg>
+          <span class="text-black font-semibold text-[14px] tracking-tight">
+            <span v-if="loading" class="i-lucide-loader-circle animate-spin text-[14px] mr-1.5" />
+            PayPal
+          </span>
+        </button>
+      </div>
+
+      <!-- PayPal SDK 渲染容器 -->
+      <div
+        v-if="paypalEnabled"
+        v-show="showingPaypal"
+        id="starpath-paypal-container"
+        class="w-full"
+      />
+
+      <!-- Google Pay -->
       <button
+        v-if="googlePayEnabled && !showingPaypal"
         type="button"
-        class="starpath-btn-paypal"
+        class="group w-full h-[48px] rounded-2xl bg-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:bg-white/95 disabled:opacity-50 disabled:pointer-events-none"
         :disabled="loading"
-        @click="handlePayPal"
+        @click="handleGooglePay"
       >
-        <span class="text-black font-semibold tracking-tight text-[14px]">
-          <span class="text-[#003087]">Pay</span><span class="text-[#009cde]">Pal</span>
+        <span class="i-logos-google-icon size-[18px]" />
+        <span class="text-[14px] font-semibold text-gray-800 tracking-tight">
+          <span v-if="loading" class="i-lucide-loader-circle animate-spin text-[14px] mr-1.5" />
+          Google Pay
         </span>
       </button>
-    </div>
 
-    <!-- PayPal SDK 渲染容器 -->
-    <div
-      v-if="paypalEnabled"
-      v-show="showingPaypal"
-      id="starpath-paypal-container"
-      class="w-full"
-    />
+      <!-- 信用卡 -->
+      <button
+        v-if="cardEnabled && !showingPaypal"
+        type="button"
+        class="group w-full h-[48px] rounded-2xl bg-[#0a6fde] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:brightness-110 disabled:opacity-50 disabled:pointer-events-none"
+        :disabled="loading"
+        @click="handleCard"
+      >
+        <span class="i-heroicons-credit-card-solid text-white size-[18px]" />
+        <span class="text-[14px] font-semibold text-white tracking-tight">
+          <span v-if="loading" class="i-lucide-loader-circle animate-spin text-[14px] mr-1.5" />
+          Credit / Debit Card
+        </span>
+      </button>
 
-    <!-- Google Pay -->
-    <button
-      v-if="googlePayEnabled && !showingPaypal"
-      type="button"
-      class="starpath-btn-pay"
-      :disabled="loading"
-      @click="handleGooglePay"
-    >
-      <span class="i-logos-google-icon size-[20px]" />
-      <span class="text-[14px] font-medium">Pay</span>
-    </button>
-
-    <!-- 信用卡 -->
-    <button
-      v-if="cardEnabled && !showingPaypal"
-      type="button"
-      class="starpath-btn-card"
-      :disabled="loading"
-      @click="handleCard"
-    >
-      <span class="i-heroicons-credit-card-solid text-white size-[20px]" />
-      <span class="text-[14px] font-medium text-white">Credit / Debit Card</span>
-    </button>
-
-    <!-- 无可用支付渠道 -->
-    <p v-if="!hasAnyPayment" class="text-center text-sm text-starpath-text-muted py-[12px]">
-      {{ t('starpath.subscribe.noPaymentMethods') }}
-    </p>
-
-    <!-- Loading -->
-    <p v-if="loading && !showingPaypal" class="text-center text-sm text-starpath-text-muted">
-      {{ t('starpath.subscribe.processing') }}
-    </p>
+      <!-- 无可用支付渠道 -->
+      <div v-if="!hasAnyPayment" class="w-full px-4 py-5 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex flex-col items-center gap-2">
+        <span class="i-lucide-wallet text-[20px] text-starpath-text-disabled" />
+        <p class="text-[13px] text-starpath-text-muted text-center">
+          {{ t('starpath.subscribe.noPaymentMethods') }}
+        </p>
+      </div>
+    </template>
 
     <!-- Error -->
-    <p v-if="errorMessage" class="text-center text-sm text-red-400">
-      {{ errorMessage }}
-    </p>
+    <div v-if="errorMessage" class="w-full px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-2">
+      <span class="i-lucide-alert-circle text-[14px] text-red-400 flex-shrink-0 mt-0.5" />
+      <span class="text-[12px] text-red-400 leading-snug">{{ errorMessage }}</span>
+    </div>
   </div>
 </template>
