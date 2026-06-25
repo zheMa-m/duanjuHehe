@@ -16,7 +16,12 @@ const amount = computed(() => (route.query.amount as string) || '9.99')
 const currency = computed(() => (route.query.currency as string) || 'USD')
 const provider = computed(() => (route.query.provider as string) || '')
 
-const isIOS = computed(() => process.client && /iphone|ipad|ipod/i.test(navigator.userAgent))
+// 避免 hydration mismatch：SSR 无法访问 navigator.userAgent，始终 false
+// 客户端 mounted 后检测真实平台
+const isIOS = ref(false)
+onMounted(() => {
+  isIOS.value = /iphone|ipad|ipod/i.test(navigator.userAgent)
+})
 </script>
 
 <template>

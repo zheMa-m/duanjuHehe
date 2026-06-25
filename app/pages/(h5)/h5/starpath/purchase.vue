@@ -14,10 +14,13 @@ const { progressOf } = useStarpathFlow()
 
 const loading = ref(false)
 const errorMsg = ref('')
-const hasSession = computed(() => !!store.sessionId?.trim())
+// 避免 hydration mismatch：SSR 无 localStorage，sessionId 为空；客户端恢复后可能非空
+// 用 ref(false) 保证 SSR 与客户端首次渲染一致，onMounted 后再更新
+const hasSession = ref(false)
 
 // 页面加载时检查会话状态 — 无 session 说明未完成问卷，显示提示
 onMounted(() => {
+  hasSession.value = !!store.sessionId?.trim()
   if (!hasSession.value) {
     errorMsg.value = t('starpath.purchase.sessionError')
   }
