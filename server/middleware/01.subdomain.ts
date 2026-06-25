@@ -1,14 +1,14 @@
 /**
  * 子域名路由中间件
  *
- * 负责：跳过静态资源、处理 api 子域名重定向、子域名完整前缀路径 301 剥离。
- * 路由重写由 router.options.ts + 客户端插件完成。
+ * 负责：跳过静态资源、处理 api 子域名重定向、子域名完整前缀路径 301 剥离、
+ * 服务端路径重写（确保子域名请求命中 routeRules 的 ssr:false / ISR）。
  *
  * 规则：
  *   - www / 根域名 → 放行
  *   - api 子域名非 API 路径 → 301 重定向到 www
  *   - 其他子域名完整前缀路径 → 301 剥离前缀
- *   - 其余放行（前端路由层处理）
+ *   - 其他子域名 → 服务端路径重写到内部前缀（admin→/admin, h5→/h5/{sd}）
  */
 import { defineEventHandler, getHeader, sendRedirect } from 'h3'
 import { getPrefix, getRootDomain } from '~/utils/subdomain'
@@ -77,11 +77,14 @@ export default defineEventHandler((event) => {
     const sd = parts[0]
     if (sd && sd !== 'www' && sd !== 'api') {
       const prefix = getPrefix(sd)
-      if (prefix && (path === prefix || path.startsWith(prefix + '/'))) {
-        return sendRedirect(event, path.slice(prefix.length) || '/', 301)
+      if (prefix) {
+        if (path === prefix || path.startsWith(prefix + '/')) {
+          return sendRedirect(event, path.slice(prefix.length) || '/', 301)
+        }
+        // 服务端路径重写：确保命中 routeRules（ssr:false / ISR）
+        // admin.domain.com/ → /admin  |  starpath.domain.com/welcome → /h5/starpath/welcome
+        event.node.req.url = path === '/' ? prefix : prefix + path
       }
     }
   }
-
-  // admin / h5 子域名：放行，路由重写由 router.options.ts + 客户端插件完成
 })
