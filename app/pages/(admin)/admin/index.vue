@@ -1,4 +1,8 @@
 <script setup lang="ts">
+// 强制 SPA（纯客户端）渲染，防止任何路径重写失效时意外触发 SSR。
+// routeRules 同样声明了 ssr:false，两层保险。
+definePageMeta({ ssr: false })
+
 import AdminLoginCard from '~/components/admin/AdminLoginCard.vue'
 import AdminCampaigns from '~/components/admin/AdminCampaigns.vue'
 import AdminOrders from '~/components/admin/AdminOrders.vue'

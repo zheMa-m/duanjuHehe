@@ -44,6 +44,7 @@ export default defineEventHandler((event) => {
         const prefix = getPrefix(sd)
         if (prefix && path === '/') {
           event.node.req.url = prefix
+          event._path = prefix
         }
       }
     }
@@ -83,13 +84,11 @@ export default defineEventHandler((event) => {
         }
         // 服务端路径重写：确保命中 routeRules（ssr:false / ISR）
         // admin.domain.com/ → /admin  |  starpath.domain.com/welcome → /h5/starpath/welcome
+        // 必须同时更新 event._path（H3 的 event.path getter 优先读取缓存的 _path 属性）
+        // 若只改 node.req.url，Nitro 渲染器仍会按原始路径匹配 routeRules，导致 SSR。
         const rewritten = path === '/' ? prefix : prefix + path
         event.node.req.url = rewritten
-        // Nitro 的 createRouteRulesHandler 在中间件之前已缓存了原始路径的 routeRules，
-        // 必须清除缓存以便 Nuxt 渲染器用新路径重新匹配（否则 ssr:false 不生效）
-        if (event.context._nitro?.routeRules) {
-          delete event.context._nitro.routeRules
-        }
+        event._path = rewritten
       }
     }
   }
