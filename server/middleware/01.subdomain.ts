@@ -89,6 +89,12 @@ export default defineEventHandler((event) => {
         const rewritten = path === '/' ? prefix : prefix + path
         event.node.req.url = rewritten
         event._path = rewritten
+        // admin 子域名强制 SPA 模式：直接设置 noSSR 标记，绕过 routeRules 缓存问题
+        // （Nitro 的 createRouteRulesHandler 在中间件之前运行，已用原始路径缓存了规则）
+        if (sd === 'admin') {
+          event.context.nuxt = event.context.nuxt || {}
+          event.context.nuxt.noSSR = true
+        }
       }
     }
   }
