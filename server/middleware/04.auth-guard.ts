@@ -26,6 +26,7 @@ const PUBLIC_PREFIXES = [
   '/api/v1/auth/callback',
   '/api/v1/user/',
   '/api/v1/feedback/',   // GET 公开读取评价，POST 内部校验登录态
+  '/api/v1/payments/config', // 支付渠道配置（公开读取，用于渲染收银台）
 ]
 
 export default defineEventHandler((event) => {
