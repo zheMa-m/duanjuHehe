@@ -28,35 +28,41 @@ defineExpose({ showError })
 </script>
 
 <template>
-  <div class="login-root">
+  <div
+    class="login-root"
+    style="flex:1;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px;position:relative;z-index:20"
+  >
 
     <!-- 卡片主体 -->
-    <div class="login-card">
+    <div
+      class="login-card"
+      style="position:relative;width:100%;max-width:400px;padding:40px 36px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10)"
+    >
 
       <!-- 顶部品牌区 -->
-      <div class="login-brand">
-        <div class="login-logo">
-          <span class="login-logo__letter">H</span>
+      <div class="login-brand" style="text-align:center;margin-bottom:32px">
+        <div class="login-logo" style="width:52px;height:52px;border-radius:10px;background:#818cf8;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+          <span class="login-logo__letter" style="font-size:22px;font-weight:700;color:#fff">H</span>
         </div>
-        <h1 class="login-title">管理后台</h1>
-        <p class="login-subtitle">请使用管理员账号登录以继续操作</p>
+        <h1 class="login-title" style="font-size:20px;font-weight:700;color:#fff;margin:0 0 6px">管理后台</h1>
+        <p class="login-subtitle" style="font-size:13px;color:rgba(255,255,255,0.35);margin:0">请使用管理员账号登录以继续操作</p>
       </div>
 
       <!-- 登录表单 -->
-      <form @submit.prevent="handleLogin" class="login-form">
+      <form @submit.prevent="handleLogin" class="login-form" style="display:flex;flex-direction:column;gap:18px">
 
         <!-- 错误提示 -->
         <Transition name="login-error-fade">
-          <div v-if="loginError" class="login-error" role="alert">
+          <div v-if="loginError" class="login-error" role="alert" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:13px;color:#ff453a;background:rgba(255,69,58,0.08);border:1px solid rgba(255,69,58,0.18)">
             <span class="i-lucide-circle-alert text-[14px] flex-shrink-0" />
             <span>{{ loginError }}</span>
           </div>
         </Transition>
 
         <!-- 账号 -->
-        <div class="login-field">
-          <label class="login-label" for="login-username">账号</label>
-          <div class="login-input-wrap">
+        <div class="login-field" style="display:flex;flex-direction:column;gap:7px">
+          <label class="login-label" for="login-username" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.28);padding-left:2px">账号</label>
+          <div class="login-input-wrap" style="position:relative;display:flex;align-items:center">
             <span class="login-input-icon i-lucide-user" />
             <input
               id="login-username"
@@ -66,14 +72,15 @@ defineExpose({ showError })
               autocomplete="username"
               required
               class="login-input"
+              style="width:100%;padding:12px 14px 12px 40px;border-radius:8px;font-size:14px;color:#fff;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);outline:none"
             />
           </div>
         </div>
 
         <!-- 密码 -->
-        <div class="login-field">
-          <label class="login-label" for="login-password">密码</label>
-          <div class="login-input-wrap">
+        <div class="login-field" style="display:flex;flex-direction:column;gap:7px">
+          <label class="login-label" for="login-password" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.28);padding-left:2px">密码</label>
+          <div class="login-input-wrap" style="position:relative;display:flex;align-items:center">
             <span class="login-input-icon i-lucide-lock" />
             <input
               id="login-password"
@@ -83,12 +90,14 @@ defineExpose({ showError })
               autocomplete="current-password"
               required
               class="login-input login-input--has-toggle"
+              style="width:100%;padding:12px 42px 12px 40px;border-radius:8px;font-size:14px;color:#fff;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);outline:none"
             />
             <button
               type="button"
               @click="showPassword = !showPassword"
               class="login-toggle-password"
               :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+              style="position:absolute;right:12px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;padding:4px;color:rgba(255,255,255,0.25)"
             >
               <span v-if="showPassword" class="i-lucide-eye-off text-[15px]" />
               <span v-else class="i-lucide-eye text-[15px]" />
@@ -101,13 +110,14 @@ defineExpose({ showError })
           type="submit"
           :disabled="submitting"
           class="login-submit"
+          style="width:100%;padding:13px 20px;border-radius:8px;border:none;cursor:pointer;background:#818cf8;color:#fff;font-size:15px;font-weight:600;margin-top:4px"
         >
           <Transition name="login-btn-swap" mode="out-in">
-            <span v-if="submitting" key="loading" class="login-submit__inner">
+            <span v-if="submitting" key="loading" class="login-submit__inner" style="display:flex;align-items:center;justify-content:center;gap:8px">
               <span class="login-spinner" />
               <span>验证中…</span>
             </span>
-            <span v-else key="idle" class="login-submit__inner">
+            <span v-else key="idle" class="login-submit__inner" style="display:flex;align-items:center;justify-content:center;gap:8px">
               <span class="i-lucide-log-in text-[15px]" />
               <span>登 录</span>
             </span>
@@ -116,7 +126,7 @@ defineExpose({ showError })
       </form>
 
       <!-- 底部装饰线 -->
-      <p class="login-footer">Hehe Admin · v1.0</p>
+      <p class="login-footer" style="text-align:center;margin:28px 0 0;font-size:11px;font-family:ui-monospace,monospace;color:rgba(255,255,255,0.14)">Hehe Admin · v1.0</p>
     </div>
   </div>
 </template>
