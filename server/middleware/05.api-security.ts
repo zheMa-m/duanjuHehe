@@ -32,6 +32,7 @@ const BYPASS_PREFIXES = [
   '/api/admin/',
   '/api/v1/auth/',
   '/api/v1/access/',
+  '/api/v1/payments/config', // 支付渠道配置公开读取，无需安全检查
 ]
 
 const BYPASS_EXACT = [
