@@ -41,6 +41,11 @@ export default defineEventHandler(async (event) => {
     transactionId: body.paymentId,
   })
 
+  // 支付确认后触发报告生成 + 邮件发送（一次性购买）
+  await starpathService.triggerReportAfterPayment(event, body.orderId).catch((e: any) => {
+    console.warn('[Starpath] Report trigger after PayPal payment failed:', e?.message)
+  })
+
   // Log transaction
   await logPaymentTransaction(event, {
     orderId: body.orderId,

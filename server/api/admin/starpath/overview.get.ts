@@ -26,6 +26,8 @@ export default defineEventHandler(async (event) => {
     { count: totalReports },
     { count: completedReports },
     { count: totalEmails },
+    { count: totalOrders },
+    { count: paidOrders },
   ] = await Promise.all([
     // 总问卷会话数
     db.from('questionnaire_sessions').select('*', { count: 'exact', head: true }),
@@ -37,7 +39,20 @@ export default defineEventHandler(async (event) => {
     db.from('ai_reports').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
     // 邮箱留资数
     db.from('campaign_registrations').select('*', { count: 'exact', head: true }).eq('source', 'starpath-email'),
+    // 总订单数（通过 campaign_orders 关联智能问卷订单）
+    db.from('orders').select('id', { count: 'exact', head: true }).eq('purchase_type', 'one_time'),
+    // 已付款订单数
+    db.from('orders').select('id', { count: 'exact', head: true }).eq('purchase_type', 'one_time').eq('status', 'paid'),
   ])
+
+  // 计算总收入（已付款一次性订单）
+  const { data: revenueRows } = await db
+    .from('orders')
+    .select('amount')
+    .eq('purchase_type', 'one_time')
+    .eq('status', 'paid')
+
+  const totalRevenue = (revenueRows || []).reduce((sum: number, r: any) => sum + (parseFloat(r.amount) || 0), 0)
 
   // 最近 5 条活动（问卷完成 + 报告生成）
   const { data: recentSessions } = await db
@@ -48,7 +63,15 @@ export default defineEventHandler(async (event) => {
 
   const { data: recentReports } = await db
     .from('ai_reports')
-    .select('id, session_id, status, generated_at, created_at')
+    .select('id, session_id, status, generated_at, email_sent, email_sent_at, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  // 最近 5 条订单
+  const { data: recentOrders } = await db
+    .from('orders')
+    .select('id, order_no, amount, currency, status, payment_provider, purchase_type, paid_at, created_at')
+    .eq('purchase_type', 'one_time')
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -65,7 +88,14 @@ export default defineEventHandler(async (event) => {
     emails: {
       total: totalEmails || 0,
     },
+    orders: {
+      total: totalOrders || 0,
+      paid: paidOrders || 0,
+      revenue: Number(totalRevenue.toFixed(2)),
+      conversionRate: completedSessions ? Math.round((paidOrders || 0) / completedSessions * 100) : 0,
+    },
     recentSessions: recentSessions || [],
     recentReports: recentReports || [],
+    recentOrders: recentOrders || [],
   }, 'Overview retrieved')
 })

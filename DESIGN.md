@@ -396,7 +396,7 @@ Admin 圆角不超过 20px（Pill Badge 除外），卡片统一 `rounded-2xl`�
 
 **Sidebar（三模式）**: 三种可切换的侧边栏组件。Grouped 模式支持分组折叠（`max-height` 过渡 `0.25s`）+ collapsed/expanded 切换；Tabbed 模式为域驱动的极简子侧栏，圆点指示器；Compact 模式 hover 展开 + 底部 `Cmd+K` 搜索入口。所有模式共享 `useAdminMenu.ts` 统一数据源（13 项菜单，5 组分类）。底部显示版本号。
 
-**Header**: `bg-[#08080f]/80` + `backdrop-blur-xl` 毛玻璃 + 双层阴影。高度 64px。左侧：LIVE 环境标签 + 面包屑（Grouped）/ 域 Tab 栏（Tabbed）/ Cmd+K 提示（Compact）。右侧：导航模式切换器下拉（三种风格可选）+ 管理员头像 + 退出按钮。
+**Header**: `bg-[#08080f]/80` + `backdrop-blur-xl` 毛玻璃 + 双层阴影。高度 64px。左侧：汉堡菜单按钮（侧边栏隐藏时显示，共享 `@media (min-width: 1280px)` 断点）+ 面包屑（Grouped）/ 域 Tab 栏（Tabbed）/ Cmd+K 提示（Compact）。右侧：导航模式切换器下拉（三种风格可选）+ 管理员头像 + 退出按钮。
 
 **Command Palette**: `Teleport to body`，`Cmd+K` 全局快捷键唤起。`w-[520px] max-h-[420px]` 居中模态，`backdrop-blur-xl`。模糊搜索菜单项、最近使用记录（`localStorage`）、`↑↓/Enter/Esc` 键盘导航、分组展示。过渡动画 `scale(0.96) + translateY(-8px)`。
 

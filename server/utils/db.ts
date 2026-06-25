@@ -81,10 +81,11 @@ export const mockCampaignsTable: Array<Record<string, any>> = [
   }
 ]
 
-// 内存 Mock 商品表
+// 内存 Mock 商品表（tenant_id 使用 BUILTIN_ADMIN_UUID 以与管理端 API 一致）
+const MOCK_ADMIN_TENANT = '9e638ba2-41aa-4434-a68b-6bd9f7ed0963'
 export const mockProductsTable: Array<{ id: string; name: string; price: number; tenant_id?: string; created_at: string }> = [
-  { id: 'p1', name: 'HEHE Pro 工具套件', price: 29.99, tenant_id: 'mock-tenant-abc', created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-  { id: 'p2', name: 'HEHE Enterprise 全套方案', price: 299.00, tenant_id: 'mock-tenant-abc', created_at: new Date(Date.now() - 3600000).toISOString() }
+  { id: 'p1', name: 'HEHE Pro 工具套件', price: 29.99, tenant_id: MOCK_ADMIN_TENANT, created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+  { id: 'p2', name: 'HEHE Enterprise 全套方案', price: 299.00, tenant_id: MOCK_ADMIN_TENANT, created_at: new Date(Date.now() - 3600000).toISOString() }
 ]
 
 // 内存 Mock 订单表
@@ -708,9 +709,7 @@ function getLocalMockDB() {
       // ── Bucket CRUD Mock ──────────────────────────────────
       listBuckets: async () => {
         const systemBuckets = [
-          { name: 'avatars', public: true, file_size_limit: 2 * 1024 * 1024, allowed_mime_types: ['image/*'], created_at: '2026-01-01T00:00:00Z' },
           { name: 'campaign-assets', public: true, file_size_limit: 10 * 1024 * 1024, allowed_mime_types: ['image/*', 'video/mp4'], created_at: '2026-01-01T00:00:00Z' },
-          { name: 'uploads', public: false, file_size_limit: 50 * 1024 * 1024, allowed_mime_types: null, created_at: '2026-01-01T00:00:00Z' },
         ]
         return { data: [...systemBuckets, ...mockCustomBuckets], error: null }
       },

@@ -9,26 +9,33 @@ defineRouteMeta({
   openAPI: {
     tags: ['管理端商品'],
     summary: '管理员同步 Stripe 商品目录',
-    description: '管理员可用此端点连接 Stripe API 拉取最新活跃产品及价格映射，自动导入/更新到本地商品库中。',
+    description: '管理员可用此端点连接 Stripe API 拉取最新活跃产品及价格映射，自动导入/更新到本地商品库中，并返回差异报告。',
     security: [{ BearerAuth: [] }],
     responses: {
-      200: { description: '同步商品目录成功' },
+      200: { description: '同步商品目录成功（含差异报告）' },
     },
   } as any,
 })
 
 /**
- * 同步 Stripe 商品目录
+ * 同步 Stripe 商品目录（增强版）
  * POST /api/admin/products/sync-stripe
+ *
+ * 改进：
+ * - auto-pagination 支持 >100 个 Stripe 商品
+ * - 批量构建内存索引，消除 N+1 查询
+ * - 返回差异报告 { created, updated, skipped, deactivated }
+ * - 自动下架 Stripe 已归档但本地仍 active 的商品
  */
 export default defineEventHandler(async (event) => {
   const user = assertAdmin(event)
   const db = getDB(event)
 
-  let syncCount = 0
+  const report = { created: 0, updated: 0, skipped: 0, deactivated: 0, errors: [] as string[] }
 
   if (process.env.MOCK_DB === 'true') {
-    // 1. Mock 模式仿真同步
+    // ── Mock 模式仿真同步 ──────────────────────────────────────────────
+    try {
     const mockProducts = [
       {
         id: 'p-stripe-1',
@@ -64,11 +71,14 @@ export default defineEventHandler(async (event) => {
 
     for (const p of mockProducts) {
       await db.from('products').upsert(p)
-      syncCount++
+      report.created++
+    }
+    } catch (err: any) {
+      console.error('[Stripe Sync Mock] Error:', err.message)
+      report.errors.push(err.message)
     }
   } else {
-    // 2. 真实 Stripe API 同步
-    // 从 system_configs 读取 Stripe 私钥
+    // ── 真实 Stripe API 同步 ────────────────────────────────────────────
     const { data: secretsRow } = await db
       .from('system_configs')
       .select('value')
@@ -79,33 +89,40 @@ export default defineEventHandler(async (event) => {
     const stripe = getStripeClient(stripeSecretKey)
 
     if (!stripe) {
-      throw createError({ statusCode: 500, statusMessage: 'Stripe client is not configured' })
+      throw createError({ statusCode: 400, statusMessage: '请先在系统设置中配置 Stripe Secret Key（设置 → 支付密钥 → Stripe secretKey）' })
     }
 
-    try {
-      // 获取 Stripe 活跃的产品
-      const productsRes = await stripe.products.list({ active: true, limit: 100 })
-      
-      for (const product of productsRes.data) {
-        // 获取该产品关联的活跃的价格列表
-        const pricesRes = await stripe.prices.list({ product: product.id, active: true, limit: 10 })
-        if (pricesRes.data.length === 0) continue
+    // 1. 批量查询本地所有商品，构建内存索引 Map<stripeProductId, localRow>
+    const { data: localProducts } = await db
+      .from('products')
+      .select('*')
+      .eq('tenant_id', BUILTIN_ADMIN_UUID)
 
-        // 取最新的或者首选价格作为默认
+    const localByStripeId = new Map<string, any>()
+    for (const p of (localProducts || [])) {
+      const stripeProductId = p.payment_meta?.stripe?.productId
+      if (stripeProductId) {
+        localByStripeId.set(stripeProductId, p)
+      }
+    }
+
+    // 2. Auto-pagination: 拉取全部 Stripe 活跃产品
+    const stripeProductIds = new Set<string>()
+
+    try {
+      for await (const product of stripe.products.list({ active: true, limit: 100 })) {
+        stripeProductIds.add(product.id)
+
+        // 获取该产品关联的活跃价格
+        const pricesRes = await stripe.prices.list({ product: product.id, active: true, limit: 10 })
+        if (pricesRes.data.length === 0) {
+          report.skipped++
+          continue
+        }
+
         const priceObj = pricesRes.data[0]
         const amount = (priceObj.unit_amount || 0) / 100
-
-        // 使用产品 id 作为本地商品 UUID (为防长度不匹配，可以通过 hash 生成或让 postgres 自行生成 UUID，
-        // 最佳实践是将 Stripe Product ID 作为 payment_meta.stripe.productId 存储，并基于此做对齐 upsert)
-        // 检查本地是否已存在该 Stripe 产品的映射
-        const { data: existingProducts } = await db
-          .from('products')
-          .select('*')
-          .eq('tenant_id', BUILTIN_ADMIN_UUID)
-
-        const matched = (existingProducts || []).find(
-          (x: any) => x.payment_meta?.stripe?.productId === product.id
-        )
+        const matched = localByStripeId.get(product.id)
 
         const payload: any = {
           name: product.name,
@@ -119,18 +136,42 @@ export default defineEventHandler(async (event) => {
               mode: priceObj.type === 'recurring' ? 'subscription' : 'payment'
             }
           },
+          pricing: {
+            base_price: amount,
+            currency: (priceObj.currency || 'usd').toUpperCase(),
+            billing_interval: priceObj.recurring?.interval || 'one_time',
+          },
           updated_at: new Date().toISOString()
         }
 
         if (matched) {
+          // 价格或名称有变化才更新
+          const priceChanged = Math.abs(Number(matched.price) - amount) > 0.001
+          const nameChanged = matched.name !== product.name
+          if (!priceChanged && !nameChanged) {
+            report.skipped++
+            continue
+          }
           await db.from('products').update(payload).eq('id', matched.id)
+          report.updated++
         } else {
           await db.from('products').insert({
             ...payload,
             created_at: new Date().toISOString()
           })
+          report.created++
         }
-        syncCount++
+      }
+
+      // 3. 自动下架：本地 active 但 Stripe 已不存在的产品
+      for (const [stripeId, localRow] of localByStripeId) {
+        if (localRow.is_active && !stripeProductIds.has(stripeId)) {
+          await db.from('products').update({
+            is_active: false,
+            updated_at: new Date().toISOString()
+          }).eq('id', localRow.id)
+          report.deactivated++
+        }
       }
     } catch (err: any) {
       console.error('[Stripe Sync] Failed to sync products:', err.message)
@@ -138,12 +179,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const total = report.created + report.updated + report.skipped + report.deactivated
+
   await logAuditEvent(
     event,
     user,
-    `PRODUCT_STRIPE_SYNC:synchronized_count=${syncCount}`,
+    `PRODUCT_STRIPE_SYNC:created=${report.created}:updated=${report.updated}:skipped=${report.skipped}:deactivated=${report.deactivated}`,
     'SUCCESS'
   )
 
-  return sendSuccess(event, { synchronized: syncCount }, `Successfully synchronized ${syncCount} products from Stripe`)
+  return sendSuccess(event, report, `Stripe sync complete: ${report.created} created, ${report.updated} updated, ${report.skipped} skipped, ${report.deactivated} deactivated`)
 })

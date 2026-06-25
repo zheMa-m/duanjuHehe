@@ -56,8 +56,28 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Failed to fetch orders' })
   }
 
+  // 批量合并用户信息（email + display_name）
+  let items = orders || []
+  if (items.length > 0) {
+    const userIds = [...new Set(items.map((o: any) => o.user_id).filter(Boolean))] as string[]
+    if (userIds.length > 0) {
+      const { data: profiles } = await db.from('profiles')
+        .select('id, email, display_name')
+        .in('id', userIds)
+      const userMap: Record<string, any> = {}
+      for (const p of (profiles || []) as any[]) {
+        userMap[p.id] = p
+      }
+      items = items.map((o: any) => ({
+        ...o,
+        user_email: userMap[o.user_id]?.email || null,
+        user_display_name: userMap[o.user_id]?.display_name || null,
+      }))
+    }
+  }
+
   return sendSuccess(event, {
-    items: orders || [],
+    items: items,
     pagination: {
       page,
       pageSize,

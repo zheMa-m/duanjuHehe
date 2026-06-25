@@ -6,6 +6,7 @@ interface Policy {
   country_policy: { enabled: boolean; mode: 'whitelist' | 'blacklist'; countries: string[] }
   signature_required: boolean
   endpoint_overrides: Record<string, { enabled?: boolean; rateLimit?: number }>
+  cors_config?: { allowed_origins: string[]; allowed_methods: string[]; allowed_headers: string[]; allow_credentials: boolean; max_age: number }
   updated_at: string | null
 }
 
@@ -47,8 +48,10 @@ const subTabs = [
   { key: 'rate', label: '速率限制', iconClass: 'i-lucide-zap' },
   { key: 'ip', label: 'IP 控制', iconClass: 'i-lucide-globe' },
   { key: 'country', label: '国家限制', iconClass: 'i-lucide-map' },
+  { key: 'geo', label: '地理分布', iconClass: 'i-lucide-earth' },
   { key: 'keys', label: 'API Key', iconClass: 'i-lucide-key' },
   { key: 'endpoints', label: '端点覆盖', iconClass: 'i-lucide-link' },
+  { key: 'cors', label: 'CORS', iconClass: 'i-lucide-shield' },
   { key: 'logs', label: '安全日志', iconClass: 'i-lucide-clipboard-list' },
   { key: 'twofa', label: '双因素认证', iconClass: 'i-lucide-smartphone' },
 ]
@@ -75,6 +78,7 @@ const logsTotal = ref(0)
 const logEventFilter = ref('')
 const logDateFrom = ref('')
 const logDateTo = ref('')
+const confirmDialog = ref()
 
 const logTotalPages = computed(() => Math.max(1, Math.ceil(logsTotal.value / logsPageSize.value)))
 
@@ -210,9 +214,142 @@ const loadLogs = async () => {
 
 onMounted(async () => {
   isLoading.value = true
-  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview(), loadTwoFAStatus()])
+  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview(), loadTwoFAStatus(), loadGeoStats(), loadTimeline(), loadLifecycle(), loadAlerts(), loadConfigAudit()])
   isLoading.value = false
+  // 启动告警轮询（30s）
+  startAlertPolling()
 })
+
+onUnmounted(() => { stopAlertPolling() })
+
+// ── 地理分布 ──────────────────────────────────────────────────
+interface GeoCountry { code: string; name: string; count: number; blocked: number }
+const geoCountries = ref<GeoCountry[]>([])
+const geoTotalEvents = computed(() => geoCountries.value.reduce((s, c) => s + c.count, 0))
+
+const loadGeoStats = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: { countries: GeoCountry[] } }>('/api/admin/security/geo-stats')
+    geoCountries.value = res.data.countries || []
+  } catch { /* 静默 */ }
+}
+
+// ── 安全事件时间线 ──────────────────────────────────────────
+interface TimelineBucket { time: string; count: number; types: Record<string, number> }
+const timelineBuckets = ref<TimelineBucket[]>([])
+const timelineGranularity = ref<'hour' | 'day'>('day')
+const timelineDays = ref(7)
+const timelineMaxCount = computed(() => Math.max(1, ...timelineBuckets.value.map(b => b.count)))
+
+const loadTimeline = async () => {
+  try {
+    const params = new URLSearchParams({ granularity: timelineGranularity.value, days: String(timelineDays.value) })
+    const res = await $fetch<{ success: boolean; data: { buckets: TimelineBucket[] } }>(`/api/admin/security/timeline?${params}`)
+    timelineBuckets.value = res.data.buckets || []
+  } catch { /* 静默 */ }
+}
+
+// ── 实时告警（30s 轮询） ──────────────────────────────────
+interface AlertEvent { id: number; action: string; ip: string; path: string; country: string; keyPrefix: string | null; created_at: string }
+const alerts = ref<AlertEvent[]>([])
+const alertsTotal = ref(0)
+const alertsDismissed = ref(false)
+let alertTimer: ReturnType<typeof setInterval> | null = null
+
+const loadAlerts = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: { alerts: AlertEvent[]; total: number } }>('/api/admin/security/alerts')
+    alerts.value = res.data.alerts || []
+    alertsTotal.value = res.data.total ?? 0
+    if (alertsTotal.value > 0) alertsDismissed.value = false
+  } catch { /* 静默 */ }
+}
+
+const startAlertPolling = () => {
+  stopAlertPolling()
+  alertTimer = setInterval(loadAlerts, 30_000)
+}
+const stopAlertPolling = () => {
+  if (alertTimer) { clearInterval(alertTimer); alertTimer = null }
+}
+
+// ── Key 生命周期 ──────────────────────────────────────────
+interface KeyLifecycle { distribution: { active: number; lowUsage: number; dormant: number; neverUsed: number }; expiringIn30d: any[]; expired: any[]; totalActive: number; totalAll: number }
+const lifecycle = ref<KeyLifecycle | null>(null)
+
+const loadLifecycle = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: KeyLifecycle }>('/api/admin/security/keys/lifecycle')
+    lifecycle.value = res.data
+  } catch { /* 静默 */ }
+}
+
+// ── CORS 配置 ──────────────────────────────────────────────
+const corsOriginsText = computed(() => (policy.value?.cors_config?.allowed_origins || []).join('\n'))
+const corsMethods = computed(() => policy.value?.cors_config?.allowed_methods || ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+const corsHeadersText = computed(() => (policy.value?.cors_config?.allowed_headers || []).join(', '))
+const corsCredentials = computed(() => policy.value?.cors_config?.allow_credentials ?? false)
+const corsMaxAge = computed(() => policy.value?.cors_config?.max_age ?? 86400)
+const ALL_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'] as const
+const DEFAULT_CORS = { allowed_origins: [] as string[], allowed_methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as string[], allowed_headers: [] as string[], allow_credentials: false, max_age: 86400 }
+const ensureCorsConfig = () => {
+  if (policy.value && !policy.value.cors_config) {
+    policy.value.cors_config = { ...DEFAULT_CORS }
+  }
+}
+
+const toggleCorsMethod = (m: string) => {
+  if (!policy.value) return
+  const cc = policy.value.cors_config || { allowed_origins: [], allowed_methods: [], allowed_headers: [], allow_credentials: false, max_age: 86400 }
+  const methods = [...(cc.allowed_methods || [])]
+  const idx = methods.indexOf(m)
+  if (idx >= 0) methods.splice(idx, 1)
+  else methods.push(m)
+  policy.value.cors_config = { ...cc, allowed_methods: methods }
+}
+
+const saveCors = () => {
+  if (!policy.value) return
+  const origins = corsOriginsText.value.split('\n').map(s => s.trim()).filter(Boolean)
+  const headers = corsHeadersText.value.split(',').map(s => s.trim()).filter(Boolean)
+  savePolicy({
+    cors_config: {
+      allowed_origins: origins,
+      allowed_methods: [...corsMethods.value],
+      allowed_headers: headers,
+      allow_credentials: corsCredentials.value,
+      max_age: corsMaxAge.value,
+    },
+  } as any)
+}
+
+// ── 配置审计日志 ──────────────────────────────────────────
+interface ConfigAuditEntry { id: number; action: string; user_id: string | null; metadata: Record<string, any>; created_at: string }
+const configAuditLogs = ref<ConfigAuditEntry[]>([])
+
+const loadConfigAudit = async () => {
+  try {
+    const res = await $fetch<{ success: boolean; data: { items: ConfigAuditEntry[] } }>(`/api/admin/audit-logs?category=admin&action=SECURITY_POLICY_UPDATE&pageSize=10`)
+    configAuditLogs.value = res.data.items || []
+  } catch { /* 静默 */ }
+}
+
+// ── 日志时间线视图切换 ──────────────────────────────────
+const logsViewMode = ref<'table' | 'timeline'>('table')
+const logsGroupedByDate = computed(() => {
+  const groups: Record<string, SecurityLog[]> = {}
+  for (const log of logs.value) {
+    const dateKey = new Date(log.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    if (!groups[dateKey]) groups[dateKey] = []
+    groups[dateKey].push(log)
+  }
+  return groups
+})
+const getLogTypeDistribution = (group: SecurityLog[]) => {
+  const dist: Record<string, number> = {}
+  for (const log of group) dist[log.action] = (dist[log.action] || 0) + 1
+  return dist
+}
 
 // ── 保存策略 ──────────────────────────────────────────────────
 const savePolicy = async (patch: Partial<Policy>) => {
@@ -301,7 +438,7 @@ const createKey = async () => {
 }
 
 const revokeKey = async (key: ApiKey) => {
-  if (!confirm(`确定要吊销 API Key「${key.name}」(${key.key_prefix}...) 吗？\n此操作不可恢复。`)) return
+  if (!await confirmDialog.value.show(`确定要吊销 API Key「${key.name}」(${key.key_prefix}...) 吗？`, { title: '吊销 API Key', detail: '此操作不可恢复。', confirmText: '确认吊销', icon: 'i-lucide-key-round' })) return
   try {
     await $fetch(`/api/admin/security/keys/${key.id}`, { method: 'DELETE' })
     await loadKeys()
@@ -441,7 +578,7 @@ const batchRevoking = ref(false)
 const batchRevokeKeys = async () => {
   if (selectedKeyIds.value.size === 0) return
   const names = keys.value.filter(k => selectedKeyIds.value.has(k.id)).map(k => k.name).join('、')
-  if (!confirm(`确定要批量吊销以下 ${selectedKeyIds.value.size} 个 API Key 吗？\n${names}\n\n此操作不可恢复。`)) return
+  if (!await confirmDialog.value.show(`确定要批量吊销以下 ${selectedKeyIds.value.size} 个 API Key 吗？`, { title: '批量吊销 API Key', detail: `${names}\n\n此操作不可恢复。`, confirmText: '确认吊销', icon: 'i-lucide-key-round' })) return
   batchRevoking.value = true
   try {
     const res = await $fetch<{ success: boolean; data: { successCount: number; failCount: number } }>('/api/admin/security/keys/batch-revoke', {
@@ -455,6 +592,41 @@ const batchRevokeKeys = async () => {
   finally { batchRevoking.value = false }
 }
 
+// ── 安全建议（基于当前配置状态生成） ─────────────────────────
+const securityRecommendations = computed(() => {
+  const recs: { label: string; desc: string; tab: string; severity: 'critical' | 'warning' | 'info'; done: boolean }[] = []
+  const cs = configStatus.value
+  if (!cs) return recs
+  recs.push({ label: '启用速率限制', desc: '防止 API 被滥用和 DDoS 攻击', tab: 'rate', severity: 'critical', done: !!cs.rate_limit })
+  recs.push({ label: '配置 IP 访问控制', desc: '限制可疑 IP 地址的访问', tab: 'ip', severity: 'warning', done: cs.ip_policy_mode !== 'disabled' })
+  recs.push({ label: '启用请求签名验证', desc: 'HMAC-SHA256 签名防止请求篡改', tab: 'keys', severity: 'critical', done: !!cs.signature_required })
+  recs.push({ label: '开启双因素认证', desc: '为管理员账户添加额外安全层', tab: 'twofa', severity: 'critical', done: !!twoFAStatus.value?.enabled })
+  recs.push({ label: '配置国家限制', desc: '阻止高风险地区的异常请求', tab: 'country', severity: 'warning', done: !!cs.country_policy })
+  recs.push({ label: '设置端点覆盖', desc: '为敏感接口配置独立速率限制', tab: 'endpoints', severity: 'info', done: (cs.endpoint_overrides_count ?? 0) > 0 })
+  return recs
+})
+
+const completedRecs = computed(() => securityRecommendations.value.filter(r => r.done).length)
+const totalRecs = computed(() => securityRecommendations.value.length)
+
+// ── 日志展开行 ────────────────────────────────────────────────
+const expandedLogId = ref<number | null>(null)
+const toggleLogExpand = (id: number) => { expandedLogId.value = expandedLogId.value === id ? null : id }
+
+// ── IP 校验辅助 ───────────────────────────────────────────────
+const isValidIp = (s: string) => /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(s.trim()) || /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}(\/\d{1,3})?$/.test(s.trim())
+const ipListFromText = (text: string) => text.split('\n').map(s => s.trim()).filter(Boolean)
+const ipValidationStats = computed(() => {
+  const list = ipMode.value === 'whitelist'
+    ? ipListFromText(ipWhitelistText.value)
+    : ipListFromText(ipBlacklistText.value)
+  const valid = list.filter(isValidIp).length
+  return { total: list.length, valid, invalid: list.length - valid }
+})
+
+// ── 跳转 Tab ──────────────────────────────────────────────────
+const jumpToTab = (tab: string) => { subTab.value = tab }
+
 // ── 辅助 ──────────────────────────────────────────────────────
 const copyText = async (text: string) => {
   try { await navigator.clipboard.writeText(text); emit('toast', '已复制到剪贴板', 'success') } catch { emit('toast', '复制失败', 'error') }
@@ -465,8 +637,26 @@ const codeLabel = (action: string) => action.replace('api_security_', '').toUppe
 
 const refreshAll = async () => {
   isLoading.value = true
-  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview(), loadTwoFAStatus()])
+  await Promise.all([loadPolicy(), loadKeys(), loadLogs(), loadOverview(), loadTwoFAStatus(), loadGeoStats(), loadTimeline(), loadLifecycle(), loadAlerts(), loadConfigAudit()])
   isLoading.value = false
+}
+
+// ── 危险开关确认 ──────────────────────────────────────────────
+const handleRateToggle = async () => {
+  const newVal = !rateForm.value.enabled
+  if (!newVal) {
+    if (!await confirmDialog.value.show('关闭速率限制后，API 将失去请求频率保护，可能面临滥用风险。', { title: '关闭速率限制', detail: '建议保持启用状态以确保安全。', confirmText: '确认关闭', icon: 'i-lucide-zap' })) return
+  }
+  policy.value!.rate_limit.enabled = newVal
+}
+
+const handleSigToggle = async () => {
+  const newVal = !sigRequired.value
+  if (!newVal) {
+    if (!await confirmDialog.value.show('关闭全局签名验证后，API 请求将不再校验 HMAC 签名，存在请求篡改风险。', { title: '关闭签名验证', detail: '建议保持启用状态以确保安全。', confirmText: '确认关闭', icon: 'i-lucide-shield-off' })) return
+  }
+  if (policy.value) policy.value.signature_required = newVal
+  saveSig()
 }
 </script>
 
@@ -494,6 +684,30 @@ const refreshAll = async () => {
       </button>
     </div>
 
+    <!-- 实时告警横幅 -->
+    <div v-if="alertsTotal > 0 && !alertsDismissed" class="bg-[#ff453a]/[0.08] border border-[#ff453a]/20 rounded-2xl px-5 py-3 flex items-center justify-between animate-fade-in">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="i-lucide-shield-alert text-[#ff453a] text-lg shrink-0 animate-pulse" />
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-[#ff453a]">{{ alertsTotal }} 条安全告警</span>
+            <span class="text-[10px] text-white/30 font-mono">最近 5 分钟</span>
+          </div>
+          <div v-if="alerts[0]" class="text-[11px] text-white/50 truncate">
+            {{ codeLabel(alerts[0].action) }} · {{ alerts[0].ip || '-' }} · {{ alerts[0].path || '-' }}
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button @click="jumpToTab('logs')" class="text-[11px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-3 py-1.5 rounded-full border border-[#ff453a]/20 transition-all cursor-pointer">
+          查看日志
+        </button>
+        <button @click="alertsDismissed = true" class="text-white/30 hover:text-white/60 cursor-pointer bg-transparent border-0 p-1">
+          <span class="i-lucide-x text-sm" />
+        </button>
+      </div>
+    </div>
+
     <!-- ═══ 安全概览 ═══ -->
     <div v-if="subTab === 'overview'" class="space-y-6">
       <!-- 加载骨架屏 -->
@@ -516,25 +730,26 @@ const refreshAll = async () => {
         </div>
       </template>
 
-      <!-- 安全评分卡片 -->
+      <!-- 安全评分卡片（环形进度条） -->
       <div v-if="overview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-[11px] text-white/40 uppercase tracking-widest font-mono">安全评分</span>
-            <span class="flex items-center gap-1.5">
-              <span :class="['inline-block w-2 h-2 rounded-full', scoreGrade.color.replace('text-', 'bg-')]" />
-              <span :class="['text-[10px] font-semibold', scoreGrade.color]">{{ scoreGrade.label }}</span>
-            </span>
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06] flex flex-col items-center text-center">
+          <div class="relative w-24 h-24 mb-3">
+            <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="8" />
+              <circle cx="50" cy="50" r="42" fill="none"
+                :stroke="securityScore >= 80 ? '#30d158' : securityScore >= 60 ? '#ff9f0a' : '#ff453a'"
+                stroke-width="8" stroke-linecap="round"
+                :stroke-dasharray="2 * Math.PI * 42"
+                :stroke-dashoffset="2 * Math.PI * 42 * (1 - securityScore / 100)"
+                class="transition-all duration-700" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-3xl font-bold text-white tracking-tighter">{{ securityScore }}</span>
+              <span class="text-[10px] text-white/30">/ 100</span>
+            </div>
           </div>
-          <div class="flex items-baseline gap-1">
-            <span class="text-4xl font-bold text-white tracking-tighter">{{ securityScore }}</span>
-            <span class="text-white/30 text-sm">/ 100</span>
-          </div>
-          <div class="mt-3 w-full bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
-            <div class="h-full rounded-full transition-all duration-500"
-              :class="securityScore >= 80 ? 'bg-[#30d158]' : securityScore >= 60 ? 'bg-[#ff9f0a]' : 'bg-[#ff453a]'"
-              :style="{ width: securityScore + '%' }" />
-          </div>
+          <span :class="['text-[10px] font-semibold px-2.5 py-1 rounded-full border', scoreGrade.bg, scoreGrade.color, scoreGrade.border]">{{ scoreGrade.label }}</span>
+          <div class="mt-2 text-[10px] text-white/30">{{ completedRecs }}/{{ totalRecs }} 项安全配置已启用</div>
         </div>
 
         <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
@@ -578,37 +793,52 @@ const refreshAll = async () => {
             <span class="i-lucide-shield-check text-sm text-indigo-400" /> 安全配置状态
           </h3>
           <div class="space-y-3">
-            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+            <button @click="jumpToTab('rate')" class="flex items-center justify-between py-2 border-b border-white/[0.04] w-full cursor-pointer bg-transparent hover:bg-white/[0.02] -mx-2 px-2 rounded transition-colors">
               <span class="text-xs text-white/60">速率限制</span>
-              <span :class="configStatus?.rate_limit ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold flex items-center gap-1">
-                <span :class="configStatus?.rate_limit ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
-                {{ configStatus?.rate_limit ? '已启用' : '未启用' }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <div class="flex items-center gap-2">
+                <span :class="configStatus?.rate_limit ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold flex items-center gap-1">
+                  <span :class="configStatus?.rate_limit ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
+                  {{ configStatus?.rate_limit ? '已启用' : '未启用' }}
+                </span>
+                <span class="i-lucide-chevron-right text-white/10 text-xs" />
+              </div>
+            </button>
+            <button @click="jumpToTab('ip')" class="flex items-center justify-between py-2 border-b border-white/[0.04] w-full cursor-pointer bg-transparent hover:bg-white/[0.02] -mx-2 px-2 rounded transition-colors">
               <span class="text-xs text-white/60">IP 访问控制</span>
-              <span :class="configStatus?.ip_policy_mode !== 'disabled' ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold">
-                {{ configStatus?.ip_policy_mode === 'whitelist' ? '白名单模式' : configStatus?.ip_policy_mode === 'blacklist' ? '黑名单模式' : '未启用' }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <div class="flex items-center gap-2">
+                <span :class="configStatus?.ip_policy_mode !== 'disabled' ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold">
+                  {{ configStatus?.ip_policy_mode === 'whitelist' ? '白名单模式' : configStatus?.ip_policy_mode === 'blacklist' ? '黑名单模式' : '未启用' }}
+                </span>
+                <span class="i-lucide-chevron-right text-white/10 text-xs" />
+              </div>
+            </button>
+            <button @click="jumpToTab('country')" class="flex items-center justify-between py-2 border-b border-white/[0.04] w-full cursor-pointer bg-transparent hover:bg-white/[0.02] -mx-2 px-2 rounded transition-colors">
               <span class="text-xs text-white/60">国家限制</span>
-              <span :class="configStatus?.country_policy ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold flex items-center gap-1">
-                <span :class="configStatus?.country_policy ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
-                {{ configStatus?.country_policy ? '已启用' : '未启用' }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between py-2 border-b border-white/[0.04]">
+              <div class="flex items-center gap-2">
+                <span :class="configStatus?.country_policy ? 'text-[#30d158]' : 'text-[#ff9f0a]'" class="text-xs font-semibold flex items-center gap-1">
+                  <span :class="configStatus?.country_policy ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
+                  {{ configStatus?.country_policy ? '已启用' : '未启用' }}
+                </span>
+                <span class="i-lucide-chevron-right text-white/10 text-xs" />
+              </div>
+            </button>
+            <button @click="jumpToTab('keys')" class="flex items-center justify-between py-2 border-b border-white/[0.04] w-full cursor-pointer bg-transparent hover:bg-white/[0.02] -mx-2 px-2 rounded transition-colors">
               <span class="text-xs text-white/60">请求签名 (HMAC-SHA256)</span>
-              <span :class="configStatus?.signature_required ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold flex items-center gap-1">
-                <span :class="configStatus?.signature_required ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
-                {{ configStatus?.signature_required ? '已启用' : '未启用' }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2">
+                <span :class="configStatus?.signature_required ? 'text-[#30d158]' : 'text-[#ff453a]'" class="text-xs font-semibold flex items-center gap-1">
+                  <span :class="configStatus?.signature_required ? 'i-lucide-check-circle' : 'i-lucide-x-circle'" class="text-[12px]" />
+                  {{ configStatus?.signature_required ? '已启用' : '未启用' }}
+                </span>
+                <span class="i-lucide-chevron-right text-white/10 text-xs" />
+              </div>
+            </button>
+            <button @click="jumpToTab('endpoints')" class="flex items-center justify-between py-2 w-full cursor-pointer bg-transparent hover:bg-white/[0.02] -mx-2 px-2 rounded transition-colors">
               <span class="text-xs text-white/60">端点覆盖</span>
-              <span class="text-xs font-semibold text-white/50">{{ configStatus?.endpoint_overrides_count ?? 0 }} 条规则</span>
-            </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-white/50">{{ configStatus?.endpoint_overrides_count ?? 0 }} 条规则</span>
+                <span class="i-lucide-chevron-right text-white/10 text-xs" />
+              </div>
+            </button>
           </div>
         </div>
 
@@ -619,9 +849,11 @@ const refreshAll = async () => {
           <div v-if="recentThreats.length" class="space-y-2.5">
             <div v-for="log in recentThreats" :key="log.id"
               class="flex items-start gap-3 py-2 border-b border-white/[0.04] last:border-0">
-              <span :class="['inline-block w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
-                logSeverity(log.action) === 'high' ? 'bg-[#ff453a]' :
-                logSeverity(log.action) === 'medium' ? 'bg-[#ff9f0a]' : 'bg-[#30d158]']" />
+              <span :class="[
+                logSeverity(log.action) === 'high' ? 'i-lucide-shield-alert text-[#ff453a]' :
+                logSeverity(log.action) === 'medium' ? 'i-lucide-alert-triangle text-[#ff9f0a]' :
+                'i-lucide-info text-[#30d158]'
+              ]" class="text-sm shrink-0 mt-0.5" />
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                   <span :class="['text-[10px] px-1.5 py-0.5 rounded font-mono', severityStyle(log.action)]">{{ codeLabel(log.action) }}</span>
@@ -631,7 +863,96 @@ const refreshAll = async () => {
               </div>
             </div>
           </div>
-          <div v-else class="text-sm text-white/25 py-6 text-center">暂无安全事件，系统运行正常</div>
+          <div v-else class="text-sm text-white/25 py-6 text-center">
+            <span class="i-lucide-shield-check text-xl text-white/10 block mb-2" />
+            暂无安全事件，系统运行正常
+          </div>
+        </div>
+      </div>
+
+      <!-- 安全建议清单 -->
+      <div v-if="overview" class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+            <span class="i-lucide-list-checks text-sm text-indigo-400" /> 安全配置清单
+          </h3>
+          <span class="text-[10px] text-white/30 font-mono">{{ completedRecs }}/{{ totalRecs }} 已完成</span>
+        </div>
+        <div class="w-full bg-white/[0.04] rounded-full h-1 overflow-hidden mb-4">
+          <div class="h-full rounded-full transition-all duration-500"
+            :class="completedRecs === totalRecs ? 'bg-[#30d158]' : 'bg-indigo-500'"
+            :style="{ width: (totalRecs > 0 ? (completedRecs / totalRecs * 100) : 0) + '%' }" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <button v-for="rec in securityRecommendations" :key="rec.label"
+            @click="jumpToTab(rec.tab)"
+            class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer text-left bg-transparent"
+            :class="rec.done
+              ? 'bg-[#30d158]/[0.04] border-[#30d158]/10 hover:bg-[#30d158]/[0.08]'
+              : rec.severity === 'critical'
+                ? 'bg-[#ff453a]/[0.04] border-[#ff453a]/10 hover:bg-[#ff453a]/[0.08]'
+                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]'">
+            <span :class="rec.done ? 'i-lucide-check-circle text-[#30d158]' : rec.severity === 'critical' ? 'i-lucide-alert-circle text-[#ff453a]' : 'i-lucide-circle text-white/20'" class="text-base shrink-0" />
+            <div class="min-w-0">
+              <div class="text-xs font-semibold" :class="rec.done ? 'text-[#30d158]' : 'text-white/80'">{{ rec.label }}</div>
+              <div class="text-[10px] text-white/30 truncate">{{ rec.desc }}</div>
+            </div>
+            <span class="i-lucide-chevron-right text-white/10 text-xs shrink-0 ml-auto" />
+          </button>
+        </div>
+      </div>
+
+      <!-- 安全事件时间线 -->
+      <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+            <span class="i-lucide-activity text-sm text-indigo-400" /> 安全事件时间线
+          </h3>
+          <div class="flex items-center gap-2">
+            <button v-for="g in ['hour','day'] as const" :key="g" @click="timelineGranularity = g; loadTimeline()"
+              class="text-[10px] font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer focus:outline-none"
+              :class="timelineGranularity === g ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : 'bg-white/[0.03] text-white/40 border-white/[0.08]'">
+              {{ g === 'hour' ? '按小时' : '按天' }}
+            </button>
+          </div>
+        </div>
+        <div v-if="timelineBuckets.length" class="flex items-end gap-px h-24">
+          <div v-for="b in timelineBuckets" :key="b.time" class="flex-1 flex flex-col items-center gap-1 group relative">
+            <div class="w-full rounded-t transition-all hover:opacity-80"
+              :style="{ height: Math.max(2, (b.count / timelineMaxCount) * 80) + 'px' }"
+              :class="b.count > 0 ? 'bg-indigo-500/60' : 'bg-white/[0.04]'" />
+            <div class="hidden group-hover:block absolute -top-8 bg-black/90 text-[10px] text-white/80 px-2 py-1 rounded whitespace-nowrap z-10 font-mono">
+              {{ new Date(b.time).toLocaleDateString() }} · {{ b.count }} 事件
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-sm text-white/25 py-6 text-center">
+          <span class="i-lucide-activity text-xl text-white/10 block mb-2" />
+          暂无时间线数据
+        </div>
+      </div>
+
+      <!-- 近期配置变更 -->
+      <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+        <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <span class="i-lucide-history text-sm text-[#ff9f0a]" /> 近期配置变更
+        </h3>
+        <div v-if="configAuditLogs.length" class="space-y-2">
+          <div v-for="entry in configAuditLogs" :key="entry.id"
+            class="flex items-start gap-3 py-2 border-b border-white/[0.04] last:border-0">
+            <span class="i-lucide-settings text-xs text-white/20 shrink-0 mt-0.5" />
+            <div class="min-w-0 flex-1">
+              <div class="text-xs text-white/70 truncate">{{ entry.action }}</div>
+              <div class="text-[10px] text-white/25 font-mono mt-0.5">
+                {{ fmtDate(entry.created_at) }}
+                <span v-if="entry.user_id" class="ml-2">· {{ entry.user_id.slice(0, 8) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-sm text-white/25 py-4 text-center">
+          <span class="i-lucide-history text-xl text-white/10 block mb-2" />
+          暂无配置变更记录
         </div>
       </div>
 
@@ -644,16 +965,16 @@ const refreshAll = async () => {
           <div v-if="expiredKeys.length" class="flex items-center gap-2 text-xs">
             <span class="text-[#ff453a] font-semibold">{{ expiredKeys.length }} 个已过期</span>
             <span class="text-white/30">—</span>
-            <span class="text-white/40">{{ expiredKeys.map(k => k.name).join('、') }}</span>
+            <button @click="jumpToTab('keys')" class="text-white/40 hover:text-white/60 transition-colors cursor-pointer bg-transparent border-0">{{ expiredKeys.map(k => k.name).join('、') }}</button>
           </div>
           <div v-if="expiringSoonKeys.length" class="flex items-center gap-2 text-xs">
             <span class="text-[#ff9f0a] font-semibold">{{ expiringSoonKeys.length }} 个即将到期</span>
             <span class="text-white/30">—</span>
-            <span class="text-white/40">
+            <button @click="jumpToTab('keys')" class="text-white/40 hover:text-white/60 transition-colors cursor-pointer bg-transparent border-0">
               <span v-for="(k, i) in expiringSoonKeys" :key="k.id">
                 {{ k.name }}({{ daysUntilExpiry(k.expires_at) }}天){{ i < expiringSoonKeys.length - 1 ? '、' : '' }}
               </span>
-            </span>
+            </button>
           </div>
         </div>
       </div>
@@ -666,12 +987,13 @@ const refreshAll = async () => {
           <h2 class="text-sm font-semibold text-white">速率限制</h2>
           <label class="flex items-center gap-2 cursor-pointer">
             <span class="text-[10px] text-white/50">{{ rateForm.enabled ? '已启用' : '已禁用' }}</span>
-            <div @click="rateForm.enabled = !rateForm.enabled" class="w-10 h-5 rounded-full transition-all cursor-pointer relative"
+            <div @click="handleRateToggle" class="w-10 h-5 rounded-full transition-all cursor-pointer relative"
               :class="rateForm.enabled ? 'bg-[#30d158]' : 'bg-white/10'">
               <div class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" :class="rateForm.enabled ? 'left-5.5' : 'left-0.5'"></div>
             </div>
           </label>
         </div>
+        <p class="text-[10px] text-white/25 -mt-2">配置 API 请求频率上限，防止滥用和 DDoS 攻击。支持按 IP 和 API Key 多维度限流。</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">窗口时长（秒）</label>
@@ -717,12 +1039,30 @@ const refreshAll = async () => {
             <textarea v-model="(policy!.ip_policy as any).whitelist" rows="6" placeholder="192.168.1.1&#10;10.0.0.0/8"
               class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none"
               @input="($event: any) => { const lines = $event.target.value.split('\n').map((s: string) => s.trim()).filter(Boolean); policy!.ip_policy.whitelist = lines }" />
+            <div class="flex items-center gap-2 mt-1.5 text-[10px]">
+              <span class="text-white/30 font-mono">{{ ipValidationStats.total }} 条</span>
+              <span v-if="ipValidationStats.invalid > 0" class="text-[#ff9f0a] font-semibold flex items-center gap-1">
+                <span class="i-lucide-alert-triangle text-[10px]" />{{ ipValidationStats.invalid }} 条格式异常
+              </span>
+              <span v-else-if="ipValidationStats.total > 0" class="text-[#30d158] flex items-center gap-1">
+                <span class="i-lucide-check-circle text-[10px]" />格式正确
+              </span>
+            </div>
           </div>
           <div v-if="ipMode === 'blacklist'">
             <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">黑名单 IP（每行一个）</label>
             <textarea v-model="(policy!.ip_policy as any).blacklist" rows="6" placeholder="203.0.113.0&#10;198.51.100.0/24"
               class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none"
               @input="($event: any) => { const lines = $event.target.value.split('\n').map((s: string) => s.trim()).filter(Boolean); policy!.ip_policy.blacklist = lines }" />
+            <div class="flex items-center gap-2 mt-1.5 text-[10px]">
+              <span class="text-white/30 font-mono">{{ ipValidationStats.total }} 条</span>
+              <span v-if="ipValidationStats.invalid > 0" class="text-[#ff9f0a] font-semibold flex items-center gap-1">
+                <span class="i-lucide-alert-triangle text-[10px]" />{{ ipValidationStats.invalid }} 条格式异常
+              </span>
+              <span v-else-if="ipValidationStats.total > 0" class="text-[#30d158] flex items-center gap-1">
+                <span class="i-lucide-check-circle text-[10px]" />格式正确
+              </span>
+            </div>
           </div>
         </div>
         <button @click="saveIp" :disabled="isSaving"
@@ -745,6 +1085,7 @@ const refreshAll = async () => {
             </div>
           </label>
         </div>
+        <p class="text-[10px] text-white/25 -mt-2">基于 ISO 3166 国家代码进行地理级别的访问控制，适用于阻止特定地区的高风险流量。</p>
         <div class="flex gap-2">
           <button v-for="m in [{k:'blacklist',l:'黑名单（阻止）'},{k:'whitelist',l:'白名单（仅允许）'}]" :key="m.k"
             @click="(policy!.country_policy.mode as string) = m.k"
@@ -766,6 +1107,81 @@ const refreshAll = async () => {
       </div>
     </div>
 
+    <!-- ═══ 地理分布 ═══ -->
+    <div v-if="subTab === 'geo'" class="space-y-6">
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="i-lucide-earth text-sm text-indigo-400" />
+            <span class="text-[10px] text-white/40 uppercase tracking-widest font-mono">国家数</span>
+          </div>
+          <div class="text-3xl font-bold text-white">{{ geoCountries.length }}</div>
+        </div>
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="i-lucide-activity text-sm text-[#ff9f0a]" />
+            <span class="text-[10px] text-white/40 uppercase tracking-widest font-mono">总事件</span>
+          </div>
+          <div class="text-3xl font-bold text-[#ff9f0a]">{{ geoTotalEvents }}</div>
+        </div>
+        <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="i-lucide-shield-alert text-sm text-[#ff453a]" />
+            <span class="text-[10px] text-white/40 uppercase tracking-widest font-mono">总拦截</span>
+          </div>
+          <div class="text-3xl font-bold text-[#ff453a]">{{ geoCountries.reduce((s, c) => s + c.blocked, 0) }}</div>
+        </div>
+      </div>
+
+      <!-- 国家列表 -->
+      <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-white/[0.005]">
+                <th class="px-5 py-3.5 font-semibold font-mono">国家</th>
+                <th class="px-5 py-3.5 font-semibold font-mono">代码</th>
+                <th class="px-5 py-3.5 font-semibold font-mono">请求数</th>
+                <th class="px-5 py-3.5 font-semibold font-mono">拦截数</th>
+                <th class="px-5 py-3.5 font-semibold font-mono">拦截率</th>
+                <th class="px-5 py-3.5 font-semibold font-mono">占比</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="c in geoCountries" :key="c.code" class="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                <td class="px-5 py-4 text-white/90 font-medium">{{ c.name }}</td>
+                <td class="px-5 py-4 text-white/50 font-mono text-xs">{{ c.code }}</td>
+                <td class="px-5 py-4 text-white/70 font-mono text-xs">{{ c.count }}</td>
+                <td class="px-5 py-4">
+                  <span class="font-mono text-xs" :class="c.blocked > 0 ? 'text-[#ff453a]' : 'text-white/30'">{{ c.blocked }}</span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-xs font-mono" :class="c.count > 0 && (c.blocked / c.count) > 0.5 ? 'text-[#ff453a]' : 'text-white/50'">
+                    {{ c.count > 0 ? Math.round(c.blocked / c.count * 100) + '%' : '-' }}
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
+                      <div class="h-full bg-indigo-500/60 rounded-full" :style="{ width: (geoTotalEvents > 0 ? (c.count / geoTotalEvents * 100) : 0) + '%' }" />
+                    </div>
+                    <span class="text-[10px] text-white/30 font-mono">{{ geoTotalEvents > 0 ? Math.round(c.count / geoTotalEvents * 100) + '%' : '-' }}</span>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="!geoCountries.length">
+                <td colspan="6" class="py-10 text-center text-sm text-white/25">
+                  <span class="i-lucide-earth text-2xl text-white/10 block mb-2" />
+                  暂无地理分布数据，请确保安全日志中包含国家信息
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ API Key 管理 ═══ -->
     <div v-if="subTab === 'keys'" class="space-y-6">
       <!-- 全局签名开关 -->
@@ -776,11 +1192,35 @@ const refreshAll = async () => {
         </div>
         <label class="flex items-center gap-2 cursor-pointer">
           <span class="text-[10px] text-white/50">{{ sigRequired ? '已启用' : '已禁用' }}</span>
-          <div @click="(policy!.signature_required as boolean) = !sigRequired; saveSig()" class="w-10 h-5 rounded-full transition-all cursor-pointer relative"
+          <div @click="handleSigToggle" class="w-10 h-5 rounded-full transition-all cursor-pointer relative"
             :class="sigRequired ? 'bg-[#30d158]' : 'bg-white/10'">
             <div class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" :class="sigRequired ? 'left-5.5' : 'left-0.5'"></div>
           </div>
         </label>
+      </div>
+
+      <!-- Key 健康概览卡片 -->
+      <div v-if="lifecycle" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-[#30d158]/[0.04] rounded-xl p-4 border border-[#30d158]/10 text-center">
+          <div class="text-2xl font-bold text-[#30d158]">{{ lifecycle.distribution.active }}</div>
+          <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mt-1">活跃</div>
+          <div class="text-[9px] text-white/20 mt-0.5">7天内使用</div>
+        </div>
+        <div class="bg-[#ff9f0a]/[0.04] rounded-xl p-4 border border-[#ff9f0a]/10 text-center">
+          <div class="text-2xl font-bold text-[#ff9f0a]">{{ lifecycle.distribution.lowUsage }}</div>
+          <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mt-1">低频</div>
+          <div class="text-[9px] text-white/20 mt-0.5">7-30天</div>
+        </div>
+        <div class="bg-[#ff453a]/[0.04] rounded-xl p-4 border border-[#ff453a]/10 text-center">
+          <div class="text-2xl font-bold text-[#ff453a]">{{ lifecycle.distribution.dormant }}</div>
+          <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mt-1">休眠</div>
+          <div class="text-[9px] text-white/20 mt-0.5">&gt;30天未使用</div>
+        </div>
+        <div class="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06] text-center">
+          <div class="text-2xl font-bold text-white/40">{{ lifecycle.distribution.neverUsed }}</div>
+          <div class="text-[10px] text-white/40 uppercase tracking-widest font-mono mt-1">未使用</div>
+          <div class="text-[9px] text-white/20 mt-0.5">从未调用</div>
+        </div>
       </div>
 
       <!-- Key 搜索 + 创建 -->
@@ -876,7 +1316,13 @@ const refreshAll = async () => {
                 </td>
               </tr>
               <tr v-if="!keys.length">
-                <td colspan="9" class="py-10 text-center text-sm text-white/25">暂无 API Key</td>
+                <td colspan="9" class="py-12 text-center">
+                  <span class="i-lucide-key-round text-3xl text-white/10 block mb-3" />
+                  <div class="text-sm text-white/25 mb-3">暂无 API Key</div>
+                  <button @click="showCreateKeyModal = true" class="text-xs font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 text-white px-4 py-2 rounded-full transition-all cursor-pointer">
+                    + 创建第一个 Key
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -935,6 +1381,72 @@ const refreshAll = async () => {
       </div>
     </div>
 
+    <!-- ═══ CORS 配置 ═══ -->
+    <div v-if="subTab === 'cors' && policy" class="space-y-6">
+      <div class="bg-white/[0.04] rounded-2xl p-6 space-y-5 shadow-lg shadow-black/20">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-sm font-semibold text-white">CORS 配置</h2>
+            <p class="text-[10px] text-white/25 mt-1">管理跨域资源共享策略，控制哪些域名可以访问你的 API。支持通配符 <code class="text-indigo-400">*.example.com</code>。</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">允许的域名（每行一个）</label>
+          <textarea :value="corsOriginsText"
+            rows="5" placeholder="https://example.com&#10;*.myapp.com"
+            class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none"
+            @input="($event: any) => { ensureCorsConfig(); policy!.cors_config!.allowed_origins = $event.target.value.split('\n').map((s: string) => s.trim()).filter(Boolean) }" />
+          <div class="text-[10px] text-white/20 mt-1 font-mono">{{ (policy.cors_config?.allowed_origins || []).length }} 个域名</div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">允许的 HTTP 方法</label>
+          <div class="flex gap-2 flex-wrap">
+            <button v-for="m in ALL_METHODS" :key="m"
+              @click="toggleCorsMethod(m)"
+              class="text-[10px] font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer focus:outline-none"
+              :class="corsMethods.includes(m) ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : 'bg-white/[0.03] text-white/40 border-white/[0.08] hover:bg-white/[0.05]'">
+              {{ m }}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">允许的 Header（逗号分隔）</label>
+          <textarea :value="corsHeadersText"
+            rows="2" placeholder="Content-Type, Authorization, X-API-Key"
+            class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none"
+            @input="($event: any) => { ensureCorsConfig(); policy!.cors_config!.allowed_headers = $event.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) }" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">允许凭据 (Credentials)</label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <div @click="policy!.cors_config = { ...(policy!.cors_config || { allowed_origins: [], allowed_methods: [], allowed_headers: [], max_age: 86400 }), allow_credentials: !corsCredentials }"
+                class="w-10 h-5 rounded-full transition-all cursor-pointer relative"
+                :class="corsCredentials ? 'bg-[#30d158]' : 'bg-white/10'">
+                <div class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" :class="corsCredentials ? 'left-5.5' : 'left-0.5'"></div>
+              </div>
+              <span class="text-xs text-white/50">{{ corsCredentials ? '已启用' : '已禁用' }}</span>
+            </label>
+          </div>
+          <div>
+            <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono mb-1.5">预检缓存时长 (max-age, 秒)</label>
+            <input :value="corsMaxAge" type="number" min="0" max="86400"
+              class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all"
+              @input="($event: any) => { ensureCorsConfig(); policy!.cors_config!.max_age = Number($event.target.value) }" />
+          </div>
+        </div>
+
+        <button @click="saveCors" :disabled="isSaving"
+          class="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white px-6 py-2.5 rounded-xl transition-all active:scale-[0.97] cursor-pointer shadow-[0_4px_12px_rgba(99,102,241,0.15)] disabled:opacity-50">
+          {{ isSaving ? '保存中...' : '保存 CORS 配置' }}
+        </button>
+      </div>
+    </div>
+
     <!-- ═══ 安全日志 ═══ -->
     <div v-if="subTab === 'logs'" class="space-y-6">
       <!-- 筛选栏 -->
@@ -972,6 +1484,18 @@ const refreshAll = async () => {
               <span :class="isExportingLogs ? 'i-lucide-loader animate-spin' : 'i-lucide-download'" class="text-xs" />
               {{ isExportingLogs ? '导出中...' : '导出' }}
             </button>
+            <div class="flex bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden">
+              <button @click="logsViewMode = 'table'"
+                class="text-[10px] font-semibold px-3 py-2 transition-all cursor-pointer border-0"
+                :class="logsViewMode === 'table' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-transparent text-white/40 hover:text-white/60'">
+                <span class="i-lucide-table text-xs" />
+              </button>
+              <button @click="logsViewMode = 'timeline'"
+                class="text-[10px] font-semibold px-3 py-2 transition-all cursor-pointer border-0"
+                :class="logsViewMode === 'timeline' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-transparent text-white/40 hover:text-white/60'">
+                <span class="i-lucide-clock text-xs" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1009,11 +1533,12 @@ const refreshAll = async () => {
       </div>
 
       <!-- 日志表格 -->
-      <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+      <div v-if="logsViewMode === 'table'" class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm border-collapse">
             <thead>
               <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-white/[0.005]">
+                <th class="px-5 py-3.5 font-semibold font-mono w-8"></th>
                 <th class="px-5 py-3.5 font-semibold font-mono">时间</th>
                 <th class="px-5 py-3.5 font-semibold font-mono">事件</th>
                 <th class="px-5 py-3.5 font-semibold font-mono">IP</th>
@@ -1022,22 +1547,57 @@ const refreshAll = async () => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="log in logs" :key="log.id" class="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                <td class="px-5 py-5 text-white/40 font-mono text-xs whitespace-nowrap">{{ fmtDate(log.created_at) }}</td>
-                <td class="px-5 py-5">
-                  <span :class="['text-[10px] px-2 py-0.5 rounded-full border font-mono', severityStyle(log.action)]">{{ codeLabel(log.action) }}</span>
-                </td>
-                <td class="px-5 py-5 text-white/50 font-mono text-xs">{{ log.ip || '-' }}</td>
-                <td class="px-5 py-5 text-white/50 font-mono text-xs">{{ log.metadata?.path || '-' }}</td>
-                <td class="px-5 py-5 text-white/30 text-xs max-w-[220px]">
-                  <div v-if="log.metadata?.keyPrefix" class="truncate" :title="log.metadata.keyPrefix">Key: {{ log.metadata.keyPrefix }}</div>
-                  <div v-if="log.metadata?.country" class="truncate">国家: {{ log.metadata.country }}</div>
-                  <div v-if="log.metadata?.reason" class="truncate">{{ log.metadata.reason }}</div>
-                  <div v-if="!log.metadata?.keyPrefix && !log.metadata?.country && !log.metadata?.reason" class="opacity-50">-</div>
-                </td>
-              </tr>
+              <template v-for="log in logs" :key="log.id">
+                <tr class="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors cursor-pointer" @click="toggleLogExpand(log.id)">
+                  <td class="px-5 py-4">
+                    <span :class="expandedLogId === log.id ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'" class="text-white/20 text-xs transition-transform" />
+                  </td>
+                  <td class="px-5 py-4 text-white/40 font-mono text-xs whitespace-nowrap">{{ fmtDate(log.created_at) }}</td>
+                  <td class="px-5 py-4">
+                    <div class="flex items-center gap-2">
+                      <span :class="[
+                        logSeverity(log.action) === 'high' ? 'i-lucide-shield-alert text-[#ff453a]' :
+                        logSeverity(log.action) === 'medium' ? 'i-lucide-alert-triangle text-[#ff9f0a]' :
+                        logSeverity(log.action) === 'low' ? 'i-lucide-gauge text-[#30d158]' :
+                        'i-lucide-info text-white/30'
+                      ]" class="text-sm shrink-0" />
+                      <span :class="['text-[10px] px-2 py-0.5 rounded-full border font-mono', severityStyle(log.action)]">{{ codeLabel(log.action) }}</span>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4 text-white/50 font-mono text-xs">{{ log.ip || '-' }}</td>
+                  <td class="px-5 py-4 text-white/50 font-mono text-xs">{{ log.metadata?.path || '-' }}</td>
+                  <td class="px-5 py-4 text-white/30 text-xs max-w-[220px]">
+                    <div v-if="log.metadata?.keyPrefix" class="truncate" :title="log.metadata.keyPrefix">Key: {{ log.metadata.keyPrefix }}</div>
+                    <div v-else-if="log.metadata?.country" class="truncate">国家: {{ log.metadata.country }}</div>
+                    <div v-else-if="log.metadata?.reason" class="truncate">{{ log.metadata.reason }}</div>
+                    <div v-else class="opacity-50">-</div>
+                  </td>
+                </tr>
+                <!-- 展开详情 -->
+                <tr v-if="expandedLogId === log.id" class="bg-white/[0.015]">
+                  <td colspan="6" class="px-5 py-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div v-for="(val, mKey) in log.metadata" :key="String(mKey)" class="bg-white/[0.03] rounded-lg px-3 py-2">
+                        <div class="text-[10px] text-white/30 uppercase tracking-widest font-mono mb-0.5">{{ mKey }}</div>
+                        <div class="text-xs text-white/70 font-mono break-all">{{ val }}</div>
+                      </div>
+                      <div class="bg-white/[0.03] rounded-lg px-3 py-2">
+                        <div class="text-[10px] text-white/30 uppercase tracking-widest font-mono mb-0.5">IP 地址</div>
+                        <div class="text-xs text-white/70 font-mono">{{ log.ip || '-' }}</div>
+                      </div>
+                      <div class="bg-white/[0.03] rounded-lg px-3 py-2">
+                        <div class="text-[10px] text-white/30 uppercase tracking-widest font-mono mb-0.5">事件 ID</div>
+                        <div class="text-xs text-white/70 font-mono">#{{ log.id }}</div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
               <tr v-if="!logs.length">
-                <td colspan="5" class="py-10 text-center text-sm text-white/25">暂无安全事件记录</td>
+                <td colspan="6" class="py-10 text-center text-sm text-white/25">
+                  <span class="i-lucide-shield-check text-2xl text-white/10 block mb-2" />
+                  暂无安全事件记录，系统运行正常
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1054,6 +1614,47 @@ const refreshAll = async () => {
           </div>
         </div>
       </div>
+
+      <!-- 时间线视图 -->
+      <div v-if="logsViewMode === 'timeline'" class="space-y-4">
+        <div v-for="(group, dateKey) in logsGroupedByDate" :key="String(dateKey)"
+          class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06]">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="i-lucide-calendar text-xs text-indigo-400" />
+              <span class="text-xs font-semibold text-white">{{ dateKey }}</span>
+            </div>
+            <span class="text-[10px] text-white/30 font-mono">{{ group.length }} 事件</span>
+          </div>
+          <!-- 类型分布条 -->
+          <div class="flex h-1.5 rounded-full overflow-hidden mb-3 bg-white/[0.04]">
+            <template v-for="(cnt, type) in getLogTypeDistribution(group)" :key="String(type)">
+              <div :style="{ width: (cnt / group.length * 100) + '%' }"
+                :class="logSeverity(String(type)) === 'high' ? 'bg-[#ff453a]' : logSeverity(String(type)) === 'medium' ? 'bg-[#ff9f0a]' : 'bg-[#30d158]'" />
+            </template>
+          </div>
+          <div class="space-y-1.5">
+            <div v-for="log in group.slice(0, 5)" :key="log.id"
+              class="flex items-center gap-3 text-xs py-1.5">
+              <span :class="[
+                logSeverity(log.action) === 'high' ? 'i-lucide-shield-alert text-[#ff453a]' :
+                logSeverity(log.action) === 'medium' ? 'i-lucide-alert-triangle text-[#ff9f0a]' :
+                'i-lucide-info text-white/30'
+              ]" class="text-xs shrink-0" />
+              <span :class="['text-[10px] px-1.5 py-0.5 rounded-full border font-mono', severityStyle(log.action)]">{{ codeLabel(log.action) }}</span>
+              <span class="text-white/30 font-mono truncate">{{ log.metadata?.path || '-' }}</span>
+              <span class="text-white/15 font-mono ml-auto shrink-0">{{ new Date(log.created_at).toLocaleTimeString() }}</span>
+            </div>
+            <div v-if="group.length > 5" class="text-[10px] text-white/20 text-center pt-1">
+              还有 {{ group.length - 5 }} 条记录...
+            </div>
+          </div>
+        </div>
+        <div v-if="Object.keys(logsGroupedByDate).length === 0" class="text-sm text-white/25 py-8 text-center">
+          <span class="i-lucide-clock text-2xl text-white/10 block mb-2" />
+          暂无时间线数据
+        </div>
+      </div>
     </div>
 
     <!-- ═══ 2FA ═══ -->
@@ -1061,7 +1662,10 @@ const refreshAll = async () => {
       <div class="bg-white/[0.04] rounded-2xl p-6 space-y-6 shadow-lg shadow-black/20">
         <div class="flex items-start justify-between">
           <div>
-            <h2 class="text-sm font-semibold text-white">双因素认证 (TOTP)</h2>
+            <h2 class="text-sm font-semibold text-white flex items-center gap-2">
+              <span class="i-lucide-smartphone text-base text-indigo-400" />
+              双因素认证 (TOTP)
+            </h2>
             <p class="text-xs text-white/40 mt-1">使用 Google Authenticator 或 Authy 等 TOTP 应用生成一次性验证码，提升账户安全性。</p>
           </div>
           <div class="flex items-center gap-2">
@@ -1085,6 +1689,16 @@ const refreshAll = async () => {
               {{ twoFAStatus.verifiedAt ? `启用时间: ${new Date(twoFAStatus.verifiedAt).toLocaleString()}` : '' }}
             </p>
           </div>
+          <div class="bg-white/[0.02] rounded-xl p-4 border border-white/[0.06] space-y-3">
+            <h3 class="text-xs font-semibold text-white/70 flex items-center gap-2">
+              <span class="i-lucide-info text-xs text-white/30" /> 安全提示
+            </h3>
+            <ul class="text-[11px] text-white/40 space-y-1.5">
+              <li class="flex items-start gap-2"><span class="i-lucide-check text-[10px] text-[#30d158] mt-0.5 shrink-0" />请确保备用恢复码已安全存储在离线环境中</li>
+              <li class="flex items-start gap-2"><span class="i-lucide-check text-[10px] text-[#30d158] mt-0.5 shrink-0" />建议使用硬件安全密钥作为更高级的 2FA 方案</li>
+              <li class="flex items-start gap-2"><span class="i-lucide-check text-[10px] text-[#30d158] mt-0.5 shrink-0" />定期检查并确保 TOTP 应用已同步</li>
+            </ul>
+          </div>
           <div>
             <button @click="twoFAShowDisable = !twoFAShowDisable"
               class="text-xs font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-5 py-2.5 rounded-xl border border-[#ff453a]/20 transition-all active:scale-[0.97] cursor-pointer">
@@ -1107,10 +1721,16 @@ const refreshAll = async () => {
         </div>
 
         <!-- 未启用状态 -->
-        <div v-else>
+        <div v-else class="space-y-4">
+          <div class="bg-[#ff9f0a]/[0.04] rounded-xl p-4 border border-[#ff9f0a]/10">
+            <div class="flex items-center gap-2 text-[#ff9f0a] text-xs font-semibold mb-1">
+              <span class="i-lucide-shield-off text-sm" /> 2FA 未启用
+            </div>
+            <p class="text-xs text-white/40">管理员账户缺少双因素认证保护，建议尽快启用以提升安全性。</p>
+          </div>
           <button @click="handleTwoFASetup" :disabled="twoFASaving"
             class="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white px-6 py-2.5 rounded-xl transition-all active:scale-[0.97] cursor-pointer shadow-[0_4px_12px_rgba(99,102,241,0.15)] disabled:opacity-50">
-            {{ twoFASaving ? '生成中...' : '设置 2FA' }}
+            {{ twoFASaving ? '生成中...' : '立即设置 2FA' }}
           </button>
 
           <!-- 设置流程 -->
@@ -1156,7 +1776,10 @@ const refreshAll = async () => {
             </div>
 
             <div class="bg-[#ff453a]/[0.04] rounded-xl p-4 border border-[#ff453a]/10">
-              <p class="text-xs text-white/60">在验证成功之前，2FA 不会生效。如果关闭此窗口，未验证的密钥将被覆盖。</p>
+              <p class="text-xs text-white/60 flex items-start gap-2">
+                <span class="i-lucide-alert-triangle text-xs text-[#ff453a] mt-0.5 shrink-0" />
+                在验证成功之前，2FA 不会生效。如果关闭此窗口，未验证的密钥将被覆盖。
+              </p>
             </div>
           </div>
         </div>
@@ -1230,5 +1853,6 @@ const refreshAll = async () => {
         </div>
       </div>
     </Teleport>
+    <AdminConfirmDialog ref="confirmDialog" />
   </div>
 </template>

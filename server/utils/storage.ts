@@ -13,7 +13,7 @@ import { getDB } from './db'
 // ── Bucket 常量与类型 ─────────────────────────────────────────────
 
 // 系统内置桶（不可删除）
-export const DEFAULT_BUCKETS = ['avatars', 'campaign-assets', 'uploads'] as const
+export const DEFAULT_BUCKETS = ['campaign-assets'] as const
 export const DEFAULT_BUCKET_NAMES = new Set<string>(DEFAULT_BUCKETS)
 
 // 动态桶模型：类型改为 string
@@ -29,23 +29,11 @@ export interface BucketConfig {
 
 // 系统桶默认配置
 export const DEFAULT_BUCKET_CONFIG: Record<string, BucketConfig> = {
-  'avatars': {
-    public: true,
-    maxSize: 2 * 1024 * 1024,       // 2 MB
-    allowedMime: ['image/*'],
-    adminOnly: false,
-  },
   'campaign-assets': {
     public: true,
     maxSize: 10 * 1024 * 1024,      // 10 MB
     allowedMime: ['image/*', 'video/mp4'],
     adminOnly: true,
-  },
-  'uploads': {
-    public: false,
-    maxSize: 50 * 1024 * 1024,      // 50 MB
-    allowedMime: null,               // 不限制
-    adminOnly: false,
   },
 }
 
@@ -75,7 +63,7 @@ let storageClient: SupabaseClient | null = null
  * - Mock DB 模式：走 getDB(event).storage mock 适配器
  * - 真实环境：service_role 客户端（绕过 RLS）
  */
-function getStorage(event?: any): any {
+export function getStorage(event?: any): any {
   if (process.env.MOCK_DB === 'true' && event) {
     return getDB(event).storage
   }

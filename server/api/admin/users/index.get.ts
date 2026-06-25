@@ -13,7 +13,7 @@ defineRouteMeta({
       { in: 'query', name: 'page', schema: { type: 'integer', default: 1 }, description: '页码' },
       { in: 'query', name: 'pageSize', schema: { type: 'integer', default: 20 }, description: '每页条数（最大 100）' },
       { in: 'query', name: 'role', schema: { type: 'string', enum: ['user', 'admin'] }, description: '按角色过滤' },
-      { in: 'query', name: 'plan', schema: { type: 'string', enum: ['paid'] }, description: '按套餐过滤（paid = pro + enterprise）' },
+      { in: 'query', name: 'plan', schema: { type: 'string', enum: ['paid'] }, description: '按付费状态过滤（paid = 有订阅或订单记录的用户）' },
       { in: 'query', name: 'provider', schema: { type: 'string' }, description: '按认证方式过滤' },
       { in: 'query', name: 'search', schema: { type: 'string' }, description: '按邮箱或显示名模糊搜索' },
     ],
@@ -47,13 +47,25 @@ export default defineEventHandler(async (event) => {
   // ── 服务端筛选标记：role 或 plan 都需要以 profiles 为主表分页 ───
   const hasProfileFilter = roleFilter || planFilter
 
+  // plan=paid 预加载付费用户 ID（来自 subscriptions + orders 表）
+  let paidUserIdSet: Set<string> | null = null
+  if (planFilter === 'paid') {
+    const [subsResult, ordersResult] = await Promise.all([
+      db.from('subscriptions').select('user_id'),
+      db.from('orders').select('user_id'),
+    ])
+    paidUserIdSet = new Set([
+      ...(subsResult.data || []).map((s: any) => s.user_id),
+      ...(ordersResult.data || []).map((o: any) => o.user_id),
+    ])
+  }
+
   if (hasProfileFilter) {
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
     let profileQuery = db.from('profiles').select('*', { count: 'exact', head: false })
     if (roleFilter) profileQuery = profileQuery.eq('role', roleFilter)
-    if (planFilter === 'paid') profileQuery = profileQuery.in('plan_status', ['pro', 'enterprise'])
     const { data: filteredProfiles, count } = await profileQuery
       .order('created_at', { ascending: false })
       .range(from, to)
@@ -80,6 +92,21 @@ export default defineEventHandler(async (event) => {
       // 按 profile ID 精确匹配，保持 profile 筛选的排序
       authUsers = pIds.map(id => authMap[id]).filter(Boolean)
       for (const p of profileRows) { profilesMap[p.id] = p }
+
+      // plan=paid: 过滤出有付费记录的用户
+      if (paidUserIdSet) {
+        const paidAuthUsers: any[] = []
+        const paidProfilesMap: Record<string, any> = {}
+        for (const au of authUsers) {
+          if (paidUserIdSet.has(au.id)) {
+            paidAuthUsers.push(au)
+            if (profilesMap[au.id]) paidProfilesMap[au.id] = profilesMap[au.id]
+          }
+        }
+        authUsers = paidAuthUsers
+        profilesMap = paidProfilesMap
+        total = authUsers.length
+      }
     }
   } else {
     // ── 无筛选：以 Auth API 为主表分页 ─────────────────────
@@ -127,6 +154,29 @@ export default defineEventHandler(async (event) => {
       updated_at: profile.updated_at || null,
     }
   })
+
+  // ③.5 合并订阅数据（每个用户取最新一条订阅）
+  if (items.length > 0) {
+    const pageUserIds = items.map((u: any) => u.id)
+    const { data: subs } = await db.from('subscriptions')
+      .select('user_id, status, price_id, subscription_provider, cancel_at_period_end, current_period_end')
+      .in('user_id', pageUserIds)
+      .order('created_at', { ascending: false })
+
+    const latestSubMap: Record<string, any> = {}
+    for (const s of (subs || []) as any[]) {
+      if (!latestSubMap[s.user_id]) latestSubMap[s.user_id] = s
+    }
+
+    items = items.map((u: any) => ({
+      ...u,
+      subscription_status: latestSubMap[u.id]?.status || null,
+      subscription_price_id: latestSubMap[u.id]?.price_id || null,
+      subscription_provider: latestSubMap[u.id]?.subscription_provider || null,
+      subscription_cancel_at_period_end: latestSubMap[u.id]?.cancel_at_period_end || false,
+      subscription_period_end: latestSubMap[u.id]?.current_period_end || null,
+    }))
+  }
 
   // ④ provider 内存过滤（仅无 profiles 筛选时生效）
   if (providerFilter && !hasProfileFilter) {

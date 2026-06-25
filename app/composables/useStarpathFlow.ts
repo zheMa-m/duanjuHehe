@@ -4,7 +4,7 @@
  * 业务流程线：
  *   welcome → intro/familiarity → intro/overview → intro/focus → intro/goal
  *   → intro/relationship → birth/date → birth/time → birth/city → profile
- *   → intro/alignment → questions/1..18 → loading → email → subscribe → success
+ *   → intro/alignment → questions/1..18 → loading → purchase → email → success
  *
  * 用 Pinia store 跨页面持久化用户答题数据；本 composable 只暴露下一步路由计算。
  *
@@ -41,15 +41,14 @@ const FLOW: string[] = [
   '/h5/starpath/questions/17',
   '/h5/starpath/questions/18',
   '/h5/starpath/loading',
+  '/h5/starpath/purchase',
   '/h5/starpath/email',
-  // Platform-independent paths: subscribe/index auto-detects iOS/Android
-  '/h5/starpath/subscribe',
   '/h5/starpath/success',
 ]
 
 function normalize(path: string): string {
-  // Map platform-specific subscribe/success pages to the unified flow node
-  if (path.includes('/subscribe')) return '/h5/starpath/subscribe'
+  // Map platform-specific paths to unified flow nodes
+  if (path.includes('/subscribe')) return '/h5/starpath/purchase'
   if (path.includes('/success')) return '/h5/starpath/success'
   return path
 }

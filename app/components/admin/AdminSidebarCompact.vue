@@ -63,7 +63,7 @@ const hovered = ref(false)
   overflow: hidden;
 }
 .nav-compact--expanded { width: 212px; }
-@media (min-width: 1024px) { .nav-compact { display: flex; } }
+@media (min-width: 1280px) { .nav-compact { display: flex; } }
 
 .nav-compact__bg {
   position: absolute; inset: 0;

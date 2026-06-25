@@ -4,15 +4,17 @@ import { assertAdmin } from '~~/server/utils/auth'
 import { sendSuccess } from '~~/server/utils/response'
 import {
   isValidBucket,
+  listBuckets,
   listFiles,
   countBucketFiles,
   getPublicUrl,
-  getBucketConfig,
   classifyMime,
   formatFileSize,
   extractExtension,
   extractUploader,
   stripTimestampPrefix,
+  SIGNED_DOWNLOAD_URL_EXPIRY,
+  getStorage,
 } from '~~/server/utils/storage'
 
 defineRouteMeta({
@@ -21,9 +23,9 @@ defineRouteMeta({
     summary: '管理员：获取媒体库文件列表（分页/搜索/筛选）',
     security: [{ BearerAuth: [] }],
     parameters: [
-      { in: 'query', name: 'bucket', required: true, schema: { type: 'string', enum: ['avatars', 'campaign-assets', 'uploads'] }, description: '目标 Bucket' },
+      { in: 'query', name: 'bucket', required: true, schema: { type: 'string' }, description: '目标 Bucket' },
       { in: 'query', name: 'prefix', schema: { type: 'string', default: '' }, description: '目录前缀（文件夹导航）' },
-      { in: 'query', name: 'limit', schema: { type: 'integer', default: 40 }, description: '每页条数（最大 100）' },
+      { in: 'query', name: 'limit', schema: { type: 'integer', default: 20 }, description: '每页条数（最大 100）' },
       { in: 'query', name: 'offset', schema: { type: 'integer', default: 0 }, description: '分页偏移' },
       { in: 'query', name: 'search', schema: { type: 'string' }, description: '文件名模糊搜索（Supabase 原生）' },
       { in: 'query', name: 'kind', schema: { type: 'string', enum: ['image', 'video', 'audio', 'document', 'other'] }, description: '按文件类型筛选' },
@@ -54,7 +56,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const prefix = (q.prefix as string) || ''
-  const limit = Math.min(Math.max(parseInt(q.limit as string) || 40, 1), 100)
+  const limit = Math.min(Math.max(parseInt(q.limit as string) || 20, 1), 100)
   const offset = Math.max(parseInt(q.offset as string) || 0, 0)
   const search = (q.search as string) || undefined
   const kindFilter = q.kind as string | undefined
@@ -73,8 +75,12 @@ export default defineEventHandler(async (event) => {
   }, event)
 
   // ── 构建 FileInfo ────────────────────────────────────────────
-  const bucketConfig = getBucketConfig(bucket)
-  const items = files
+  // 使用 Supabase 实际 bucket 状态（而非硬编码配置）判断 public/private
+  const allBuckets = await listBuckets(event)
+  const isPublicBucket = allBuckets.find(b => b.name === bucket)?.public ?? false
+  const storage = getStorage(event)
+
+  const rawItems = files
     .map((f) => {
       const meta = f.metadata || {}
       const mimeType = meta.mimetype || meta.mimeType || 'application/octet-stream'
@@ -86,22 +92,10 @@ export default defineEventHandler(async (event) => {
       const lastSlash = f.name.lastIndexOf('/')
       const displayName = lastSlash === -1 ? f.name : f.name.substring(lastSlash + 1)
 
-      // 公开 URL（仅 public bucket）
-      let publicUrl: string | null = null
-      if (bucketConfig.public) {
-        publicUrl = getPublicUrl(bucket, fullPath, event)
-      }
-
-      // 缩略图 URL（仅图片 + public bucket，利用 Image Transformations）
-      let thumbnailUrl: string | null = null
-      if (isImage && bucketConfig.public) {
-        thumbnailUrl = getPublicUrl(bucket, fullPath, event, { width: 300, height: 300, resize: 'cover' })
-      }
-
       return {
         id: f.id || '',
-        name: stripTimestampPrefix(displayName),  // 显示用：纯文件名，去除时间戳
-        path: fullPath,  // 操作用：完整路径
+        name: stripTimestampPrefix(displayName),
+        path: fullPath,
         bucket,
         size,
         sizeFormatted: formatFileSize(size),
@@ -110,21 +104,50 @@ export default defineEventHandler(async (event) => {
         kind,
         isImage,
         isVideo,
-        publicUrl,
-        thumbnailUrl,
+        publicUrl: null as string | null,
+        thumbnailUrl: null as string | null,
         width: null as number | null,
         height: null as number | null,
         uploadedBy: extractUploader(fullPath),
         createdAt: f.created_at || '',
         updatedAt: f.updated_at || '',
         exif: (meta.exif as Record<string, any>) || null,
+        _fullPath: fullPath, // 内部用，生成 URL 后移除
       }
     })
-    // kind 筛选（Supabase list 不支持按 MIME 筛选，需内存过滤）
     .filter((item) => {
       if (!kindFilter) return true
       return item.kind === kindFilter
     })
+
+  // ── 生成预览 URL（public bucket 用公开 URL，private bucket 用签名 URL）────
+  const items = await Promise.all(
+    rawItems.map(async (item) => {
+      const { _fullPath, ...rest } = item
+
+      if (isPublicBucket) {
+        // 公开桶：使用 public URL + Image Transformations 缩略图
+        rest.publicUrl = getPublicUrl(bucket, _fullPath, event)
+        if (item.isImage) {
+          rest.thumbnailUrl = getPublicUrl(bucket, _fullPath, event, { width: 300, height: 300, resize: 'cover' })
+        }
+      } else if (item.isImage) {
+        // 私有桶图片：生成 1 小时签名 URL（预览 + 缩略图）
+        try {
+          const { data } = await storage.from(bucket).createSignedUrl(_fullPath, SIGNED_DOWNLOAD_URL_EXPIRY)
+          rest.publicUrl = data?.signedUrl ?? null
+        } catch { /* 签名失败保持 null */ }
+        try {
+          const { data } = await storage.from(bucket).createSignedUrl(_fullPath, SIGNED_DOWNLOAD_URL_EXPIRY, {
+            transform: { width: 300, height: 300, resize: 'cover' },
+          })
+          rest.thumbnailUrl = data?.signedUrl ?? null
+        } catch { /* 签名失败保持 null */ }
+      }
+
+      return rest
+    })
+  )
 
   // ── 存储统计（异步，不阻塞响应） ───────────────────────────
   let storageStats = { bucket, totalFiles: 0, totalSizeFormatted: '0 B', fileCount: items.length }

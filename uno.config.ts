@@ -182,6 +182,15 @@ export default defineConfig({
     'i-lucide-user',
     'i-lucide-cloud',
     'i-lucide-code-2',
+    'i-lucide-ticket',
+    // AdminPayments 渠道图标（动态绑定 via channelMeta）
+    'i-lucide-wallet',
+    'i-lucide-smartphone',
+    'i-lucide-scan-line',
+    'i-lucide-message-circle',
+    'i-lucide-layers',
+    'i-lucide-key-round',
+    'i-lucide-shield-alert',
     // StarPath safelist
     'bg-starpath-primary',
     'bg-starpath-cta-paypal',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AdminMedia from './AdminMedia.vue'
-import { resolveCampaignPreviewHref } from '~/utils/subdomain'
+import { resolveCampaignPreviewHref, getCampaignLocalPath } from '~/utils/subdomain'
 
 interface Campaign {
   id: string
@@ -42,6 +42,8 @@ const emit = defineEmits<{
   refresh: []
   save: [subdomain: string, data: Record<string, any>]
   toggleStatus: [subdomain: string, isActive: boolean]
+  batchToggleStatus: [subdomains: string[], isActive: boolean]
+  reorder: [orders: { subdomain: string; sort_order: number }[]]
   create: [data: Record<string, any>]
   deleteCampaign: [subdomain: string]
   'delete-lead': [id: string]
@@ -49,6 +51,7 @@ const emit = defineEmits<{
   changeLeadsPage: [page: number]
   filterLeads: [subdomain: string]
   changeCampaignsPage: [page: number]
+  toast: [msg: string, type: 'success' | 'error']
 }>()
 
 // ── 营销活动分页 ─────────────────────────────────────────────────
@@ -76,6 +79,76 @@ const filteredCampaigns = computed(() => {
   return props.campaigns.filter(c => statusFilter.value === 'active' ? c.is_active : !c.is_active)
 })
 
+// ── 子域名查重（f1: 表单校验增强）───────────────────────────
+const subdomainError = computed(() => {
+  const v = createForm.subdomain.trim()
+  if (!v) return ''
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(v)) return '仅允许小写字母、数字和短横线'
+  if (props.campaigns?.some(c => c.subdomain === v)) return `子域名「${v}」已被使用`
+  return ''
+})
+const canCreate = computed(() => {
+  return createForm.subdomain && createForm.title && createForm.subtitle && createForm.badge && !subdomainError.value
+})
+
+// ── 批量选择（f4: 批量操作）────────────────────────────────
+const selectedCampaigns = ref<Set<string>>(new Set())
+const isAllSelected = computed(() => {
+  return filteredCampaigns.value.length > 0 && filteredCampaigns.value.every(c => selectedCampaigns.value.has(c.subdomain))
+})
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedCampaigns.value.clear()
+  } else {
+    filteredCampaigns.value.forEach(c => selectedCampaigns.value.add(c.subdomain))
+  }
+}
+function toggleSelect(subdomain: string) {
+  if (selectedCampaigns.value.has(subdomain)) selectedCampaigns.value.delete(subdomain)
+  else selectedCampaigns.value.add(subdomain)
+}
+const batchActionLoading = ref(false)
+async function handleBatchToggle(isActive: boolean) {
+  const subs = [...selectedCampaigns.value]
+  if (!subs.length) return
+  const action = isActive ? '上线' : '下线'
+  if (!await confirmDialog.value.show(`确定要批量${action} ${subs.length} 个活动吗？`, { title: `批量${action}`, confirmText: `确认${action}`, icon: isActive ? 'i-lucide-cloud' : 'i-lucide-cloud-off' })) return
+  batchActionLoading.value = true
+  emit('batchToggleStatus', subs, isActive)
+  selectedCampaigns.value.clear()
+  batchActionLoading.value = false
+}
+
+// ── iframe 预览（f5: 预览增强）─────────────────────────────
+const previewModal = ref(false)
+const previewUrl = ref('')
+const previewTitle = ref('')
+function openPreview(subdomain: string, title: string) {
+  previewUrl.value = getPreviewUrl(subdomain)
+  previewTitle.value = title
+  previewModal.value = true
+}
+
+// ── 拖拽排序（f6: 拖拽排序）───────────────────────────────
+const dragItem = ref<Campaign | null>(null)
+const dragOverItem = ref<Campaign | null>(null)
+function onDragStart(cam: Campaign) { dragItem.value = cam }
+function onDragOver(e: DragEvent, cam: Campaign) { e.preventDefault(); dragOverItem.value = cam }
+function onDragEnd() {
+  if (!dragItem.value || !dragOverItem.value || dragItem.value.subdomain === dragOverItem.value.subdomain) {
+    dragItem.value = null; dragOverItem.value = null; return
+  }
+  const items = [...(props.campaigns || [])]
+  const fromIdx = items.findIndex(c => c.subdomain === dragItem.value!.subdomain)
+  const toIdx = items.findIndex(c => c.subdomain === dragOverItem.value!.subdomain)
+  if (fromIdx < 0 || toIdx < 0) { dragItem.value = null; dragOverItem.value = null; return }
+  const [moved] = items.splice(fromIdx, 1)
+  items.splice(toIdx, 0, moved!)
+  const orders = items.map((c, i) => ({ subdomain: c.subdomain, sort_order: i }))
+  emit('reorder', orders)
+  dragItem.value = null; dragOverItem.value = null
+}
+
 // ── 编辑弹窗 ─────────────────────────────────────────────────
 const editModal = ref(false)
 const editTarget = ref<Campaign | null>(null)
@@ -102,6 +175,13 @@ const showMediaPicker = ref(false)
 function handleMediaSelected(file: { url: string | null; path: string }) {
   editForm.cover_image = file.url || file.path
   showMediaPicker.value = false
+}
+
+const showCreateMediaPicker = ref(false)
+
+function handleCreateMediaSelected(file: { url: string | null; path: string }) {
+  createForm.cover_image = file.url || file.path
+  showCreateMediaPicker.value = false
 }
 
 const openEdit = (cam: Campaign) => {
@@ -146,8 +226,9 @@ const submitEdit = () => {
 }
 
 // ── 上下线切换 ───────────────────────────────────────────────
-const handleToggleStatus = (cam: Campaign) => {
-  if (!confirm(`确定要${cam.is_active ? '下线' : '上线'}活动「${cam.title}」吗？`)) return
+const handleToggleStatus = async (cam: Campaign) => {
+  const action = cam.is_active ? '下线' : '上线'
+  if (!await confirmDialog.value.show(`确定要${action}活动「${cam.title}」吗？`, { title: `${action}活动`, confirmText: `确认${action}`, icon: cam.is_active ? 'i-lucide-cloud-off' : 'i-lucide-cloud' })) return
   emit('toggleStatus', cam.subdomain, !cam.is_active)
 }
 
@@ -160,30 +241,45 @@ const createForm = reactive({
   badge: '',
   color_from: '#9333ea',
   color_to: '#6366f1',
+  is_active: true,
   cta_text: '立即预约',
+  cta_url: '' as string | null,
   sort_order: 0,
+  description: '' as string | null,
+  cover_image: '' as string | null,
   ga_measurement_id: '',
   meta_pixel_id: '',
   tiktok_pixel_id: '',
 })
 const openCreate = () => {
-  Object.assign(createForm, { subdomain: '', title: '', subtitle: '', badge: '', color_from: '#9333ea', color_to: '#6366f1', cta_text: '立即预约', sort_order: 0, ga_measurement_id: '', meta_pixel_id: '', tiktok_pixel_id: '' })
+  Object.assign(createForm, { subdomain: '', title: '', subtitle: '', badge: '', color_from: '#9333ea', color_to: '#6366f1', is_active: true, cta_text: '立即预约', cta_url: '', sort_order: 0, description: '', cover_image: '', ga_measurement_id: '', meta_pixel_id: '', tiktok_pixel_id: '' })
   createModal.value = true
 }
 const submitCreate = () => {
-  if (!createForm.subdomain || !createForm.title || !createForm.subtitle || !createForm.badge) return
+  if (!canCreate.value) return
   emit('create', { ...createForm })
   createModal.value = false
 }
 
 // ── 删除活动 ─────────────────────────────────────────────────────
-const handleDeleteCampaign = (cam: Campaign) => {
-  if (!confirm(`确定要删除活动「${cam.title}」(${cam.subdomain}) 吗？\n此操作将同时删除所有关联留资记录，且不可撤销。`)) return
+const handleDeleteCampaign = async (cam: Campaign) => {
+  if (!await confirmDialog.value.show(`确定要删除活动「${cam.title}」(${cam.subdomain}) 吗？`, { title: '删除活动', detail: '此操作将同时删除所有关联留资记录，且不可撤销。', confirmText: '确认删除', icon: 'i-lucide-trash-2' })) return
   emit('deleteCampaign', cam.subdomain)
 }
 
-// ── 留资看板 ─────────────────────────────────────────────────
+// ── 留资看板（f3: 搜索增强）─────────────────────────────────
 const filterSubdomain = ref('')
+const leadSearch = ref('')
+const confirmDialog = ref()
+const filteredLeads = computed(() => {
+  if (!props.leads) return []
+  if (!leadSearch.value.trim()) return props.leads
+  const q = leadSearch.value.trim().toLowerCase()
+  return props.leads.filter((l: any) =>
+    (l.email && l.email.toLowerCase().includes(q)) ||
+    (l.phone && l.phone.includes(q))
+  )
+})
 const uniqueSubdomains = computed(() => {
   if (!props.campaigns) return []
   return [...new Set(props.campaigns.map(c => c.subdomain))]
@@ -196,22 +292,31 @@ const handlePageChange = (page: number) => {
 watch(filterSubdomain, (val) => {
   emit('filterLeads', val)
 })
-const handleDeleteLead = (id: string) => {
-  if (!confirm('确定要彻底清除该留资预约记录吗？此动作会同步抹除 Supabase 数据库对应条目。')) return
+const handleDeleteLead = async (id: string) => {
+  if (!await confirmDialog.value.show('确定要彻底清除该留资预约记录吗？', { title: '删除留资记录', detail: '此动作会同步抹除 Supabase 数据库对应条目。', confirmText: '确认删除', icon: 'i-lucide-trash-2' })) return
   emit('delete-lead', id)
 }
 
-// ── 预览链接（生产环境用子域名 URL，本地 fallback 到路径）────────
+// ── 预览链接（本地用 localhost:port 避免子域名 DNS 问题）────────
 function getPreviewUrl(subdomain: string): string {
   if (import.meta.client) {
     const hostname = window.location.hostname
-    if (hostname !== 'localhost' && !hostname.endsWith('.vercel.app')) {
-      const rootDomain = getRootDomain(hostname)
-      return `https://${subdomain}.${rootDomain}`
+    // 本地开发：*.localhost 可能未配置 DNS，直接用 localhost:port
+    if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
+      const port = window.location.port ? `:${window.location.port}` : ''
+      const localPath = getCampaignLocalPath(subdomain)
+      return `http://localhost${port}${localPath}`
     }
+    return resolveCampaignPreviewHref(subdomain, window.location.origin)
   }
   return `/h5/${subdomain}`
 }
+
+// ── 配图加载错误回退（f2: 编辑表单初始化媒体库）──────────
+const editCoverError = ref(false)
+const createCoverError = ref(false)
+watch(() => editForm.cover_image, () => { editCoverError.value = false })
+watch(() => createForm.cover_image, () => { createCoverError.value = false })
 
 defineExpose({ onSaved: () => {} })
 </script>
@@ -276,19 +381,30 @@ defineExpose({ onSaved: () => {} })
       </div>
     </div>
 
-    <!-- 状态筛选胶囊 -->
-    <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
-      <button
-        v-for="s in [{ key: 'all', label: '全部活动' }, { key: 'active', label: '运行中' }, { key: 'inactive', label: '已下线' }]"
-        :key="s.key"
-        @click="statusFilter = s.key"
-        class="text-[10px] font-semibold px-4.5 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
-        :class="statusFilter === s.key
-          ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]'
-          : 'bg-transparent text-white/60 hover:text-white/90'"
-      >
-        {{ s.label }}
-      </button>
+    <!-- 状态筛选胶囊 + 批量操作栏 -->
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
+        <button
+          v-for="s in [{ key: 'all', label: '全部活动' }, { key: 'active', label: '运行中' }, { key: 'inactive', label: '已下线' }]"
+          :key="s.key"
+          @click="statusFilter = s.key"
+          class="text-[10px] font-semibold px-4.5 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
+          :class="statusFilter === s.key
+            ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]'
+            : 'bg-transparent text-white/60 hover:text-white/90'"
+        >
+          {{ s.label }}
+        </button>
+      </div>
+      <!-- 批量操作栏 -->
+      <Transition name="tab-content">
+        <div v-if="selectedCampaigns.size > 0" class="flex items-center gap-2 text-xs">
+          <span class="text-white/50 font-mono">已选 {{ selectedCampaigns.size }} 项</span>
+          <button @click="handleBatchToggle(true)" :disabled="batchActionLoading" class="bg-[#30d158]/10 hover:bg-[#30d158]/20 text-[#30d158] px-3 py-1.5 rounded-full border border-[#30d158]/20 transition-all cursor-pointer disabled:opacity-50">批量上线</button>
+          <button @click="handleBatchToggle(false)" :disabled="batchActionLoading" class="bg-white/5 hover:bg-white/10 text-white/70 px-3 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer disabled:opacity-50">批量下线</button>
+          <button @click="selectedCampaigns.clear()" class="text-white/30 hover:text-white/60 px-2 py-1 cursor-pointer">取消选择</button>
+        </div>
+      </Transition>
     </div>
 
     <!-- 活动列表 -->
@@ -297,7 +413,8 @@ defineExpose({ onSaved: () => {} })
         <table class="w-full text-left text-sm border-collapse">
           <thead class="sticky top-0 z-10">
             <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-[#0d0d18]/95 backdrop-blur-sm">
-              <th class="px-5 py-4 font-semibold font-mono w-8">#</th>
+              <th class="px-3 py-4 w-8"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" class="w-3.5 h-3.5 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500/20 cursor-pointer" /></th>
+              <th class="px-3 py-4 font-semibold font-mono w-8 cursor-grab" title="拖拽行可调整排序">⠿</th>
               <th class="px-5 py-4 font-semibold font-mono">活动信息</th>
               <th class="px-5 py-4 font-semibold font-mono">状态</th>
               <th class="px-5 py-4 font-semibold font-mono">CTA</th>
@@ -307,8 +424,17 @@ defineExpose({ onSaved: () => {} })
             </tr>
           </thead>
           <tbody class="divide-y divide-white/[0.04]">
-            <tr v-for="cam in filteredCampaigns" :key="cam.subdomain" class="hover:bg-white/[0.02] transition-colors duration-200">
-              <td class="px-5 py-5 text-white/30 font-mono text-xs">{{ cam.sort_order }}</td>
+            <tr
+              v-for="cam in filteredCampaigns" :key="cam.subdomain"
+              class="hover:bg-white/[0.02] transition-colors duration-200 group"
+              :class="{ 'bg-indigo-500/5': selectedCampaigns.has(cam.subdomain), 'opacity-50': dragItem && dragItem.subdomain === cam.subdomain, 'border-t-2 border-indigo-500/40': dragOverItem && dragOverItem.subdomain === cam.subdomain }"
+              draggable="true"
+              @dragstart="onDragStart(cam)"
+              @dragover="onDragOver($event, cam)"
+              @dragend="onDragEnd"
+            >
+              <td class="px-3 py-5"><input type="checkbox" :checked="selectedCampaigns.has(cam.subdomain)" @change="toggleSelect(cam.subdomain)" class="w-3.5 h-3.5 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500/20 cursor-pointer" /></td>
+              <td class="px-3 py-5 text-white/30 font-mono text-xs cursor-grab active:cursor-grabbing">{{ cam.sort_order }}</td>
               <td class="px-5 py-5">
                 <div class="min-w-0">
                   <div class="flex items-center gap-2">
@@ -349,12 +475,10 @@ defineExpose({ onSaved: () => {} })
               <td class="px-5 py-5 text-right">
                 <div class="flex items-center justify-end gap-2">
                   <!-- 预览 -->
-                  <a
-                    :href="getPreviewUrl(cam.subdomain)"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-[10px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-3 py-1.5 rounded-full border border-white/15 transition-all no-underline cursor-pointer focus:outline-none"
-                  >预览</a>
+                  <button
+                    @click="openPreview(cam.subdomain, cam.title)"
+                    class="text-[10px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-3 py-1.5 rounded-full border border-white/15 transition-all cursor-pointer focus:outline-none"
+                  >预览</button>
                   <button
                     @click="openEdit(cam)"
                     class="text-[11px] font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-4 py-2 rounded-full border border-indigo-500/20 transition-all active:scale-[0.93] cursor-pointer focus:outline-none"
@@ -367,7 +491,7 @@ defineExpose({ onSaved: () => {} })
               </td>
             </tr>
             <tr v-if="!filteredCampaigns.length">
-              <td colspan="7" class="py-12 text-center text-xs text-white/25 font-light">
+              <td colspan="9" class="py-12 text-center text-xs text-white/25 font-light">
                 暂无符合条件的营销活动
               </td>
             </tr>
@@ -479,7 +603,8 @@ defineExpose({ onSaved: () => {} })
               <div class="text-[11px] text-white/30 uppercase tracking-widest font-mono mb-3">活动配图 (从媒体库选取)</div>
               <div class="space-y-2">
                 <div v-if="editForm.cover_image" class="relative inline-block">
-                  <img :src="editForm.cover_image" class="h-24 w-auto max-w-[200px] object-cover rounded-lg border border-white/[0.08]" />
+                  <img v-if="!editCoverError" :src="editForm.cover_image" @error="editCoverError = true" class="h-24 w-auto max-w-[200px] object-cover rounded-lg border border-white/[0.08]" />
+                  <div v-else class="h-24 w-[200px] rounded-lg border border-white/[0.08] bg-white/[0.02] flex items-center justify-center text-white/20 text-xs">图片加载失败</div>
                   <button
                     type="button"
                     @click="editForm.cover_image = null"
@@ -522,7 +647,7 @@ defineExpose({ onSaved: () => {} })
 
     <!-- 媒体库选取器弹窗 -->
     <Teleport to="body">
-      <div v-if="showMediaPicker" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" @click.self="showMediaPicker = false">
+      <div v-if="showMediaPicker" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm" @click.self="showMediaPicker = false">
         <div class="bg-[#0a0a0c]/95 border border-white/[0.08] rounded-2xl w-[90vw] max-w-4xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
           <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06] flex-shrink-0">
             <span class="text-xs font-semibold text-white/80 uppercase tracking-widest font-mono">从媒体库选取配图</span>
@@ -538,7 +663,7 @@ defineExpose({ onSaved: () => {} })
     <!-- 新建活动弹窗 -->
     <Teleport to="body">
       <div v-if="createModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="createModal = false">
-        <div class="bg-[#12121a] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] w-full max-w-lg p-7 space-y-5 animate-fade-in">
+        <div class="bg-[#12121a] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] w-full max-w-lg p-7 space-y-5 animate-fade-in max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-center">
             <h2 class="text-white text-base font-semibold tracking-wide">新建营销活动</h2>
             <button @click="createModal = false" class="text-white/40 hover:text-white text-lg leading-none cursor-pointer bg-transparent border-0">×</button>
@@ -546,8 +671,9 @@ defineExpose({ onSaved: () => {} })
           <form @submit.prevent="submitCreate" class="space-y-4">
             <div class="space-y-1.5">
               <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono">子域名 (唯一标识) *</label>
-              <input v-model="createForm.subdomain" type="text" required pattern="[a-z0-9][a-z0-9-]*" class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" placeholder="例如: summer-sale" />
-              <p class="text-[10px] text-white/20">仅小写字母、数字和短横线，访问路径 /h5/子域名</p>
+              <input v-model="createForm.subdomain" type="text" required pattern="[a-z0-9][a-z0-9-]*" class="w-full bg-white/[0.03] border rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-4 transition-all" :class="subdomainError ? 'border-[#ff453a]/50 focus:ring-[#ff453a]/10' : 'border-white/[0.08] focus:border-indigo-500/50 focus:ring-indigo-500/5'" placeholder="例如: summer-sale" />
+              <p v-if="subdomainError" class="text-[10px] text-[#ff453a]">{{ subdomainError }}</p>
+              <p v-else class="text-[10px] text-white/20">仅小写字母、数字和短横线，访问路径 /h5/子域名</p>
             </div>
             <div class="space-y-1.5">
               <label class="block text-[11px] text-white/40 uppercase tracking-widest font-mono">活动标题 *</label>
@@ -597,11 +723,69 @@ defineExpose({ onSaved: () => {} })
               </div>
             </div>
 
+            <!-- 状态 & 描述 -->
+            <div class="border-t border-white/[0.05] pt-4 space-y-3">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input v-model="createForm.is_active" type="checkbox" class="w-4 h-4 rounded border-white/20 bg-white/5 text-[#30d158] focus:ring-[#30d158]/20" />
+                <span class="text-xs text-white/70">创建后立即上线（公开可见）</span>
+              </label>
+              <div class="space-y-1.5">
+                <label class="block text-[11px] text-white/40 font-mono">详细描述 (可选)</label>
+                <textarea v-model="createForm.description" rows="2" class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" placeholder="活动的详细说明，不会在 H5 页面展示..."></textarea>
+              </div>
+            </div>
+
+            <!-- CTA 跳转链接 -->
+            <div class="space-y-1.5">
+              <label class="block text-[11px] text-white/40 font-mono">CTA 跳转链接 (可选)</label>
+              <input v-model="createForm.cta_url" type="text" class="w-full bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all" placeholder="https://..." />
+            </div>
+
+            <!-- 活动配图 -->
+            <div class="border-t border-white/[0.05] pt-4 space-y-3">
+              <div class="text-[11px] text-white/30 uppercase tracking-widest font-mono mb-3">活动配图 (从媒体库选取)</div>
+              <div class="space-y-2">
+                <div v-if="createForm.cover_image" class="relative inline-block">
+                  <img v-if="!createCoverError" :src="createForm.cover_image" @error="createCoverError = true" class="h-24 w-auto max-w-[200px] object-cover rounded-lg border border-white/[0.08]" />
+                  <div v-else class="h-24 w-[200px] rounded-lg border border-white/[0.08] bg-white/[0.02] flex items-center justify-center text-white/20 text-xs">图片加载失败</div>
+                  <button
+                    type="button"
+                    @click="createForm.cover_image = null"
+                    class="absolute -top-2 -right-2 w-5 h-5 bg-[#ff453a] rounded-full flex items-center justify-center text-[10px] text-white cursor-pointer"
+                  >✕</button>
+                </div>
+                <div v-else>
+                  <button
+                    type="button"
+                    @click="showCreateMediaPicker = true"
+                    class="text-xs bg-white/[0.05] hover:bg-white/[0.10] border border-dashed border-white/[0.15] hover:border-indigo-500/40 rounded-xl px-5 py-4 text-white/50 hover:text-indigo-400 transition-all cursor-pointer w-full text-left"
+                  >
+                    <span class="i-lucide-image text-[14px] mr-1.5" /> 点击从媒体库选取配图...
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="flex gap-3 pt-2">
               <button type="button" @click="createModal = false" class="flex-1 text-xs bg-white/5 hover:bg-white/10 text-white/70 py-2.5 rounded-xl border border-white/[0.08] transition-all cursor-pointer">取消</button>
-              <button type="submit" class="flex-1 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white py-2.5 rounded-xl transition-all active:scale-[0.97] cursor-pointer shadow-[0_4px_12px_rgba(99,102,241,0.2)]">创建活动</button>
+              <button type="submit" :disabled="!canCreate" class="flex-1 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white py-2.5 rounded-xl transition-all active:scale-[0.97] cursor-pointer shadow-[0_4px_12px_rgba(99,102,241,0.2)] disabled:opacity-40 disabled:cursor-not-allowed">创建活动</button>
             </div>
           </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 新建活动 - 媒体库选取器弹窗 -->
+    <Teleport to="body">
+      <div v-if="showCreateMediaPicker" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm" @click.self="showCreateMediaPicker = false">
+        <div class="bg-[#0a0a0c]/95 border border-white/[0.08] rounded-2xl w-[90vw] max-w-4xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+          <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06] flex-shrink-0">
+            <span class="text-xs font-semibold text-white/80 uppercase tracking-widest font-mono">从媒体库选取配图</span>
+            <button @click="showCreateMediaPicker = false" class="text-white/50 hover:text-white transition-all cursor-pointer text-xs">✕ 关闭</button>
+          </div>
+          <div class="flex-1 overflow-y-auto p-5">
+            <AdminMedia :picker-mode="true" @selected="handleCreateMediaSelected" @close="showCreateMediaPicker = false" />
+          </div>
         </div>
       </div>
     </Teleport>
@@ -616,7 +800,8 @@ defineExpose({ onSaved: () => {} })
           </h2>
           <p class="text-white/40 text-[11px] mt-0.5">H5 营销活动页面收集的用户预约数据</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <input v-model="leadSearch" type="text" placeholder="搜索邮箱/手机号…" class="bg-white/[0.03] border border-white/[0.08] text-xs text-white/80 rounded-full px-4 py-2 outline-none focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/5 transition-all w-48" />
           <button
             @click="$emit('exportLeads', filterSubdomain || undefined)"
             class="text-[11px] font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-4 py-2 rounded-full border border-indigo-500/20 transition-all active:scale-[0.98] cursor-pointer focus:outline-none"
@@ -642,7 +827,7 @@ defineExpose({ onSaved: () => {} })
               </tr>
             </thead>
             <tbody class="divide-y divide-white/[0.04]">
-              <tr v-for="lead in leads" :key="lead.id" class="hover:bg-white/[0.02]">
+              <tr v-for="lead in filteredLeads" :key="lead.id" class="hover:bg-white/[0.02]">
                 <td class="px-5 py-5 text-white font-mono text-sm">{{ lead.email }}</td>
                 <td class="px-5 py-5 text-white/80 font-mono text-sm">{{ lead.phone }}</td>
                 <td class="px-5 py-5 text-[#30d158] font-mono text-sm">{{ lead.subdomain }}</td>
@@ -652,8 +837,8 @@ defineExpose({ onSaved: () => {} })
                   <button @click="handleDeleteLead(lead.id)" class="text-[11px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] px-4 py-2 rounded-full border border-[#ff453a]/20 transition-all cursor-pointer focus:outline-none">删除</button>
                 </td>
               </tr>
-              <tr v-if="!leads?.length">
-                <td colspan="6" class="py-10 text-center text-xs text-white/25">暂无留资记录</td>
+              <tr v-if="!filteredLeads.length">
+                <td colspan="6" class="py-10 text-center text-xs text-white/25">{{ leadSearch ? '无匹配的留资记录' : '暂无留资记录' }}</td>
               </tr>
             </tbody>
           </table>
@@ -679,5 +864,23 @@ defineExpose({ onSaved: () => {} })
         </div>
       </div>
     </div>
+    <!-- iframe 预览弹窗 -->
+    <Teleport to="body">
+      <div v-if="previewModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" @click.self="previewModal = false">
+        <div class="bg-[#12121a] rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] w-[90vw] max-w-3xl h-[80vh] flex flex-col overflow-hidden animate-fade-in">
+          <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06] flex-shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-white/80">预览: {{ previewTitle }}</span>
+              <a :href="previewUrl" target="_blank" rel="noopener noreferrer" class="text-[10px] text-indigo-400 hover:text-indigo-300 no-underline">↗ 新窗口打开</a>
+            </div>
+            <button @click="previewModal = false" class="text-white/40 hover:text-white text-lg leading-none cursor-pointer bg-transparent border-0">&times;</button>
+          </div>
+          <div class="flex-1 bg-white">
+            <iframe :src="previewUrl" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    <AdminConfirmDialog ref="confirmDialog" />
   </div>
 </template>

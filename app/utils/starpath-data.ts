@@ -86,3 +86,55 @@ export function getQuestionOptions(qid: number, lang: StarpathLang = 'zh'): stri
   const langData = questionOptions[lang] as unknown as Record<string, string[]>
   return langData[key] || []
 }
+
+// ── 问卷题目文本（中英文） ──────────────────────────────────
+
+export const questionTexts = {
+  zh: {
+    q1: '你对自己目前的人生方向满意吗？',
+    q2: '面对重大决策时，你通常如何应对？',
+    q3: '什么事能让你感到真正的活力？',
+    q4: '你如何描述你的社交风格？',
+    q5: '在关系中你最容易遇到什么挑战？',
+    q6: '你目前的职业状态是？',
+    q7: '你与金钱的关系是怎样的？',
+    q8: '你通常如何处理压力？',
+    q9: '你人生中最看重的是什么？',
+    q10: '你相信宿命还是自由意志？',
+    q11: '你如何看待个人成长？',
+    q12: '在团队中你通常扮演什么角色？',
+    q13: '什么最影响你的情绪？',
+    q14: '你如何对待新事物？',
+    q15: '你希望在哪方面获得突破？',
+    q16: '你对自己的直觉怎么看？',
+    q17: '你觉得人生中最重要的是？',
+    q18: '你期待 AI 占星给你带来什么？',
+  },
+  en: {
+    q1: 'How satisfied are you with the direction your life is taking?',
+    q2: 'When facing major decisions, how do you usually respond?',
+    q3: 'What makes you feel truly alive?',
+    q4: 'How would you describe your social style?',
+    q5: 'What challenge do you face most in relationships?',
+    q6: 'What\'s your current career status?',
+    q7: 'How would you describe your relationship with money?',
+    q8: 'How do you usually handle stress?',
+    q9: 'What matters most to you in life?',
+    q10: 'Do you believe in fate or free will?',
+    q11: 'How do you view personal growth?',
+    q12: 'What role do you usually play in a team?',
+    q13: 'What affects your mood the most?',
+    q14: 'How do you approach new things?',
+    q15: 'Which area do you want to break through in?',
+    q16: 'How do you feel about your intuition?',
+    q17: 'What do you think is most important in life?',
+    q18: 'What do you hope AI astrology can bring you?',
+  },
+} as const
+
+/** 获取题目文本（用于管理后台展示） */
+export function getQuestionText(qid: number | string, lang: StarpathLang = 'zh'): string {
+  const key = typeof qid === 'number' ? `q${qid}` : qid
+  const langData = questionTexts[lang] as unknown as Record<string, string>
+  return langData[key] || key
+}

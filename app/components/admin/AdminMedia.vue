@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import AdminMediaDetail from './AdminMediaDetail.vue'
+import AdminMediaTrash from './AdminMediaTrash.vue'
+import AdminMediaGrid from './AdminMediaGrid.vue'
 
 interface FileInfo {
   id: string
@@ -63,14 +65,17 @@ const kindFilter = ref('')
 const dateFrom = ref('')
 const dateTo = ref('')
 const uploaderFilter = ref('')
+const showAdvancedFilters = ref(false)
 const sortField = ref<'updated_at' | 'created_at' | 'name'>('updated_at')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const prefix = ref('')
 const offset = ref(0)
-const limit = 40
+const pageSize = ref(20)
+const pageSizeOptions = [10, 20, 50, 100]
 
 const files = ref<FileInfo[]>([])
 const folders = ref<string[]>([])
+const confirmDialog = ref()
 const stats = ref<StorageStats | null>(null)
 const total = ref(0)
 const isFetching = ref(false)
@@ -173,7 +178,7 @@ async function handleCreateBucket() {
 }
 
 async function handleDeleteBucket(name: string) {
-  if (!confirm(`确定要删除桶「${name}」吗？桶必须为空。`)) return
+  if (!await confirmDialog.value.show(`确定要删除桶「${name}」吗？`, { title: '删除存储桶', detail: '桶必须为空。', confirmText: '确认删除', icon: 'i-lucide-trash-2' })) return
   try {
     await $fetch(`/api/admin/storage/buckets/${name}`, { method: 'DELETE' })
     await fetchBuckets()
@@ -252,148 +257,13 @@ async function handleMove() {
   }
 }
 
-// ── 回收站 ──────────────────────────────────────────────────
-interface TrashItem {
-  id: string
-  original_bucket: string
-  original_path: string
-  file_name: string
-  mime_type: string | null
-  file_size: number
-  deleted_by: string | null
-  expires_at: string
-  created_at: string
-}
-const trashItems = ref<TrashItem[]>([])
-const trashTotal = ref(0)
-const trashFetching = ref(false)
-const trashOffset = ref(0)
-const trashLimit = 50
-
-// 回收站批量选择
-const trashSelectedMap = ref<Record<string, boolean>>({})
-const trashSelectedIds = computed(() => Object.keys(trashSelectedMap.value).filter(k => trashSelectedMap.value[k]))
-function toggleTrashSelect(id: string) {
-  const m = { ...trashSelectedMap.value }
-  if (m[id]) delete m[id]; else m[id] = true
-  trashSelectedMap.value = m
-}
-function toggleTrashSelectAll() {
-  if (trashSelectedIds.value.length === trashItems.value.length) {
-    trashSelectedMap.value = {}
-  } else {
-    const m: Record<string, boolean> = {}
-    trashItems.value.forEach(i => { m[i.id] = true })
-    trashSelectedMap.value = m
-  }
-}
-
-async function handleBatchRestore() {
-  const ids = trashSelectedIds.value
-  if (ids.length === 0) return
-  if (!confirm(`确定要还原 ${ids.length} 个文件吗？`)) return
-  try {
-    const res = await $fetch<{ success: boolean; data: { restored: number; errors: string[] } }>('/api/admin/storage/trash/batch-restore', {
-      method: 'POST', body: { ids },
-    })
-    trashSelectedMap.value = {}
-    const hasErrors = res.data.errors.length > 0
-    showToast(`已还原 ${res.data.restored} 个文件${hasErrors ? `，${res.data.errors.length} 个失败` : ''}`, hasErrors ? 'info' : 'success')
-    fetchTrash()
-    if (activeView.value === 'files') fetchFiles()
-  } catch (e: any) {
-    showToast(e?.data?.statusMessage || '批量还原失败', 'error')
-  }
-}
-
-async function handleBatchPermanentDelete() {
-  const ids = trashSelectedIds.value
-  if (ids.length === 0) return
-  if (!confirm(`确定要永久删除 ${ids.length} 个文件吗？此操作不可撤销。`)) return
-  try {
-    const res = await $fetch<{ success: boolean; data: { deleted: number; errors: string[] } }>('/api/admin/storage/trash/batch-delete', {
-      method: 'POST', body: { ids },
-    })
-    trashSelectedMap.value = {}
-    const hasErrors = res.data.errors.length > 0
-    showToast(`已永久删除 ${res.data.deleted} 个文件${hasErrors ? `，${res.data.errors.length} 个失败` : ''}`, hasErrors ? 'info' : 'success')
-    fetchTrash()
-  } catch (e: any) {
-    showToast(e?.data?.statusMessage || '批量删除失败', 'error')
-  }
-}
-
-async function handleEmptyTrash() {
-  if (!confirm('确定要清空回收站全部文件吗？此操作不可撤销。')) return
-  try {
-    const res = await $fetch<{ success: boolean; data: { deleted: number } }>('/api/admin/storage/trash/empty', { method: 'POST' })
-    showToast(`已清空 ${res.data.deleted} 个文件`, 'success')
-    trashSelectedMap.value = {}
-    fetchTrash()
-  } catch (e: any) {
-    showToast(e?.data?.statusMessage || '清空失败', 'error')
-  }
-}
-
-async function fetchTrash() {
-  trashFetching.value = true
-  try {
-    const res = await $fetch<{ success: boolean; data: { items: TrashItem[]; total: number } }>('/api/admin/storage/trash', {
-      params: { limit: trashLimit, offset: trashOffset.value },
-    })
-    trashItems.value = res.data.items
-    trashTotal.value = res.data.total
-  } catch (e) {
-    console.error('Failed to fetch trash:', e)
-  } finally {
-    trashFetching.value = false
-  }
-}
-
-// 回收站分页
-const trashHasPrev = computed(() => trashOffset.value > 0)
-const trashHasNext = computed(() => trashOffset.value + trashLimit < trashTotal.value)
-function trashPrevPage() { trashOffset.value = Math.max(0, trashOffset.value - trashLimit); fetchTrash() }
-function trashNextPage() { trashOffset.value += trashLimit; fetchTrash() }
-
-async function handleRestore(trashId: string) {
-  try {
-    await $fetch(`/api/admin/storage/trash/${trashId}/restore`, { method: 'POST' })
-    showToast('文件已还原', 'success')
-    fetchTrash()
-    if (activeView.value === 'files') fetchFiles()
-  } catch (e: any) {
-    showToast(e?.data?.statusMessage || '还原失败', 'error')
-  }
-}
-
-async function handlePermanentDelete(item: TrashItem) {
-  if (!confirm(`确定要永久删除「${item.file_name}」吗？此操作不可撤销。`)) return
-  try {
-    await $fetch(`/api/admin/storage/trash/${item.id}`, { method: 'DELETE' })
-    showToast('已永久删除', 'success')
-    fetchTrash()
-  } catch (e: any) {
-    showToast(e?.data?.statusMessage || '删除失败', 'error')
-  }
-}
-
-async function handleCleanupExpired() {
-  if (!confirm('确定要清理所有已过期的回收站文件吗？')) return
-  try {
-    const res = await $fetch<{ success: boolean; data: { cleaned: number } }>('/api/admin/storage/trash/cleanup', { method: 'POST' })
-    showToast(`已清理 ${res.data.cleaned} 个文件`, 'success')
-    fetchTrash()
-  } catch (e: any) {
-    showToast(e?.data?.statusMessage || '清理失败', 'error')
-  }
-}
+// ── 回收站（已提取到 AdminMediaTrash.vue）─────────────────────
+const trashRef = ref<InstanceType<typeof AdminMediaTrash> | null>(null)
 
 // ── 视图切换 ──────────────────────────────────────────────
 watch(activeView, () => {
   if (activeView.value === 'trash') {
-    trashOffset.value = 0
-    fetchTrash()
+    trashRef.value?.fetchTrash()
   } else {
     fetchFiles()
   }
@@ -406,7 +276,7 @@ const isUploading = ref(false)
 const uploadProgress = ref(0)
 
 // ── 数据获取 ─────────────────────────────────────────────────
-const { upload, remove, getPublicUrl } = useStorage()
+const { upload, remove, getPublicUrl, getSignedUrl } = useStorage()
 
 async function fetchFiles() {
   isFetching.value = true
@@ -414,7 +284,7 @@ async function fetchFiles() {
     const params: Record<string, any> = {
       bucket: activeBucket.value,
       prefix: prefix.value,
-      limit,
+      limit: pageSize.value,
       offset: offset.value,
       sort: sortField.value,
       order: sortOrder.value,
@@ -473,10 +343,46 @@ function handleRefresh() {
 }
 
 // ── 分页 ─────────────────────────────────────────────────────
+const currentPage = computed(() => Math.floor(offset.value / pageSize.value) + 1)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 const hasPrev = computed(() => offset.value > 0)
-const hasNext = computed(() => offset.value + limit < total.value)
-function prevPage() { offset.value = Math.max(0, offset.value - limit); fetchFiles() }
-function nextPage() { offset.value += limit; fetchFiles() }
+const hasNext = computed(() => offset.value + pageSize.value < total.value)
+function prevPage() { offset.value = Math.max(0, offset.value - pageSize.value); fetchFiles() }
+function nextPage() { offset.value += pageSize.value; fetchFiles() }
+function goToPage(page: number) { offset.value = (page - 1) * pageSize.value; fetchFiles() }
+
+// 每页条数切换
+function changePageSize(size: number) {
+  pageSize.value = size
+  offset.value = 0
+  fetchFiles()
+}
+
+// 快速跳页
+const jumpPageInput = ref('')
+function jumpToPage() {
+  const p = parseInt(jumpPageInput.value)
+  if (p >= 1 && p <= totalPages.value) {
+    goToPage(p)
+  }
+  jumpPageInput.value = ''
+}
+
+// 生成可见页码列表（最多 5 个，带省略号）
+const visiblePages = computed(() => {
+  const tp = totalPages.value
+  const cp = currentPage.value
+  if (tp <= 5) return Array.from({ length: tp }, (_, i) => i + 1)
+  const pages: (number | string)[] = []
+  if (cp <= 3) {
+    pages.push(1, 2, 3, 4, '...', tp)
+  } else if (cp >= tp - 2) {
+    pages.push(1, '...', tp - 3, tp - 2, tp - 1, tp)
+  } else {
+    pages.push(1, '...', cp - 1, cp, cp + 1, '...', tp)
+  }
+  return pages
+})
 
 // ── 文件夹导航 ───────────────────────────────────────────────
 function navigateFolder(folder: string) {
@@ -536,12 +442,23 @@ function getSelectedPaths(): string[] {
 
 // ── Lightbox 图片预览 ──────────────────────────────────────────
 const lightboxFile = ref<FileInfo | null>(null)
+const lightboxPreviewUrl = ref<string | null>(null)
+
 function openLightbox(file: FileInfo) {
   if (file.isImage) {
     lightboxFile.value = file
+    lightboxPreviewUrl.value = file.publicUrl
+    // 私有桶文件无 publicUrl，自动生成临时签名链接
+    if (!file.publicUrl) {
+      getSignedUrl(file.bucket || activeBucket.value, file.path).then(url => {
+        if (lightboxFile.value?.path === file.path) {
+          lightboxPreviewUrl.value = url
+        }
+      }).catch(() => {})
+    }
   }
 }
-function closeLightbox() { lightboxFile.value = null }
+function closeLightbox() { lightboxFile.value = null; lightboxPreviewUrl.value = null }
 
 // 键盘导航 Lightbox
 function onLightboxKeydown(e: KeyboardEvent) {
@@ -549,8 +466,8 @@ function onLightboxKeydown(e: KeyboardEvent) {
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     const images = filteredFiles.value.filter(f => f.isImage)
     const idx = images.findIndex(f => f.path === lightboxFile.value?.path)
-    if (e.key === 'ArrowLeft' && idx > 0) lightboxFile.value = images[idx - 1] ?? null
-    if (e.key === 'ArrowRight' && idx < images.length - 1) lightboxFile.value = images[idx + 1] ?? null
+    const next = e.key === 'ArrowLeft' ? (idx > 0 ? images[idx - 1] : null) : (idx < images.length - 1 ? images[idx + 1] : null)
+    if (next) openLightbox(next)
   }
 }
 
@@ -576,7 +493,7 @@ function handleFileClick(file: FileInfo) {
 async function handleBatchDelete() {
   const paths = getSelectedPaths()
   if (paths.length === 0) return
-  if (!confirm(`确定要将 ${paths.length} 个文件移入回收站吗？`)) return
+  if (!await confirmDialog.value.show(`确定要将 ${paths.length} 个文件移入回收站吗？`, { title: '批量移入回收站', confirmText: '确认移入', icon: 'i-lucide-trash-2' })) return
 
   try {
     // 批量软删除到回收站
@@ -632,29 +549,18 @@ async function handleDrop(e: DragEvent) {
   isDragging.value = false
   const droppedFiles = e.dataTransfer?.files
   if (!droppedFiles || droppedFiles.length === 0) return
-  await uploadFiles(Array.from(droppedFiles))
+  const allFiles = Array.from(droppedFiles)
+  const { valid, invalid } = validateDropMime(allFiles)
+  if (invalid.length > 0) {
+    showToast(`${invalid.length} 个文件格式不支持（${invalid.slice(0, 3).join(', ')}${invalid.length > 3 ? '...' : ''}）`, 'error')
+  }
+  if (valid.length > 0) await uploadFiles(valid)
 }
 
-// ── 文件夹拖拽上传 ───────────────────────────────────────────
-function handleFolderDragOver(e: DragEvent) {
-  e.preventDefault()
-  const el = e.currentTarget as HTMLElement | null
-  el?.classList.add('!border-indigo-500/50', '!bg-indigo-500/10', '!scale-105')
-}
-
-function handleFolderDragLeave(e: DragEvent) {
-  const el = e.currentTarget as HTMLElement | null
-  el?.classList.remove('!border-indigo-500/50', '!bg-indigo-500/10', '!scale-105')
-}
-
-function handleFolderDrop(e: DragEvent, folder: string) {
-  e.preventDefault()
-  const el = e.currentTarget as HTMLElement | null
-  el?.classList.remove('!border-indigo-500/50', '!bg-indigo-500/10', '!scale-105')
-  const droppedFiles = e.dataTransfer?.files
-  if (!droppedFiles?.length) return
+// ── Grid 文件夹拖拽上传（由子组件转发）──────────────────────────
+function handleGridFolderDrop(files: File[], folder: string) {
   const targetPrefix = prefix.value ? `${prefix.value}/${folder}` : folder
-  uploadFiles(Array.from(droppedFiles), targetPrefix)
+  uploadFiles(files, targetPrefix)
 }
 
 // ── 文件选择上传 ─────────────────────────────────────────────
@@ -755,9 +661,103 @@ function getFileIcon(kind: string, ext: string): string {
   return iconMap[kind] || 'i-lucide-package'
 }
 
+// ── MIME accept 联动 ───────────────────────────────────────
+const currentBucketAccept = computed(() => {
+  const bucket = buckets.value.find(b => b.name === activeBucket.value)
+  if (!bucket?.allowed_mime_types?.length) return undefined
+  return bucket.allowed_mime_types.join(',')
+})
+
+function validateDropMime(files: File[]): { valid: File[]; invalid: string[] } {
+  const accept = currentBucketAccept.value
+  if (!accept) return { valid: files, invalid: [] }
+  const patterns = accept.split(',').map(s => s.trim())
+  const valid: File[] = []
+  const invalid: string[] = []
+  for (const file of files) {
+    const match = patterns.some(p => {
+      if (p === '*') return true
+      if (p.endsWith('/*')) return file.type.startsWith(p.slice(0, -2))
+      return file.type === p
+    })
+    if (match) valid.push(file); else invalid.push(file.name)
+  }
+  return { valid, invalid }
+}
+
+// ── 右键上下文菜单 ─────────────────────────────────────────
+const contextMenu = ref<{ x: number; y: number; file: FileInfo } | null>(null)
+
+function handleContextMenu(_e: MouseEvent, file: FileInfo) {
+  contextMenu.value = { x: _e.clientX, y: _e.clientY, file }
+}
+
+function closeContextMenu() { contextMenu.value = null }
+
+onMounted(() => {
+  window.addEventListener('click', closeContextMenu)
+  window.addEventListener('scroll', closeContextMenu, true)
+})
+onUnmounted(() => {
+  window.removeEventListener('click', closeContextMenu)
+  window.removeEventListener('scroll', closeContextMenu, true)
+})
+
+// ── 批量移动 ───────────────────────────────────────────
+const showBatchMoveModal = ref(false)
+const batchMoveForm = reactive({ targetFolder: '' })
+
+function openBatchMove() {
+  batchMoveForm.targetFolder = prefix.value || ''
+  showBatchMoveModal.value = true
+}
+
+async function handleBatchMove() {
+  const paths = getSelectedPaths()
+  if (paths.length === 0) return
+  const folder = batchMoveForm.targetFolder.trim()
+  let successCount = 0
+  let failCount = 0
+
+  const CONCURRENCY = 3
+  const queue = [...paths]
+
+  async function processNext(): Promise<void> {
+    const fromPath = queue.shift()
+    if (!fromPath) return
+    const fileName = fromPath.includes('/') ? fromPath.split('/').pop()! : fromPath
+    const toPath = folder ? `${folder}/${fileName}` : fileName
+    if (toPath === fromPath) { successCount++; await processNext(); return }
+    try {
+      await $fetch('/api/admin/storage/move', {
+        method: 'POST',
+        body: { bucket: activeBucket.value, fromPath, toPath },
+      })
+      successCount++
+    } catch {
+      failCount++
+    }
+    await processNext()
+  }
+
+  const workers = Array.from({ length: Math.min(CONCURRENCY, paths.length) }, () => processNext())
+  await Promise.all(workers)
+
+  showBatchMoveModal.value = false
+  selectedMap.value = {}
+  selecting.value = false
+  fetchFiles()
+  if (failCount > 0) {
+    showToast(`${successCount} 个成功，${failCount} 个失败`, 'info')
+  } else {
+    showToast(`已移动 ${successCount} 个文件`, 'success')
+  }
+}
+
 // ── 快捷键 ───────────────────────────────────────────────────
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
+    if (contextMenu.value) { closeContextMenu(); return }
     if (selectedFile.value) { selectedFile.value = null; return }
     if (selecting.value) { selecting.value = false; selectedMap.value = {}; return }
     // pickerMode 下 Esc 关闭整个选取器
@@ -852,7 +852,8 @@ defineExpose({ refresh: fetchFiles })
           ? 'text-indigo-400 bg-white/[0.03] border-white/[0.08] border-b-transparent'
           : 'text-white/60 border-transparent hover:text-white/90 hover:bg-white/[0.02]'"
       >
-        <span class="i-lucide-lock text-[11px] opacity-50 mr-0.5" /> {{ b.name }}
+        <span class="i-lucide-shield text-[11px] opacity-50 mr-0.5" /> {{ b.name }}
+        <span class="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-indigo-500" :class="activeBucket === b.name && activeView === 'files' ? 'opacity-100' : 'opacity-0'" />
       </button>
       <!-- 自定义桶 -->
       <button
@@ -868,8 +869,9 @@ defineExpose({ refresh: fetchFiles })
         {{ b.name }}
         <span
           @click.stop="handleDeleteBucket(b.name)"
-          class="hidden group-hover:inline ml-1 text-[10px] text-red-400 hover:text-red-300"
-        >✕</span>
+          class="hidden group-hover:inline-flex ml-1 w-4 h-4 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 items-center justify-center transition-all"
+        ><span class="i-lucide-x text-[10px]" /></span>
+        <span class="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-indigo-500" :class="activeBucket === b.name && activeView === 'files' ? 'opacity-100' : 'opacity-0'" />
       </button>
       <!-- 新建桶按钮 -->
       <button
@@ -885,8 +887,12 @@ defineExpose({ refresh: fetchFiles })
           : 'bg-transparent text-white/40 border-transparent hover:text-white/80 hover:bg-white/[0.02]'"
       >
         <span class="i-lucide-trash-2 text-[13px]" /> 回收站
-        <span v-if="trashTotal > 0" class="ml-1 text-[10px] bg-[#ff9f0a]/20 text-[#ff9f0a] px-1.5 py-0.5 rounded-full">{{ trashTotal }}</span>
+        <span v-if="(trashRef?.trashTotal ?? 0) > 0" class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold bg-[#ff453a] text-white rounded-full px-1">{{ trashRef?.trashTotal }}</span>
       </button>
+      <!-- 桶统计 -->
+      <span v-if="stats && activeView === 'files'" class="text-[10px] text-white/30 font-mono ml-2 flex-shrink-0 self-center">
+        {{ stats.totalFiles }} 个文件 / {{ stats.totalSizeFormatted }}
+      </span>
     </div>
 
     <!-- ── 工具栏 ─────────────────────────────────────────────── -->
@@ -903,8 +909,8 @@ defineExpose({ refresh: fetchFiles })
         <button
           v-if="searchQuery"
           @click="searchQuery = ''"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30 hover:text-white/70 cursor-pointer"
-        >✕</button>
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 cursor-pointer"
+        ><span class="i-lucide-x text-[12px]" /></button>
       </div>
 
       <!-- 类型筛选 -->
@@ -940,42 +946,16 @@ defineExpose({ refresh: fetchFiles })
         </button>
       </div>
 
-      <!-- 日期范围 -->
-      <div class="flex items-center gap-1">
-        <input
-          v-model="dateFrom"
-          type="date"
-          class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2.5 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all cursor-pointer [color-scheme:dark] w-[120px]"
-          title="起始日期"
-        />
-        <span class="text-white/20 text-xs">-</span>
-        <input
-          v-model="dateTo"
-          type="date"
-          class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2.5 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all cursor-pointer [color-scheme:dark] w-[120px]"
-          title="结束日期"
-        />
-        <button
-          v-if="dateFrom || dateTo"
-          @click="dateFrom = ''; dateTo = ''"
-          class="text-[10px] text-white/30 hover:text-white/60 cursor-pointer"
-        >✕</button>
-      </div>
-
-      <!-- 上传者筛选 -->
-      <div class="relative" v-if="filteredFiles.some(f => f.uploadedBy)">
-        <input
-          v-model="uploaderFilter"
-          type="text"
-          placeholder="上传者..."
-          class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2.5 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all w-[100px]"
-        />
-        <button
-          v-if="uploaderFilter"
-          @click="uploaderFilter = ''"
-          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-white/30 hover:text-white/60 cursor-pointer"
-        >✕</button>
-      </div>
+      <!-- 高级筛选触发按钮 -->
+      <button
+        @click="showAdvancedFilters = !showAdvancedFilters"
+        class="bg-white/[0.03] hover:bg-white/[0.08] border rounded-full px-3.5 py-2.5 text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5"
+        :class="showAdvancedFilters || dateFrom || dateTo || uploaderFilter ? 'text-indigo-400 border-indigo-500/30' : 'text-white/60 border-white/[0.08] hover:text-white'"
+      >
+        <span class="i-lucide-sliders-horizontal text-[13px]" />
+        筛选
+        <span v-if="(dateFrom || dateTo || uploaderFilter)" class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{{ (dateFrom || dateTo ? 1 : 0) + (uploaderFilter ? 1 : 0) }}</span>
+      </button>
 
       <!-- 视图切换 -->
       <div class="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-lg overflow-hidden divide-x divide-white/[0.06]">
@@ -1009,6 +989,15 @@ defineExpose({ refresh: fetchFiles })
         删除 ({{ selectedCount }})
       </button>
 
+      <!-- 批量移动 -->
+      <button
+        v-if="selecting && selectedCount > 0"
+        @click="openBatchMove"
+        class="bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 text-indigo-400 rounded-full px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer"
+      >
+        <span class="i-lucide-folder-input text-[11px] mr-0.5" /> 移动 ({{ selectedCount }})
+      </button>
+
       <!-- 上传按钮 -->
       <button
         @click="triggerUpload"
@@ -1016,13 +1005,56 @@ defineExpose({ refresh: fetchFiles })
       >
         上传文件
       </button>
-      <input ref="fileInputRef" type="file" multiple class="hidden" @change="handleFileChange" />
+      <input ref="fileInputRef" type="file" multiple class="hidden" :accept="currentBucketAccept" @change="handleFileChange" />
 
       <!-- 筛选计数 -->
       <span v-if="(dateFrom || dateTo || uploaderFilter) && filteredCount !== files.length" class="text-[11px] text-white/30 ml-1">
         显示 {{ filteredCount }}/{{ files.length }}
       </span>
     </div>
+
+    <!-- ── 高级筛选展开区 ──────────────────────────────────────── -->
+    <Transition name="fade">
+      <div v-if="showAdvancedFilters && activeView === 'files'" class="flex flex-wrap items-center gap-3 px-1">
+        <!-- 日期范围 -->
+        <div class="flex items-center gap-1">
+          <label class="text-[10px] text-white/30 uppercase tracking-wider font-mono">日期</label>
+          <input
+            v-model="dateFrom"
+            type="date"
+            class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all cursor-pointer [color-scheme:dark] w-[120px]"
+            title="起始日期"
+          />
+          <span class="text-white/20 text-xs">-</span>
+          <input
+            v-model="dateTo"
+            type="date"
+            class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all cursor-pointer [color-scheme:dark] w-[120px]"
+            title="结束日期"
+          />
+        </div>
+        <!-- 上传者筛选 -->
+        <div class="relative">
+          <input
+            v-model="uploaderFilter"
+            type="text"
+            placeholder="上传者..."
+            class="bg-[#141416] border border-white/[0.08] hover:border-white/20 text-xs text-white/80 rounded-full px-3 py-2 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all w-[120px]"
+          />
+          <button
+            v-if="uploaderFilter"
+            @click="uploaderFilter = ''"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 cursor-pointer"
+          ><span class="i-lucide-x text-[10px]" /></button>
+        </div>
+        <!-- 清除全部 -->
+        <button
+          v-if="dateFrom || dateTo || uploaderFilter"
+          @click="dateFrom = ''; dateTo = ''; uploaderFilter = ''"
+          class="text-[10px] text-white/30 hover:text-white/60 cursor-pointer flex items-center gap-1"
+        ><span class="i-lucide-rotate-ccw text-[10px]" /> 清除筛选</button>
+      </div>
+    </Transition>
 
     <!-- ── 面包屑导航 ─────────────────────────────────────────── -->
     <div v-if="activeView === 'files' && breadcrumbs.length > 0" class="flex items-center gap-1.5 text-xs text-white/50">
@@ -1039,94 +1071,12 @@ defineExpose({ refresh: fetchFiles })
     </div>
 
     <!-- ── 回收站视图 ───────────────────────────────────────────── -->
-    <div v-if="activeView === 'trash'" class="space-y-4">
-      <!-- 回收站工具栏 -->
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <p class="text-sm text-white/60">回收站中的文件将在 30 天后自动清理</p>
-        <div class="flex items-center gap-2">
-          <button
-            v-if="trashSelectedIds.length > 0"
-            @click="handleBatchRestore"
-            class="text-xs bg-[#30d158]/10 hover:bg-[#30d158]/20 text-[#30d158] border border-[#30d158]/25 rounded-full px-4 py-2 transition-all cursor-pointer"
-          >还原选中 ({{ trashSelectedIds.length }})</button>
-          <button
-            v-if="trashSelectedIds.length > 0"
-            @click="handleBatchPermanentDelete"
-            class="text-xs bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] border border-[#ff453a]/25 rounded-full px-4 py-2 transition-all cursor-pointer"
-          >永久删除 ({{ trashSelectedIds.length }})</button>
-          <button
-            v-if="trashItems.length > 0"
-            @click="handleEmptyTrash"
-            class="text-xs bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] border border-[#ff453a]/25 rounded-full px-4 py-2 transition-all cursor-pointer"
-          >清空回收站</button>
-          <button
-            @click="handleCleanupExpired"
-            class="text-xs bg-[#ff9f0a]/10 hover:bg-[#ff9f0a]/20 text-[#ff9f0a] border border-[#ff9f0a]/25 rounded-full px-4 py-2 transition-all cursor-pointer"
-          >清理已过期</button>
-        </div>
-      </div>
-      <!-- 回收站列表 -->
-      <div v-if="trashFetching" class="text-center py-10 text-white/40 text-sm">加载中...</div>
-      <div v-else-if="trashItems.length === 0" class="text-center py-20 text-white/30 space-y-3">
-        <div class="text-5xl">🗑️</div>
-        <p class="text-sm">回收站是空的</p>
-      </div>
-      <div v-else class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
-        <table class="w-full text-left text-sm border-collapse">
-          <thead>
-            <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-white/[0.005]">
-              <th class="px-4 py-4 w-10 font-semibold">
-                <input type="checkbox" :checked="trashSelectedIds.length === trashItems.length && trashItems.length > 0" @change="toggleTrashSelectAll" class="cursor-pointer" />
-              </th>
-              <th class="px-6 py-4 font-semibold font-mono">文件名</th>
-              <th class="px-6 py-4 font-semibold font-mono">原桶</th>
-              <th class="px-6 py-4 font-semibold font-mono">原路径</th>
-              <th class="px-6 py-4 font-semibold font-mono">删除时间</th>
-              <th class="px-6 py-4 font-semibold font-mono">过期时间</th>
-              <th class="px-6 py-4 font-semibold font-mono text-right">操作</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-white/[0.04]">
-            <tr v-for="item in trashItems" :key="item.id" class="hover:bg-white/[0.02] transition-colors">
-              <td class="px-4 py-5">
-                <input type="checkbox" :checked="!!trashSelectedMap[item.id]" @change="toggleTrashSelect(item.id)" class="cursor-pointer" />
-              </td>
-              <td class="px-6 py-5 text-white/90 font-medium">{{ item.file_name }}</td>
-              <td class="px-6 py-5 text-white/50 font-mono text-xs">{{ item.original_bucket }}</td>
-              <td class="px-6 py-5 text-white/40 font-mono text-xs max-w-[200px] truncate" :title="item.original_path">{{ item.original_path }}</td>
-              <td class="px-6 py-5 text-white/40 font-mono text-xs">{{ new Date(item.created_at).toLocaleString() }}</td>
-              <td class="px-6 py-5 text-white/40 font-mono text-xs">{{ new Date(item.expires_at).toLocaleString() }}</td>
-              <td class="px-6 py-5 text-right space-x-2" @click.stop>
-                <button
-                  @click="handleRestore(item.id)"
-                  class="text-[11px] font-semibold bg-[#30d158]/10 hover:bg-[#30d158]/20 text-[#30d158] border border-[#30d158]/25 px-4 py-2 rounded-full transition-all cursor-pointer"
-                >还原</button>
-                <button
-                  @click="handlePermanentDelete(item)"
-                  class="text-[11px] font-semibold bg-[#ff453a]/10 hover:bg-[#ff453a]/20 text-[#ff453a] border border-[#ff453a]/25 px-4 py-2 rounded-full transition-all cursor-pointer"
-                >永久删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!-- 回收站分页 -->
-      <div v-if="trashTotal > trashLimit" class="flex items-center justify-between text-xs text-white/40">
-        <span>共 {{ trashTotal }} 项，第 {{ Math.floor(trashOffset / trashLimit) + 1 }} / {{ Math.ceil(trashTotal / trashLimit) }} 页</span>
-        <div class="flex gap-2">
-          <button
-            :disabled="!trashHasPrev"
-            @click="trashPrevPage"
-            class="bg-white/[0.05] hover:bg-white/[0.10] disabled:opacity-50 border border-white/[0.08] text-white/80 disabled:text-white/30 rounded-full px-4 py-2 transition-all cursor-pointer"
-          >上一页</button>
-          <button
-            :disabled="!trashHasNext"
-            @click="trashNextPage"
-            class="bg-white/[0.05] hover:bg-white/[0.10] disabled:opacity-50 border border-white/[0.08] text-white/80 disabled:text-white/30 rounded-full px-4 py-2 transition-all cursor-pointer"
-          >下一页</button>
-        </div>
-      </div>
-    </div>
+    <AdminMediaTrash
+      v-if="activeView === 'trash'"
+      ref="trashRef"
+      :confirm-dialog="confirmDialog"
+      @refresh-files="fetchFiles"
+    />
 
     <!-- ── 上传进度 ───────────────────────────────────────────── -->
     <div v-show="activeView === 'files' && isUploading" class="bg-white/[0.04] border border-indigo-500/20 rounded-xl p-4 space-y-2 shadow-lg shadow-black/20">
@@ -1139,198 +1089,102 @@ defineExpose({ refresh: fetchFiles })
       </div>
     </div>
 
-    <!-- ── 加载骨架屏 ─────────────────────────────────────────── -->
-    <div v-if="activeView === 'files' && isFetching && files.length === 0" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-      <div v-for="i in 8" :key="i" class="aspect-square rounded-xl bg-white/[0.02] animate-pulse border border-white/[0.04]"></div>
-    </div>
+    <!-- ── 文件视图（网格 / 列表）────────────────────────────── -->
+    <AdminMediaGrid
+      v-if="activeView === 'files'"
+      :files="files"
+      :folders="folders"
+      :filtered-files="filteredFiles"
+      :view-mode="viewMode"
+      :selecting="selecting"
+      :selected-file="selectedFile"
+      :bucket="activeBucket"
+      :prefix="prefix"
+      :is-fetching="isFetching"
+      :search-query="searchQuery"
+      :date-from="dateFrom"
+      :date-to="dateTo"
+      :uploader-filter="uploaderFilter"
+      :selected-count="selectedCount"
+      :is-selected="isSelected"
+      :get-file-icon="getFileIcon"
+      @file-click="handleFileClick"
+      @navigate-folder="navigateFolder"
+      @folder-drop="handleGridFolderDrop"
+      @toggle-select="toggleSelect"
+      @toggle-select-all="toggleSelectAll"
+      @rename="openRename"
+      @move="openMove"
+      @delete="handleDeleteFile"
+      @copy="copyToClipboard"
+      @trigger-upload="triggerUpload"
+      @context-menu="handleContextMenu"
+    />
 
-    <!-- ── 空状态 ─────────────────────────────────────────────── -->
-    <div v-else-if="activeView === 'files' && !isFetching && filteredFiles.length === 0" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
-      <span :class="(searchQuery || dateFrom || dateTo || uploaderFilter) ? 'i-lucide-search text-[48px]' : 'i-lucide-inbox text-[48px]'" class="opacity-30 text-white/40" />
-      <p v-if="searchQuery || dateFrom || dateTo || uploaderFilter" class="text-white/40 text-sm">
-        未找到匹配的文件<span v-if="files.length > 0" class="text-white/20">（共 {{ files.length }} 个文件被筛选）</span>
-      </p>
-      <template v-else>
-        <p class="text-white/40 text-sm">此 Bucket 暂无文件</p>
-        <p class="text-white/25 text-xs">拖拽文件到页面任意位置，或点击「上传文件」按钮开始</p>
-        <button
-          @click="triggerUpload"
-          class="mt-2 bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.10] rounded-full px-6 py-2.5 text-xs text-white/70 font-medium transition-all cursor-pointer"
-        >
-          选择文件上传
-        </button>
-      </template>
-    </div>
-
-    <!-- ── 网格视图 ───────────────────────────────────────────── -->
-    <template v-else-if="activeView === 'files' && viewMode === 'grid'">
-      <!-- 文件夹 -->
-      <div v-if="folders.length > 0" class="flex flex-wrap gap-3">
-        <button
-          v-for="folder in folders"
-          :key="folder"
-          @click="navigateFolder(folder)"
-          @dragover.prevent="handleFolderDragOver"
-          @dragleave="handleFolderDragLeave"
-          @drop="handleFolderDrop($event, folder)"
-          class="flex items-center gap-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-xl px-4 py-3 text-xs text-white/70 transition-all cursor-pointer"
-        >
-          <span class="i-lucide-folder text-[14px] text-indigo-400/70" />
-          <span class="font-mono">{{ folder }}</span>
-        </button>
-      </div>
-
-      <!-- 文件网格 -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div
-          v-for="file in filteredFiles"
-          :key="file.path"
-          @click="handleFileClick(file)"
-          class="group relative aspect-square rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
-          :class="[
-            selectedFile?.path === file.path ? 'border-indigo-500/50 ring-2 ring-indigo-500/20' : 'border-white/[0.06]',
-            isSelected(file.path) ? 'border-[#ff9f0a]/50 ring-2 ring-[#ff9f0a]/20' : '',
-          ]"
-        >
-          <!-- 选择 checkbox -->
-          <div v-if="selecting" class="absolute top-2 left-2 z-10" @click.stop>
-            <div
-              @click.stop="toggleSelect(file.path)"
-              class="w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer"
-              :class="isSelected(file.path) ? 'bg-[#ff9f0a] border-[#ff9f0a] text-black' : 'border-white/30 bg-black/50'"
-            >
-              <span v-if="isSelected(file.path)" class="i-lucide-check text-[12px] font-bold" />
-            </div>
-          </div>
-
-          <!-- 缩略图 / 图标 -->
-          <div class="w-full h-full flex items-center justify-center bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors">
-            <img
-              v-if="file.isImage && file.thumbnailUrl"
-              :src="file.thumbnailUrl"
-              :alt="file.name"
-              class="w-full h-full object-cover"
-              loading="lazy"
-            />
-            <img
-              v-else-if="file.isImage && file.publicUrl"
-              :src="file.publicUrl"
-              :alt="file.name"
-              class="w-full h-full object-cover"
-              loading="lazy"
-            />
-            <div v-else class="text-center space-y-2">
-              <div class="text-3xl">{{ getFileIcon(file.kind, file.extension) }}</div>
-              <span class="text-[10px] text-white/30 font-mono uppercase">{{ file.extension }}</span>
-            </div>
-          </div>
-
-          <!-- 底部信息条 -->
-          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-2 px-2.5">
-            <p class="text-[10px] text-white/90 font-medium truncate leading-tight">{{ file.name }}</p>
-            <p class="text-[10px] text-white/40 font-mono mt-0.5">{{ file.sizeFormatted }}</p>
-          </div>
-
-          <!-- hover 操作按钮 -->
-          <div class="absolute top-2 right-2 hidden group-hover:flex gap-1" @click.stop>
-            <button @click="openRename(file)" class="w-6 h-6 rounded-md bg-black/60 hover:bg-black/80 text-white/70 text-[10px] flex items-center justify-center cursor-pointer" title="重命名">✏️</button>
-            <button @click="openMove(file)" class="w-6 h-6 rounded-md bg-black/60 hover:bg-black/80 text-white/70 text-[10px] flex items-center justify-center cursor-pointer" title="移动"><span class="i-lucide-folder-input text-[12px]" /></button>
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- ── 列表视图 ───────────────────────────────────────────── -->
-    <template v-else-if="activeView === 'files'">
-      <!-- 文件夹 -->
-      <div v-if="folders.length > 0" class="flex flex-wrap gap-3 mb-4">
-        <button
-          v-for="folder in folders"
-          :key="folder"
-          @click="navigateFolder(folder)"
-          class="flex items-center gap-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] rounded-xl px-4 py-3 text-xs text-white/70 transition-all cursor-pointer"
-        >
-          <span class="i-lucide-folder text-[14px] text-indigo-400/70" />
-          <span class="font-mono">{{ folder }}</span>
-        </button>
-      </div>
-
-      <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-white/[0.005]">
-                <th v-if="selecting" class="px-4 py-4 w-10 font-semibold">
-                  <input type="checkbox" :checked="selectedCount === filteredFiles.length && filteredFiles.length > 0" @change="toggleSelectAll" class="cursor-pointer" />
-                </th>
-                <th class="px-6 py-4 font-semibold font-mono">文件</th>
-                <th class="px-6 py-4 font-semibold font-mono">类型</th>
-                <th class="px-6 py-4 font-semibold font-mono">大小</th>
-                <th class="px-6 py-4 font-semibold font-mono">更新时间</th>
-                <th class="px-6 py-4 font-semibold font-mono text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/[0.04]">
-              <tr
-                v-for="file in filteredFiles"
-                :key="file.path"
-                @click="handleFileClick(file)"
-                class="hover:bg-white/[0.02] transition-colors duration-200 cursor-pointer"
-                :class="selectedFile?.path === file.path ? 'bg-indigo-500/5' : ''"
-              >
-                <td v-if="selecting" class="px-4 py-3">
-                  <input type="checkbox" :checked="isSelected(file.path)" @click.stop @change="toggleSelect(file.path)" class="cursor-pointer" />
-                </td>
-                <td class="px-6 py-5">
-                  <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg overflow-hidden bg-white/[0.03] flex items-center justify-center flex-shrink-0">
-                      <img v-if="file.isImage && (file.thumbnailUrl || file.publicUrl)" :src="file.thumbnailUrl || file.publicUrl!" class="w-full h-full object-cover" loading="lazy" />
-                      <span v-else class="text-sm">{{ getFileIcon(file.kind, file.extension) }}</span>
-                    </div>
-                    <span class="text-white/90 font-medium truncate max-w-[200px]">{{ file.name }}</span>
-                  </div>
-                </td>
-                <td class="px-6 py-5 text-white/50 font-mono text-xs">
-                  <span class="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] uppercase">{{ file.extension }}</span>
-                </td>
-                <td class="px-6 py-5 text-white/50 font-mono">{{ file.sizeFormatted }}</td>
-                <td class="px-6 py-5 text-white/40 font-mono text-xs">{{ new Date(file.updatedAt).toLocaleString() }}</td>
-                <td class="px-6 py-5 text-right space-x-2" @click.stop>
-                  <button
-                    @click="openRename(file)"
-                    class="text-[11px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-4 py-2 rounded-full border border-white/15 transition-all cursor-pointer"
-                  >重命名</button>
-                  <button
-                    @click="openMove(file)"
-                    class="text-[11px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-4 py-2 rounded-full border border-white/15 transition-all cursor-pointer"
-                  >移动</button>
-                  <button
-                    v-if="file.publicUrl"
-                    @click="copyToClipboard(file.publicUrl!)"
-                    class="text-[11px] font-semibold bg-white/10 hover:bg-white/15 text-white/80 px-4 py-2 rounded-full border border-white/15 transition-all cursor-pointer"
-                  >复制链接</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </template>
 
     <!-- ── 分页 ───────────────────────────────────────────────── -->
-    <div v-if="activeView === 'files' && total > limit" class="flex items-center justify-between text-xs text-white/40">
-      <span>共 {{ total }} 个文件，第 {{ Math.floor(offset / limit) + 1 }} / {{ Math.ceil(total / limit) }} 页</span>
-      <div class="flex gap-2">
+    <div v-if="activeView === 'files' && total > 0" class="flex items-center justify-between gap-4 px-5 py-3 bg-white/[0.02] rounded-xl border border-white/[0.04] flex-wrap">
+      <!-- 左：统计 + 每页条数 -->
+      <div class="flex items-center gap-3">
+        <span class="text-[11px] text-white/30 font-mono">
+          共 {{ total }} 个文件 · 第 {{ currentPage }}/{{ totalPages }} 页
+        </span>
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] text-white/25">每页</span>
+          <select
+            :value="pageSize"
+            @change="changePageSize(Number(($event.target as HTMLSelectElement).value))"
+            class="text-[11px] bg-white/5 text-white/70 border border-white/10 rounded-md px-1.5 py-0.5 focus:outline-none focus:border-indigo-500/40 cursor-pointer appearance-none"
+          >
+            <option v-for="n in pageSizeOptions" :key="n" :value="n">{{ n }}</option>
+          </select>
+          <span class="text-[10px] text-white/25">条</span>
+        </div>
+      </div>
+
+      <!-- 中：页码按钮 -->
+      <div class="flex items-center gap-1.5">
         <button
           :disabled="!hasPrev"
           @click="prevPage"
-          class="bg-white/[0.05] hover:bg-white/[0.10] disabled:opacity-50 border border-white/[0.08] text-white/80 disabled:text-white/30 rounded-full px-4 py-2 transition-all cursor-pointer"
+          class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-2.5 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none"
         >上一页</button>
+        <template v-for="p in visiblePages" :key="p">
+          <span v-if="p === '...'" class="text-[11px] text-white/20 px-0.5">…</span>
+          <button
+            v-else
+            @click="goToPage(p as number)"
+            class="text-[11px] font-semibold min-w-[28px] h-7 rounded-full border transition-all cursor-pointer focus:outline-none"
+            :class="p === currentPage
+              ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+              : 'bg-white/5 hover:bg-white/10 text-white/80 border-white/10'"
+          >{{ p }}</button>
+        </template>
         <button
           :disabled="!hasNext"
           @click="nextPage"
-          class="bg-white/[0.05] hover:bg-white/[0.10] disabled:opacity-50 border border-white/[0.08] text-white/80 disabled:text-white/30 rounded-full px-4 py-2 transition-all cursor-pointer"
+          class="text-[11px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed text-white/80 px-2.5 py-1.5 rounded-full border border-white/10 transition-all cursor-pointer focus:outline-none"
         >下一页</button>
+      </div>
+
+      <!-- 右：快速跳页 -->
+      <div v-if="totalPages > 5" class="flex items-center gap-1.5">
+        <span class="text-[10px] text-white/25">跳至</span>
+        <input
+          v-model="jumpPageInput"
+          @keydown.enter="jumpToPage"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          :placeholder="String(currentPage)"
+          class="w-10 text-[11px] text-center bg-white/5 text-white/80 border border-white/10 rounded-md px-1 py-1 focus:outline-none focus:border-indigo-500/40 font-mono"
+        />
+        <span class="text-[10px] text-white/25">页</span>
+        <button
+          @click="jumpToPage"
+          :disabled="!jumpPageInput"
+          class="text-[10px] font-semibold bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed text-white/60 px-2 py-1 rounded-md border border-white/10 transition-all cursor-pointer focus:outline-none"
+        >Go</button>
       </div>
     </div>
 
@@ -1343,6 +1197,7 @@ defineExpose({ refresh: fetchFiles })
         @close="selectedFile = null"
         @delete="handleDeleteFile"
         @copy="copyToClipboard"
+        @lightbox="openLightbox($event)"
       />
     </Transition>
 
@@ -1357,9 +1212,16 @@ defineExpose({ refresh: fetchFiles })
               <input v-model="newBucketForm.name" type="text" placeholder="my-bucket" class="w-full mt-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50" />
               <p v-if="bucketNameError" class="text-[10px] text-[#ff453a] mt-1">{{ bucketNameError }}</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center justify-between">
               <label class="text-[11px] text-white/40 uppercase tracking-wider">公开</label>
-              <input v-model="newBucketForm.public" type="checkbox" class="cursor-pointer" />
+              <button
+                type="button"
+                @click="newBucketForm.public = !newBucketForm.public"
+                class="relative w-9 h-5 rounded-full transition-all cursor-pointer"
+                :class="newBucketForm.public ? 'bg-indigo-500' : 'bg-white/[0.10]'"
+              >
+                <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform" :class="newBucketForm.public ? 'translate-x-4' : 'translate-x-0'" />
+              </button>
             </div>
             <div>
               <label class="text-[11px] text-white/40 uppercase tracking-wider">大小限制 (MB)</label>
@@ -1419,6 +1281,24 @@ defineExpose({ refresh: fetchFiles })
       </div>
     </Transition>
 
+    <!-- ── 批量移动弹窗 ─────────────────────────────────────────── -->
+    <Transition name="fade">
+      <div v-if="showBatchMoveModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showBatchMoveModal = false">
+        <div class="bg-[#12121a] rounded-2xl p-6 w-[400px] space-y-4 shadow-2xl shadow-black/40">
+          <h3 class="text-sm font-semibold text-white">批量移动文件</h3>
+          <div>
+            <label class="text-[11px] text-white/40 uppercase tracking-wider">目标目录</label>
+            <input v-model="batchMoveForm.targetFolder" type="text" placeholder="folder/subfolder" class="w-full mt-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50 font-mono" />
+            <p class="text-[10px] text-white/30 mt-1">留空则移动到根目录</p>
+          </div>
+          <div class="flex gap-3 pt-2">
+            <button @click="handleBatchMove" class="flex-1 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-indigo-400 text-white rounded-xl py-2.5 transition-all cursor-pointer">移动 {{ selectedCount }} 个文件</button>
+            <button @click="showBatchMoveModal = false" class="flex-1 text-sm font-semibold bg-white/[0.05] text-white/70 border border-white/[0.08] rounded-xl py-2.5 cursor-pointer">取消</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- ════════════════════ Lightbox 图片预览 ════════════════════ -->
     <Teleport to="body">
       <Transition name="lightbox">
@@ -1430,24 +1310,24 @@ defineExpose({ refresh: fetchFiles })
           tabindex="0"
         >
           <!-- 关闭按钮 -->
-          <button @click="closeLightbox" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-lg transition-all z-10 cursor-pointer">✕</button>
+          <button @click="closeLightbox" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center transition-all z-10 cursor-pointer"><span class="i-lucide-x text-[16px]" /></button>
 
           <!-- 上一张 -->
           <button
             @click.stop="onLightboxKeydown({ key: 'ArrowLeft' } as KeyboardEvent)"
-            class="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-xl transition-all z-10 cursor-pointer"
-          >‹</button>
+            class="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center transition-all z-10 cursor-pointer"
+          ><span class="i-lucide-chevron-left text-[20px]" /></button>
 
           <!-- 下一张 -->
           <button
             @click.stop="onLightboxKeydown({ key: 'ArrowRight' } as KeyboardEvent)"
-            class="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center text-xl transition-all z-10 cursor-pointer"
-          >›</button>
+            class="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white/80 flex items-center justify-center transition-all z-10 cursor-pointer"
+          ><span class="i-lucide-chevron-right text-[20px]" /></button>
 
           <!-- 图片容器 -->
           <div class="max-w-[90vw] max-h-[90vh] flex flex-col items-center gap-4">
             <img
-              :src="lightboxFile.publicUrl || undefined"
+              :src="lightboxPreviewUrl || undefined"
               :alt="lightboxFile.name"
               class="max-w-full max-h-[82vh] object-contain rounded-lg shadow-2xl"
             />
@@ -1461,6 +1341,34 @@ defineExpose({ refresh: fetchFiles })
         </div>
       </Transition>
     </Teleport>
+
+    <!-- ── 右键上下文菜单 ───────────────────────────────────────── -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="contextMenu"
+          class="fixed z-[150] bg-[#1a1a2e] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/40 py-1.5 min-w-[160px] overflow-hidden"
+          :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+          @click.stop
+        >
+          <div class="px-4 py-1.5 text-[10px] text-white/30 font-mono truncate border-b border-white/[0.05] mb-1">{{ contextMenu.file.name }}</div>
+          <button @click="openRename(contextMenu.file); closeContextMenu()" class="w-full px-4 py-2 text-xs text-white/80 hover:bg-white/[0.05] flex items-center gap-2 cursor-pointer transition-colors">
+            <span class="i-lucide-pencil text-[12px] text-white/40" /> 重命名
+          </button>
+          <button @click="openMove(contextMenu.file); closeContextMenu()" class="w-full px-4 py-2 text-xs text-white/80 hover:bg-white/[0.05] flex items-center gap-2 cursor-pointer transition-colors">
+            <span class="i-lucide-folder-input text-[12px] text-white/40" /> 移动
+          </button>
+          <button v-if="contextMenu.file.publicUrl" @click="copyToClipboard(contextMenu.file.publicUrl!); closeContextMenu(); showToast('已复制链接', 'success')" class="w-full px-4 py-2 text-xs text-white/80 hover:bg-white/[0.05] flex items-center gap-2 cursor-pointer transition-colors">
+            <span class="i-lucide-link text-[12px] text-white/40" /> 复制链接
+          </button>
+          <div class="border-t border-white/[0.05] my-1" />
+          <button @click="handleDeleteFile(contextMenu.file); closeContextMenu()" class="w-full px-4 py-2 text-xs text-[#ff453a]/80 hover:bg-[#ff453a]/10 flex items-center gap-2 cursor-pointer transition-colors">
+            <span class="i-lucide-trash-2 text-[12px]" /> 删除
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
+    <AdminConfirmDialog ref="confirmDialog" />
   </div>
 </template>
 

@@ -64,17 +64,17 @@ export default defineEventHandler(async (event) => {
   await starpathService.completeSession(event, body.sessionId)
 
   // 3. 检查是否已有报告（避免重复生成）
-  const { data: existingReport } = await db
+  const { data: existingReports } = await db
     .from('ai_reports')
     .select('id, status')
     .eq('session_id', body.sessionId)
-    .single()
+    .limit(1)
 
-  if (existingReport) {
+  if (existingReports && existingReports.length > 0) {
     return sendSuccess(event, {
       sessionId: body.sessionId,
-      reportId: existingReport.id,
-      status: existingReport.status,
+      reportId: existingReports[0].id,
+      status: existingReports[0].status,
     }, 'Session completed. Report already exists.')
   }
 

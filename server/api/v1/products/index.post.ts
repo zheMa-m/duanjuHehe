@@ -57,8 +57,12 @@ defineRouteMeta({
 })
 
 const productCreateSchema = z.object({
-  name: z.string().min(1, 'Product name cannot be empty'),
-  price: z.number().min(0, 'Price must be a non-negative number')
+  name: z.string().min(1, 'Product name cannot be empty').max(200),
+  price: z.number().min(0, 'Price must be a non-negative number'),
+  description: z.string().max(2000).default('').optional(),
+  image_url: z.string().url().or(z.literal('')).default('').optional(),
+  pricing: z.record(z.string(), z.any()).optional(),
+  category: z.enum(['subscription', 'one_time', 'addon']).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -70,6 +74,10 @@ export default defineEventHandler(async (event) => {
   const newRow = {
     name: body.name,
     price: body.price,
+    description: body.description || '',
+    image_url: body.image_url || '',
+    pricing: body.pricing || {},
+    category: body.category || 'subscription',
     tenant_id: user.tenantId,
     created_at: new Date().toISOString()
   }

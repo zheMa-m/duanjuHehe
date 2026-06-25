@@ -56,8 +56,8 @@ const submitCreate = async () => {
   setTimeout(() => { isCreating.value = false }, 3000)
 }
 
-const handleDelete = (id: string) => {
-  if (!confirm('确定要删除该任务吗？此操作将记录到审计日志。')) return
+const handleDelete = async (id: string) => {
+  if (!await confirmDialog.value.show('确定要删除该任务吗？', { title: '删除任务', detail: '此操作将记录到审计日志。', confirmText: '确认删除', icon: 'i-lucide-trash-2' })) return
   emit('delete', id)
 }
 
@@ -65,6 +65,7 @@ const handleDelete = (id: string) => {
 const cronJobs = ref<CronJob[]>([])
 const cronLoading = ref(false)
 const runningJobs = ref<Record<string, boolean>>({})
+const confirmDialog = ref()
 
 const fetchCronJobs = async () => {
   cronLoading.value = true
@@ -292,6 +293,7 @@ watch(activeSubTab, (val) => {
         </div>
       </div>
     </div>
+    <AdminConfirmDialog ref="confirmDialog" />
   </div>
 </template>
 

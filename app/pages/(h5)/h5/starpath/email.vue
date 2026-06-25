@@ -8,8 +8,12 @@ definePageMeta({
 import { useStarpathStore } from '~/stores/starpath'
 
 const router = useRouter()
+const route = useRoute()
 const store = useStarpathStore()
 const { next: flowNext } = useStarpathFlow()
+
+// 从 query 参数读取支付结果（可选，从 purchase 页跳转时携带）
+const orderId = computed(() => (route.query.orderId as string) || '')
 
 const email = ref('')
 const agreed = ref(false)
@@ -53,24 +57,39 @@ async function submit() {
   store.setEmail(email.value.trim(), agreed.value)
 
   try {
-    const { data, error } = await useFetch('/api/h5/starpath/email/submit', {
+    const { data, error } = await useFetch('/api/starpath/email/submit', {
       method: 'POST',
       body: {
         bizCode: 'starpath',
         email: email.value.trim(),
         agreedTerms: agreed.value,
+        // 传递支付关联信息
+        orderId: orderId.value || undefined,
+        sessionId: store.sessionId || undefined,
       },
     })
     if (error.value) throw error.value
-    // Detect platform and redirect to appropriate subscribe page
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    const isAndroid = /android/i.test(navigator.userAgent)
-    if (isIOS) {
-      router.push('/h5/starpath/subscribe/ios')
-    } else if (isAndroid) {
-      router.push('/h5/starpath/subscribe/android')
+
+    // 支付完成后直接跳转成功页（不再跳 subscribe）
+    if (orderId.value || store.purchase.purchased) {
+      const qs = new URLSearchParams({
+        orderId: orderId.value || store.purchase.orderId || '',
+        amount: (route.query.amount as string) || '',
+        currency: (route.query.currency as string) || 'USD',
+        provider: (route.query.provider as string) || '',
+      }).toString()
+      router.push(`/h5/starpath/success?${qs}`)
     } else {
-      router.push('/h5/starpath/subscribe')
+      // 原有流程：跳平台检测订阅页
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+      const isAndroid = /android/i.test(navigator.userAgent)
+      if (isIOS) {
+        router.push('/h5/starpath/subscribe/ios')
+      } else if (isAndroid) {
+        router.push('/h5/starpath/subscribe/android')
+      } else {
+        router.push('/h5/starpath/subscribe')
+      }
     }
   } catch (e) {
     console.error('Failed to submit email', e)

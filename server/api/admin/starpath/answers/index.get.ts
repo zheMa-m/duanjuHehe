@@ -52,10 +52,57 @@ export default defineEventHandler(async (event) => {
 
   if (error) throw createError({ statusCode: 500, statusMessage: 'Failed to fetch questionnaire sessions' })
 
+  // 批量获取 intro 数据 + 邮箱数据
+  const sessionIds = (sessions || []).map((s: any) => s.id)
+  let introMap: Record<string, Record<string, string>> = {}
+  let emailMap: Record<string, { email: string; submitted_at: string }> = {}
+  if (sessionIds.length > 0) {
+    const { data: introRows } = await db
+      .from('questionnaire_answers')
+      .select('session_id, question_key, answer_value')
+      .in('session_id', sessionIds)
+      .eq('step', 0)
+
+    for (const row of (introRows || [])) {
+      const sid = row.session_id as string
+      if (!introMap[sid]) introMap[sid] = {}
+      introMap[sid]![row.question_key.replace('intro_', '')] = row.answer_value
+    }
+
+    // 批量查询邮箱（通过 campaign_registrations 的 metadata.session_id 关联）
+    const campaignId = sessions[0]?.campaign_id
+    if (campaignId) {
+      const { data: registrations } = await db
+        .from('campaign_registrations')
+        .select('email, created_at, metadata')
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: false })
+        .limit(200)
+
+      if (registrations) {
+        for (const reg of registrations) {
+          const metaSessionId = (reg.metadata as any)?.session_id
+          if (metaSessionId && sessionIds.includes(metaSessionId)) {
+            if (!emailMap[metaSessionId]) {
+              emailMap[metaSessionId] = { email: reg.email, submitted_at: reg.created_at }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 合并 intro 数据 + 邮箱到 session
+  const enriched = (sessions || []).map((s: any) => ({
+    ...s,
+    intro: introMap[s.id] || null,
+    email: emailMap[s.id]?.email || null,
+  }))
+
   await logAuditEvent(event, user, 'STARPATH_ADMIN_LIST_ANSWERS', 'SUCCESS')
 
   return sendSuccess(event, {
-    items: sessions || [],
+    items: enriched,
     pagination: { page, pageSize, total: count || 0 },
   }, 'Sessions retrieved')
 })

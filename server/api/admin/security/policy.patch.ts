@@ -34,6 +34,13 @@ const BodySchema = z.object({
     enabled: z.boolean().optional(),
     rateLimit: z.number().int().min(1).optional(),
   })).optional(),
+  cors_config: z.object({
+    allowed_origins: z.array(z.string().max(500)).max(50),
+    allowed_methods: z.array(z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'])),
+    allowed_headers: z.array(z.string().max(200)).max(50),
+    allow_credentials: z.boolean(),
+    max_age: z.number().int().min(0).max(86400),
+  }).optional(),
 }).strict()
 
 defineRouteMeta({
@@ -106,6 +113,15 @@ export default defineEventHandler(async (event) => {
   }
   if (data.endpoint_overrides !== undefined) {
     updates.endpoint_overrides = data.endpoint_overrides
+  }
+  if (data.cors_config !== undefined) {
+    updates.cors_config = {
+      allowed_origins: data.cors_config.allowed_origins,
+      allowed_methods: data.cors_config.allowed_methods,
+      allowed_headers: data.cors_config.allowed_headers,
+      allow_credentials: data.cors_config.allow_credentials,
+      max_age: data.cors_config.max_age,
+    }
   }
 
   updates.updated_by = user.id

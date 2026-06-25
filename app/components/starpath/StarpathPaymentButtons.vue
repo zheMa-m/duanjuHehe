@@ -23,6 +23,10 @@ import { useStarpathStore } from '~/stores/starpath'
 const props = withDefaults(defineProps<{
   plan?: 'trial-7d' | 'monthly'
   platform?: 'ios' | 'android'
+  /** 一次性购买模式：自定义订单创建 URL（替代默认 subscribe API） */
+  orderUrl?: string
+  /** 支付成功后跳转路径（替代默认 success 页） */
+  successUrl?: string
 }>(), {
   plan: 'trial-7d',
   platform: 'ios',
@@ -70,15 +74,24 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 // ── 创建订单 ──
 async function createOrder(paymentMethod: string): Promise<{ orderId: string; amount: number; currency: string }> {
-  const subscribeUrl = `/api/starpath/subscribe/${props.platform}`
+  // 一次性购买模式：使用自定义 orderUrl；否则使用订阅 API
+  const subscribeUrl = props.orderUrl || `/api/starpath/subscribe/${props.platform}`
+  const body: Record<string, any> = props.orderUrl
+    ? {
+        bizCode: 'starpath',
+        sessionId: store.sessionId || '',
+        platform: props.platform,
+        paymentMethod,
+      }
+    : {
+        bizCode: 'starpath',
+        platform: props.platform,
+        plan: props.plan,
+        paymentMethod,
+      }
   const res = await $fetch<any>(subscribeUrl, {
     method: 'POST',
-    body: {
-      bizCode: 'starpath',
-      platform: props.platform,
-      plan: props.plan,
-      paymentMethod,
-    },
+    body,
   })
   if (!res?.data?.orderId) {
     throw new Error('Failed to create order')
@@ -110,7 +123,12 @@ async function confirmPayment(orderId: string, provider: string, payload: Record
 
 // ── 完成支付：携带订单详情跳转成功页 ──
 function onPaymentSuccess(order: { orderId: string; amount: number; currency: string; provider: string }, receiptId: string = '') {
-  store.setSubscription({ platform: props.platform, paid: true, plan: props.plan })
+  // 一次性购买模式：更新 purchase 状态；否则更新 subscription 状态
+  if (props.successUrl) {
+    store.setPurchase({ purchased: true, orderId: order.orderId, plan: 'one-time-report' })
+  } else {
+    store.setSubscription({ platform: props.platform, paid: true, plan: props.plan })
+  }
   const providerLabel = PROVIDER_LABELS[order.provider] || order.provider
   const qs = new URLSearchParams({
     plan: props.plan,
@@ -118,8 +136,14 @@ function onPaymentSuccess(order: { orderId: string; amount: number; currency: st
     currency: order.currency,
     provider: providerLabel,
     receiptId,
+    orderId: order.orderId,
   }).toString()
-  router.push(`/starpath/success/${props.platform}?${qs}`)
+  // 一次性购买模式：跳转到自定义 successUrl；否则跳平台 success 页
+  if (props.successUrl) {
+    router.push(`${props.successUrl}?${qs}`)
+  } else {
+    router.push(`/starpath/success/${props.platform}?${qs}`)
+  }
   emit('paymentComplete')
 }
 

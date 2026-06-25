@@ -34,7 +34,7 @@ defineRouteMeta({
             required: ['file', 'bucket'],
             properties: {
               file: { type: 'string', format: 'binary', description: '上传文件' },
-              bucket: { type: 'string', enum: ['avatars', 'campaign-assets', 'uploads'], description: '目标 Bucket' },
+              bucket: { type: 'string', description: '目标 Bucket' },
               path: { type: 'string', description: '自定义路径（可选，默认自动生成）' },
             },
           },

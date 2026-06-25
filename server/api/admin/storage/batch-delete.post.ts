@@ -17,7 +17,7 @@ defineRouteMeta({
             type: 'object',
             required: ['bucket', 'paths'],
             properties: {
-              bucket: { type: 'string', enum: ['avatars', 'campaign-assets', 'uploads'], description: '目标 Bucket' },
+              bucket: { type: 'string', description: '目标 Bucket' },
               paths: { type: 'array', items: { type: 'string' }, maxItems: 50, description: '文件路径列表（最多 50 个）' },
             },
           },

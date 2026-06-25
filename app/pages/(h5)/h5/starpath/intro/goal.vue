@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useStarpathStore } from '~/stores/starpath'
 import { figmaAssets } from '~/components/starpath/_figma-assets'
 import { getStarpathIntroData } from '~/utils/starpath-data'
 
@@ -10,6 +11,7 @@ definePageMeta({
 useHead({ title: 'Set your goal · 智能问卷' })
 
 const router = useRouter()
+const store = useStarpathStore()
 const { progressOf } = useStarpathFlow()
 
 const goalLabels = computed(() => getStarpathIntroData(locale.value as 'zh' | 'en').goalOptions)
@@ -29,6 +31,14 @@ const goals = computed(() => {
     title: label,
   }))
 })
+
+const selected = ref<string | null>(null)
+
+function pick(goal: string) {
+  selected.value = goal
+  store.setAnswer('goal', goal)
+  setTimeout(() => router.push('/h5/starpath/intro/relationship'), 220)
+}
 </script>
 
 <template>
@@ -45,18 +55,21 @@ const goals = computed(() => {
     </h1>
 
     <div class="mx-auto w-[340px] mt-[46px] flex flex-col gap-[24px]">
-      <div
+      <button
         v-for="g in goals"
         :key="g.title"
-        class="relative w-full h-[80px] rounded-[12px] overflow-hidden flex items-center px-[18px]"
+        type="button"
+        class="relative w-full h-[80px] rounded-[12px] overflow-hidden flex items-center px-[18px] active:scale-[0.98] transition-transform cursor-pointer"
+        :class="selected === g.title ? 'ring-2 ring-white/40' : ''"
         :style="{ background: g.gradient }"
+        @click="pick(g.title)"
       >
         <p class="text-[16px] font-bold text-white">{{ g.title }}</p>
-      </div>
+      </button>
     </div>
 
     <div class="mx-auto w-[calc(100%-32px)] mt-[36px]">
-      <StarpathPrimaryButton @click="router.push('/h5/starpath/intro/relationship')">
+      <StarpathPrimaryButton :disabled="!selected" @click="selected && router.push('/h5/starpath/intro/relationship')">
         {{ t('starpath.common.continue') }}
       </StarpathPrimaryButton>
     </div>

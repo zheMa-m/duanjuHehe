@@ -33,7 +33,7 @@ defineRouteMeta({
             type: 'object',
             required: ['bucket', 'filename'],
             properties: {
-              bucket: { type: 'string', enum: ['avatars', 'campaign-assets', 'uploads'] },
+              bucket: { type: 'string' },
               filename: { type: 'string', description: '原始文件名' },
               contentType: { type: 'string', description: '文件 MIME 类型' },
             },

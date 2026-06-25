@@ -8,6 +8,8 @@ interface Order {
   currency: string
   status: string
   user_id: string
+  user_email: string | null
+  user_display_name: string | null
   payment_provider: string
   payment_intent_id: string
   created_at: string
@@ -89,6 +91,12 @@ async function handleExport() {
 
 const statusFilter = ref('all')
 const providerFilter = ref('all')
+const searchQuery = ref('')
+const expandedOrderId = ref<string | null>(null)
+
+const toggleExpand = (id: string) => {
+  expandedOrderId.value = expandedOrderId.value === id ? null : id
+}
 
 const orderStatusList = ['all', 'paid', 'pending', 'failed', 'refunded', 'expired']
 const orderStatusLabel: Record<string, string> = {
@@ -173,7 +181,20 @@ const filteredOrders = computed(() => {
   if (providerFilter.value !== 'all') {
     list = list.filter(o => o.payment_provider === providerFilter.value)
   }
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(o => o.order_no.toLowerCase().includes(q) || o.product_name.toLowerCase().includes(q) || (o.user_email || '').toLowerCase().includes(q) || (o.user_display_name || '').toLowerCase().includes(q))
+  }
   return list
+})
+
+// KPI 计算
+const kpiData = computed(() => {
+  const orders = props.orders || []
+  const totalRevenue = orders.filter(o => o.status === 'paid').reduce((s, o) => s + Number(o.amount), 0)
+  const pendingCount = orders.filter(o => o.status === 'pending').length
+  const refundedCount = orders.filter(o => o.status === 'refunded').length
+  return { totalRevenue, pendingCount, refundedCount, total: props.ordersTotal }
 })
 
 const statusBadge = (status: string) => {
@@ -206,12 +227,12 @@ const handlePageChange = (page: number) => {
 </script>
 
 <template>
-  <div class="space-y-8 animate-fade-in text-white">
+  <div class="space-y-4 sm:space-y-5 animate-fade-in text-white">
     <!-- 标题 -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-[28px] font-bold text-white tracking-tight">订单流水管理</h1>
-        <p class="text-white/40 text-sm mt-1">管理并监控全站支付订单、追踪退款及安全合规流水</p>
+        <h1 class="text-[22px] sm:text-[26px] md:text-[28px] font-bold text-white tracking-tight">订单流水管理</h1>
+        <p class="text-white/40 text-xs mt-0.5">管理并监控全站支付订单、追踪退款及安全合规流水</p>
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -219,6 +240,7 @@ const handlePageChange = (page: number) => {
           :disabled="exportLoading"
           class="text-xs bg-emerald-600/10 hover:bg-emerald-600/20 disabled:opacity-50 text-emerald-400 font-semibold px-4 py-2 rounded-full transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1"
         >
+          <span class="i-lucide-download text-[13px]" />
           {{ exportLoading ? '导出中...' : '导出 CSV' }}
         </button>
         <button
@@ -227,19 +249,39 @@ const handlePageChange = (page: number) => {
           class="text-xs bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-50 text-white/70 hover:text-white/90 font-medium px-4 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5 border border-white/[0.06] hover:border-white/[0.10]"
         >
           <span :class="{'animate-spin': isLoading}" class="i-lucide-refresh-cw text-[13px]" />
-          刷新订单
+          刷新
         </button>
       </div>
     </div>
 
-    <!-- 订单状态分类栏 (高级一体化胶囊 Switcher) -->
+    <!-- KPI 卡片 -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+      <div class="relative p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05] overflow-hidden group hover:bg-white/[0.045] hover:border-white/[0.08] transition-all">
+        <div class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 mb-1">订单总量</div>
+        <div class="text-[24px] font-bold text-white font-mono leading-none">{{ kpiData.total }}</div>
+      </div>
+      <div class="relative p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05] overflow-hidden group hover:bg-white/[0.045] hover:border-[#30d158]/15 transition-all">
+        <div class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 mb-1">已支付收入</div>
+        <div class="text-[24px] font-bold text-[#30d158] font-mono leading-none">${{ kpiData.totalRevenue.toFixed(0) }}</div>
+      </div>
+      <div class="relative p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05] overflow-hidden group hover:bg-white/[0.045] hover:border-[#ff9f0a]/15 transition-all">
+        <div class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 mb-1">待支付</div>
+        <div class="text-[24px] font-bold text-[#ff9f0a] font-mono leading-none">{{ kpiData.pendingCount }}</div>
+      </div>
+      <div class="relative p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05] overflow-hidden group hover:bg-white/[0.045] hover:border-[#64d2ff]/15 transition-all">
+        <div class="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/25 mb-1">已退款</div>
+        <div class="text-[24px] font-bold text-[#64d2ff] font-mono leading-none">{{ kpiData.refundedCount }}</div>
+      </div>
+    </div>
+
+    <!-- 订单状态分类栏 + 搜索 -->
     <div class="flex items-center gap-3 flex-wrap">
-      <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
+      <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)] overflow-x-auto max-w-full">
         <button
           v-for="s in orderStatusList"
           :key="s"
           @click="statusFilter = s"
-          class="text-[10px] font-semibold px-4.5 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
+          class="text-[10px] font-semibold px-3 py-2 sm:px-4.5 sm:py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0 whitespace-nowrap"
           :class="statusFilter === s 
             ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]' 
             : 'bg-transparent text-white/60 hover:text-white/90'"
@@ -249,12 +291,12 @@ const handlePageChange = (page: number) => {
       </div>
 
       <!-- 支付方式筛选 -->
-      <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
+      <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)] overflow-x-auto max-w-full">
         <button
           v-for="p in providerList"
           :key="p"
           @click="providerFilter = p"
-          class="text-[10px] font-semibold px-4.5 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
+          class="text-[10px] font-semibold px-3 py-2 sm:px-4.5 sm:py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0 whitespace-nowrap"
           :class="providerFilter === p 
             ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]' 
             : 'bg-transparent text-white/60 hover:text-white/90'"
@@ -262,21 +304,32 @@ const handlePageChange = (page: number) => {
           {{ providerLabel[p] || p }}
         </button>
       </div>
+
+      <!-- 搜索框 -->
+      <div class="relative w-full sm:w-auto sm:ml-auto">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 i-lucide-search text-[13px] text-white/25" />
+        <input
+          v-model="searchQuery"
+          placeholder="搜索订单号/商品名..."
+          class="bg-white/[0.03] border border-white/[0.06] rounded-full pl-9 pr-4 py-2 text-xs text-white/80 placeholder:text-white/25 focus:outline-none focus:border-indigo-500/40 w-full sm:w-52 transition-all"
+        />
+      </div>
     </div>
 
     <!-- 订单表格 (毛玻璃卡片) -->
     <div class="bg-white/[0.04] rounded-2xl overflow-hidden shadow-xl shadow-black/20">
-      <div class="overflow-x-auto overflow-y-auto max-h-[60vh]">
+      <div class="overflow-x-auto overflow-y-auto max-h-[42vh]">
         <table class="w-full text-left text-sm border-collapse">
           <thead class="sticky top-0 z-10">
             <tr class="border-b border-white/[0.05] text-white/40 uppercase tracking-widest text-[10px] bg-[#0d0d18]/95 backdrop-blur-sm">
-              <th class="px-6 py-4 font-semibold font-mono">订单号</th>
-              <th class="px-6 py-4 font-semibold font-mono">购买商品</th>
-              <th class="px-6 py-4 font-semibold font-mono">金额</th>
-              <th class="px-6 py-4 font-semibold font-mono">支付状态</th>
-              <th class="px-6 py-4 font-semibold font-mono">支付渠道</th>
-              <th class="px-6 py-4 font-semibold font-mono">下单时间</th>
-              <th class="px-6 py-4 font-semibold font-mono">后台控制</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono">订单号</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono">用户</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono">购买商品</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono">金额</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono">支付状态</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono hidden md:table-cell">支付渠道</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono hidden lg:table-cell">下单时间</th>
+              <th class="px-3 py-3 md:px-6 md:py-3 font-semibold font-mono">后台控制</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/[0.04]">
@@ -285,12 +338,16 @@ const handlePageChange = (page: number) => {
               :key="order.id"
               class="hover:bg-white/[0.02] transition-colors duration-200"
             >
-              <td class="px-6 py-5 font-mono text-xs text-white/70 tracking-wide">{{ order.order_no }}</td>
-              <td class="px-6 py-5 text-white/90 font-medium">{{ order.product_name }}</td>
-              <td class="px-6 py-5 font-mono text-white/90 text-sm font-semibold">
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5 font-mono text-xs text-white/70 tracking-wide">{{ order.order_no }}</td>
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5">
+                <div class="text-xs text-white/80 font-medium leading-tight">{{ order.user_display_name || '—' }}</div>
+                <div class="text-[10px] text-white/35 font-mono leading-tight">{{ order.user_email || '—' }}</div>
+              </td>
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5 text-white/90 font-medium">{{ order.product_name }}</td>
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5 font-mono text-white/90 text-sm font-semibold">
                 {{ order.currency }} {{ Number(order.amount).toFixed(2) }}
               </td>
-              <td class="px-6 py-5">
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5">
                 <span class="text-[10px] px-2.5 py-0.5 rounded-full border inline-flex items-center" :class="statusBadge(order.status)">
                   <span 
                     class="w-1.2 h-1.2 rounded-full mr-1.5"
@@ -302,9 +359,9 @@ const handlePageChange = (page: number) => {
                   {{ orderStatusText[order.status] || order.status }}
                 </span>
               </td>
-              <td class="px-6 py-5 text-white/50 font-light">{{ order.payment_provider }}</td>
-              <td class="px-6 py-5 text-white/40 font-mono text-xs">{{ new Date(order.created_at).toLocaleString() }}</td>
-              <td class="px-6 py-5">
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5 text-white/50 font-light hidden md:table-cell">{{ order.payment_provider }}</td>
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5 text-white/40 font-mono text-xs hidden lg:table-cell">{{ new Date(order.created_at).toLocaleString() }}</td>
+              <td class="px-3 py-2.5 md:px-6 md:py-3.5">
                 <div class="flex items-center gap-2">
                   <button
                     v-if="order.status === 'paid'"
@@ -325,7 +382,13 @@ const handlePageChange = (page: number) => {
               </td>
             </tr>
             <tr v-if="!filteredOrders.length">
-              <td colspan="7" class="py-12 text-center text-xs text-white/25 font-light">暂无符合条件的订单记录</td>
+              <td colspan="8" class="py-16 text-center">
+                <div class="flex flex-col items-center gap-3">
+                  <span class="i-lucide-inbox text-3xl text-white/10" />
+                  <p class="text-xs text-white/25 font-light">暂无符合条件的订单记录</p>
+                  <p v-if="searchQuery" class="text-[10px] text-white/15">尝试调整搜索关键词或筛选条件</p>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>

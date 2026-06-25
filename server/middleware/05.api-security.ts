@@ -15,8 +15,7 @@
  */
 // @api-auth: public
 import { defineEventHandler, getHeader, readRawBody, setHeader } from 'h3'
-import { getClientRealIP } from '~~/server/utils/ip'
-import { getClientCountry } from '~~/server/utils/ip'
+import { getClientRealIP, getClientCountry } from '~~/server/utils/ip'
 import {
   loadSecurityPolicy,
   resolveApiKey,
@@ -46,8 +45,8 @@ const BYPASS_EXACT = [
 const SECURITY_HEADERS: Record<string, string> = {
   // 仅允许 HTTPS 访问（含子域名，HSTS 预加载候选）
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-  // 禁止被 iframe 嵌入，防止点击劫持
-  'X-Frame-Options': 'DENY',
+  // 仅允许同域 iframe 嵌入（管理后台预览需要），阻止跨域点击劫持
+  'X-Frame-Options': 'SAMEORIGIN',
   // 禁止浏览器 MIME 类型嗅探
   'X-Content-Type-Options': 'nosniff',
   // 跨域不泄露完整 URL（仅同源发送 referrer）
@@ -63,6 +62,51 @@ export default defineEventHandler(async (event) => {
   }
 
   const path = event.path
+
+  // ── 动态 CORS 头（仅对 /api/v1/ 路径生效） ──
+  if (path.startsWith('/api/v1/')) {
+    try {
+      const policy = await loadSecurityPolicy(event)
+      if (policy.corsConfig) {
+        const origin = getHeader(event, 'origin') || ''
+        const cc = policy.corsConfig
+
+        // 检查 origin 是否在允许列表中（支持通配符，含域名边界校验）
+        const isAllowed = origin !== '' && cc.allowedOrigins.some(allowed => {
+          if (allowed === '*') return true
+          if (allowed.startsWith('*.')) {
+            const suffix = allowed.slice(1) // '.example.com'
+            try {
+              const host = new URL(origin).hostname
+              return host.endsWith(suffix) || host === suffix.slice(1)
+            } catch { return false }
+          }
+          return origin === allowed
+        })
+
+        if (isAllowed) {
+          setHeader(event, 'Access-Control-Allow-Origin', origin)
+          setHeader(event, 'Access-Control-Allow-Methods', cc.allowedMethods.join(', '))
+          setHeader(event, 'Access-Control-Allow-Headers', cc.allowedHeaders.join(', '))
+          if (cc.allowCredentials) {
+            setHeader(event, 'Access-Control-Allow-Credentials', 'true')
+          }
+          setHeader(event, 'Access-Control-Max-Age', cc.maxAge as any)
+          // Vary: Origin 确保缓存正确区分不同 origin
+          setHeader(event, 'Vary', 'Origin')
+
+          // OPTIONS 预检请求快速返回（仅对合法 Origin）
+          if (event.method === 'OPTIONS') {
+            event.node.res.statusCode = 204
+            event.node.res.end()
+            return
+          }
+        }
+      }
+    } catch {
+      // CORS 策略加载失败不阻断请求，回退到 nuxt.config.ts 的 routeRules
+    }
+  }
 
   // ── 仅对 /api/v1/ 路径生效以下安全检查 ──
   if (!path.startsWith('/api/v1/')) return
@@ -220,7 +264,7 @@ export default defineEventHandler(async (event) => {
 
   // ── ⑧ 速率限制 ──
   if (policy.rateLimit.enabled) {
-    const limitKey = apiKeyData
+    const _limitKey = apiKeyData
       ? (policy.rateLimit.byApiKey ? `key:${apiKeyData.id}` : `ip:${ip}`)
       : `ip:${ip}`
 

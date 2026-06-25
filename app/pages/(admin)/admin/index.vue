@@ -69,6 +69,7 @@ const activeDomain = ref('ops')  // Tabbed 模式当前域
 const showProfileModal = ref(false)
 const showTasksPanel = ref(false)
 const showUserDropdown = ref(false)
+const mobileMenuOpen = ref(false)
 
 // ── Tab 持久化（刷新后恢复当前位置）──────────────────────────
 const TAB_STORAGE_KEY = 'admin_active_tab'
@@ -91,7 +92,12 @@ watch(activeDomain, (v) => { if (import.meta.client) localStorage.setItem(DOMAIN
 watch(mode, (v) => { if (import.meta.client) localStorage.setItem(MODE_STORAGE_KEY, v) })
 
 // ── 导航处理 ─────────────────────────────────────────────────
+const tabSwitching = ref(false)
+let tabSwitchTimer: ReturnType<typeof setTimeout> | null = null
+
 const handleNavigate = (key: string) => {
+  if (key === activeTab.value) return
+  tabSwitching.value = true
   activeTab.value = key
   trackRecent(key)
   // Tabbed 模式：自动切换域
@@ -99,6 +105,9 @@ const handleNavigate = (key: string) => {
     const domain = getDomainForItem(key)
     if (domain) activeDomain.value = domain.id
   }
+  // 短暂 skeleton 闪现后自动消失
+  if (tabSwitchTimer) clearTimeout(tabSwitchTimer)
+  tabSwitchTimer = setTimeout(() => { tabSwitching.value = false }, 280)
 }
 
 const handleSwitchDomain = (domainId: string) => {
@@ -186,6 +195,10 @@ const leadsUrl = computed(() => {
 // 订单分页状态
 const ordersPage = ref(1)
 const ordersPageSize = ref(20)
+
+// 收入时间范围
+const revenueDays = ref(30)
+const revenueUrl = computed(() => `/api/admin/revenue?days=${revenueDays.value}`)
 const ordersUrl = computed(() => {
   const params = new URLSearchParams()
   params.set('page', String(ordersPage.value))
@@ -222,7 +235,7 @@ const subsUrl = computed(() => {
 // ── Dashboard 首屏（lazy 不阻塞挂载，登录即取）──
 const { data: logRes, refresh: refreshLogs } = useFetch<LogsResponse>(auditUrl, { ...fetchOpts.value, watch: [auditUrl] })
 const { data: auditStatsRes, refresh: refreshAuditStats } = useFetch<any>(auditStatsUrl, { ...fetchOpts.value, watch: [auditStatsUrl] })
-const { data: revenueRes, refresh: refreshRevenue } = useFetch<RevenueResponse>('/api/admin/revenue', { ...fetchOpts.value, lazy: true })
+const { data: revenueRes, refresh: refreshRevenue } = useFetch<RevenueResponse>(revenueUrl, { ...fetchOpts.value, lazy: true })
 // ── 非首屏 Tab（immediate 受 activeTab 控制，切换时由 watcher 触发）──
 const { data: tasksRes, refresh: refreshTasks } = useFetch<TasksResponse>(tasksUrl, { ...fetchOpts.value, immediate: deferUnless('tasks'), watch: [tasksUrl] })
 const { data: campaignsRes, refresh: refreshCampaigns } = useFetch<CampaignsResponse>(campaignsUrl, { ...fetchOpts.value, immediate: deferUnless('campaigns'), watch: [campaignsUrl] })
@@ -362,6 +375,20 @@ const handleToggleCampaignStatus = async (subdomain: string, isActive: boolean) 
     toast(isActive ? '活动已上线' : '活动已下线', 'success')
   } catch (e: any) { toast('状态切换失败: ' + (e.data?.statusMessage || e.message || '未知错误'), 'error') }
 }
+const handleBatchToggleCampaignStatus = async (subdomains: string[], isActive: boolean) => {
+  try {
+    await Promise.all(subdomains.map(s => $fetch(`/api/admin/campaigns/${s}/status`, { method: 'PATCH' as any, body: { is_active: isActive } })))
+    await Promise.all([refreshCampaigns(), refreshLogs()])
+    toast(`已批量${isActive ? '上线' : '下线'} ${subdomains.length} 个活动`, 'success')
+  } catch (e: any) { toast('批量状态切换失败: ' + (e.data?.statusMessage || e.message || '未知错误'), 'error') }
+}
+const handleReorderCampaigns = async (orders: { subdomain: string; sort_order: number }[]) => {
+  try {
+    await Promise.all(orders.map(o => $fetch(`/api/admin/campaigns/${o.subdomain}`, { method: 'PATCH', body: { sort_order: o.sort_order } })))
+    await refreshCampaigns()
+    toast('排序已更新', 'success')
+  } catch (e: any) { toast('排序失败: ' + (e.data?.statusMessage || e.message || '未知错误'), 'error') }
+}
 const deleteCampaignLead = async (id: string) => {
   try {
     await $fetch(`/api/admin/campaigns/leads/${id}`, { method: 'DELETE' })
@@ -471,7 +498,7 @@ const handleOrderStatusUpdate = async (id: string, status: string) => {
 }
 
 // ── 用户管理操作 ─────────────────────────────────────────────
-const handleUpdateUser = async (id: string, data: { role?: string; plan_status?: string; display_name?: string }) => {
+const handleUpdateUser = async (id: string, data: { role?: string; display_name?: string }) => {
   try {
     await $fetch(`/api/admin/users/${id}`, { method: 'PATCH', body: data })
     await Promise.all([refreshUsers(), refreshUserStats(), refreshLogs()])
@@ -494,10 +521,6 @@ const handleDeleteUser = async (id: string) => {
     :class="'theme-' + resolvedTheme"
     :style="{ colorScheme: colorScheme }"
   >
-    <!-- 背景效果 -->
-    <div class="absolute top-[-10%] left-[-10%] w-[60vw] h-[50vh] rounded-full bg-purple-600/[0.04] blur-[130px] pointer-events-none animate-pulse-slow"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[50vh] rounded-full bg-blue-600/[0.04] blur-[130px] pointer-events-none animate-pulse-slower"></div>
-    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.008)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.008)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_80%,transparent_100%)] z-0"></div>
 
     <AdminToast ref="toastRef" />
 
@@ -506,7 +529,7 @@ const handleDeleteUser = async (id: string) => {
 
     <!-- ── 登录后主界面 ── -->
     <template v-else>
-      <!-- 动态侧边栏 -->
+      <!-- 桌面端侧边栏（lg 及以上显示） -->
       <AdminSidebarGrouped
         v-if="mode === 'grouped'"
         :active-tab="activeTab"
@@ -521,17 +544,40 @@ const handleDeleteUser = async (id: string) => {
         @navigate="handleNavigate"
       />
 
+      <!-- 侧边栏抽屉（侧边栏隐藏时可用，由 CSS 断点控制） -->
+      <Teleport to="body">
+        <Transition name="drawer">
+          <div v-if="mobileMenuOpen" class="admin-mobile-drawer">
+            <div class="admin-mobile-drawer__backdrop" @click="mobileMenuOpen = false" />
+            <aside class="admin-mobile-drawer__panel">
+              <AdminSidebarGrouped
+                v-if="mode === 'grouped'"
+                :active-tab="activeTab"
+                :collapsed="false"
+                @navigate="(k: string) => { handleNavigate(k); mobileMenuOpen = false }"
+                @toggle-collapse="mobileMenuOpen = false"
+              />
+              <AdminSidebarTabbed
+                v-else
+                :active-tab="activeTab"
+                :active-domain="activeDomain"
+                @navigate="(k: string) => { handleNavigate(k); mobileMenuOpen = false }"
+              />
+            </aside>
+          </div>
+        </Transition>
+      </Teleport>
+
       <!-- 右侧主工作区 -->
-      <main class="flex-1 flex flex-col min-w-0 relative z-10 bg-[#08080f]/60 backdrop-blur-3xl overflow-hidden">
+      <main class="flex-1 flex flex-col min-w-0 relative z-10 bg-[#08080f]/60 overflow-hidden">
         <!-- 顶栏 -->
         <header class="admin-header flex-shrink-0">
           <!-- 左侧区域 -->
           <div class="flex items-center gap-3">
-            <!-- LIVE 徽章 -->
-            <span class="admin-header__badge">
-              <span class="admin-header__badge-dot" />
-              LIVE
-            </span>
+            <!-- 汉堡菜单按钮（侧边栏隐藏时显示，由 CSS 断点控制） -->
+            <button @click="mobileMenuOpen = true" class="admin-header__hamburger">
+              <span class="i-lucide-menu text-[18px]" />
+            </button>
 
             <!-- 面包屑（Grouped 模式） -->
             <div v-if="mode === 'grouped' && breadcrumb" class="admin-header__breadcrumb">
@@ -557,13 +603,13 @@ const handleDeleteUser = async (id: string) => {
 
           <!-- 右侧区域 -->
           <div class="flex items-center gap-2">
-            <a :href="mainSiteHref" target="_blank" rel="noopener" class="admin-header__icon-btn" title="主站">
+            <a :href="mainSiteHref" target="_blank" rel="noopener" class="admin-header__icon-btn hidden md:flex" title="主站">
               <span class="i-lucide-home text-[14px]" />
             </a>
-            <a :href="helpHref" target="_blank" rel="noopener" class="admin-header__icon-btn" title="帮助文档">
+            <a :href="helpHref" target="_blank" rel="noopener" class="admin-header__icon-btn hidden md:flex" title="帮助文档">
               <span class="i-lucide-help-circle text-[14px]" />
             </a>
-            <a :href="apiDocHref" target="_blank" rel="noopener" class="admin-header__icon-btn" title="OpenAPI 文档">
+            <a :href="apiDocHref" target="_blank" rel="noopener" class="admin-header__icon-btn hidden lg:flex" title="OpenAPI 文档">
               <span class="i-lucide-code-2 text-[14px]" />
             </a>
 
@@ -630,15 +676,27 @@ const handleDeleteUser = async (id: string) => {
         </header>
 
         <!-- Tab 内容区 -->
-        <div class="p-6 lg:p-8 space-y-6 overflow-y-auto flex-1 scrollbar-none max-w-[1400px] w-full mx-auto">
-          <AdminOverview v-if="activeTab === 'dashboard'" :logs="logRes?.data?.items ?? null" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.dashboard" :stats="auditStatsRes?.data ?? null" @refresh="handleRefresh" />
+        <div class="p-3 sm:p-4 md:p-6 lg:p-8 space-y-6 overflow-y-auto flex-1 scrollbar-none max-w-[1400px] w-full mx-auto">
+          <!-- Tab 切换 Skeleton -->
+          <div v-if="tabSwitching" class="admin-tab-skeleton">
+            <div class="admin-tab-skeleton__bar w-1/3 h-7 rounded-lg" />
+            <div class="admin-tab-skeleton__bar w-1/2 h-4 rounded mt-3" />
+            <div class="admin-tab-skeleton__grid mt-8">
+              <div class="admin-tab-skeleton__card" v-for="i in 3" :key="i" />
+            </div>
+            <div class="admin-tab-skeleton__bar w-full h-48 rounded-xl mt-6" />
+          </div>
+          <!-- 实际 Tab 内容 -->
+          <Transition name="tab-content" mode="out-in">
+            <div v-if="!tabSwitching" :key="activeTab">
+          <AdminOverview v-if="activeTab === 'dashboard'" :logs="logRes?.data?.items ?? null" :is-loading="!!refreshing.dashboard" @refresh="handleRefresh" />
           <AdminProducts v-else-if="activeTab === 'products'" :is-loading="!!refreshing.products" @refresh="handleRefresh" @toast="toast" />
           <!-- 注意：tasks 已迁移至右上角全局面板，不再在主内容区渲染 -->
           <AdminOrders v-else-if="activeTab === 'orders'" :orders="ordersRes?.data?.items ?? null" :orders-total="ordersRes?.data?.pagination?.total ?? 0" :orders-page="ordersPage" :orders-page-size="ordersPageSize" :is-loading="!!refreshing.orders" @refresh="handleRefresh" @update-status="handleOrderStatusUpdate" @change-page="handleChangeOrdersPage" @toast="toast" />
           <AdminSubscriptions v-else-if="activeTab === 'subscriptions'" :subscriptions="subsRes?.data?.items ?? null" :subscriptions-total="subsRes?.data?.pagination?.total ?? 0" :subscriptions-page="subsPage" :subscriptions-page-size="subsPageSize" :is-loading="!!refreshing.subscriptions" @refresh="handleRefresh" @change-page="handleChangeSubsPage" @toast="toast" />
-          <AdminRevenue v-else-if="activeTab === 'revenue'" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.revenue" @refresh="handleRefresh" />
+          <AdminRevenue v-else-if="activeTab === 'revenue'" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.revenue" @refresh="handleRefresh" @change-days="(d: number) => { revenueDays = d }" />
           <AdminPayments v-else-if="activeTab === 'payments'" />
-          <AdminCampaigns v-else-if="activeTab === 'campaigns'" ref="campaignsRef" :campaigns="campaignsRes?.data?.items ?? null" :campaigns-total="campaignsRes?.data?.pagination?.total ?? 0" :campaigns-page="campaignsPage" :campaigns-page-size="campaignsPageSize" :leads="leadsRes?.data?.items ?? null" :leads-total="leadsRes?.data?.total ?? 0" :leads-page="leadsPage" :leads-page-size="leadsPageSize" :is-loading="!!refreshing.campaigns" @refresh="handleRefresh" @save="saveCampaignConfig" @toggle-status="handleToggleCampaignStatus" @create="createCampaign" @delete-campaign="deleteCampaign" @delete-lead="deleteCampaignLead" @export-leads="exportLeads" @change-leads-page="handleChangeLeadsPage" @filter-leads="handleFilterLeads" @change-campaigns-page="handleChangeCampaignsPage" />
+          <AdminCampaigns v-else-if="activeTab === 'campaigns'" ref="campaignsRef" :campaigns="campaignsRes?.data?.items ?? null" :campaigns-total="campaignsRes?.data?.pagination?.total ?? 0" :campaigns-page="campaignsPage" :campaigns-page-size="campaignsPageSize" :leads="leadsRes?.data?.items ?? null" :leads-total="leadsRes?.data?.total ?? 0" :leads-page="leadsPage" :leads-page-size="leadsPageSize" :is-loading="!!refreshing.campaigns" @refresh="handleRefresh" @save="saveCampaignConfig" @toggle-status="handleToggleCampaignStatus" @batch-toggle-status="handleBatchToggleCampaignStatus" @reorder="handleReorderCampaigns" @create="createCampaign" @delete-campaign="deleteCampaign" @delete-lead="deleteCampaignLead" @export-leads="exportLeads" @change-leads-page="handleChangeLeadsPage" @filter-leads="handleFilterLeads" @change-campaigns-page="handleChangeCampaignsPage" @toast="toast" />
           <AdminFeedback v-else-if="activeTab === 'feedback'" :is-loading="!!refreshing.feedback" @refresh="handleRefresh" />
           <AdminStarpath v-else-if="activeTab === 'starpath'" />
           <AdminUsers v-else-if="activeTab === 'users'" :users="usersRes?.data?.items ?? null" :users-total="usersRes?.data?.pagination?.total ?? 0" :users-page="usersPage" :users-page-size="usersPageSize" :stats="userStatsRes?.data ?? null" :is-loading="!!refreshing.users" @refresh="handleRefresh" @update-user="handleUpdateUser" @delete-user="handleDeleteUser" @change-page="handleChangeUsersPage" @filter-role="handleFilterUsersRole" @filter-plan="handleFilterUsersPlan" @search="handleSearchUsers" />
@@ -647,6 +705,8 @@ const handleDeleteUser = async (id: string) => {
           <AdminApm v-else-if="activeTab === 'health'" :apm-data="apmRes?.data ?? null" :is-loading="!!refreshing.health" :is-simulating="isSimulating" @refresh="handleRefresh" @simulate="handleSimulateAlert" />
           <AdminConfig v-else-if="activeTab === 'settings'" @toast="toast" />
           <AdminAudit v-else-if="activeTab === 'audit'" :logs="logRes?.data?.items ?? null" :logs-total="logRes?.data?.pagination?.total ?? 0" :logs-page="auditPage" :logs-page-size="auditPageSize" :category="auditCategory" :date-from="auditDateFrom" :date-to="auditDateTo" :is-loading="!!refreshing.audit" :stats="auditStatsRes?.data ?? null" @refresh="handleRefresh" @change-page="handleChangeAuditPage" @change-category="handleChangeAuditCategory" @change-date-range="handleChangeAuditDateRange" />
+            </div>
+          </Transition>
         </div>
       </main>
 
@@ -697,7 +757,7 @@ const handleDeleteUser = async (id: string) => {
   position: relative;
   display: flex; align-items: center; justify-content: center;
   width: 34px; height: 34px;
-  border-radius: 10px;
+  border-radius: 6px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
   color: rgba(255,255,255,0.32);
@@ -708,7 +768,7 @@ const handleDeleteUser = async (id: string) => {
   background: rgba(255,255,255,0.05);
   border-color: rgba(255,255,255,0.09);
   color: rgba(255,255,255,0.75);
-  transform: scale(1.05);
+  
 }
 .admin-header__icon-btn--active {
   background: rgba(99,102,241,0.12) !important;
@@ -724,7 +784,7 @@ const handleDeleteUser = async (id: string) => {
   border-radius: 8px;
   background: #ff453a; color: #fff;
   font-size: 9px; font-weight: 700; line-height: 16px; text-align: center;
-  box-shadow: 0 0 6px rgba(255,69,58,0.4);
+  
 }
 
 /* ─── 任务滑出面板 ─── */
@@ -736,7 +796,7 @@ const handleDeleteUser = async (id: string) => {
 .admin-tasks-panel {
   position: absolute; right: 0; top: 0; bottom: 0;
   width: 560px; max-width: 90vw;
-  background: linear-gradient(180deg, #0a0a14 0%, #08080f 100%);
+  background: var(--admin-bg-panel, #0a0a14);
   border-left: 1px solid rgba(255,255,255,0.05);
   box-shadow: -20px 0 60px rgba(0,0,0,0.7);
   display: flex; flex-direction: column;
@@ -776,28 +836,30 @@ const handleDeleteUser = async (id: string) => {
 
 /* ─── Header ─── */
 .admin-header {
-  height: 64px; padding: 0 24px;
+  height: 56px; padding: 0 12px;
   display: flex; align-items: center; justify-content: space-between;
   z-index: 10; flex-shrink: 0;
   background: rgba(8,8,15,0.85);
   backdrop-filter: blur(24px) saturate(180%);
   box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 4px 24px rgba(0,0,0,0.25);
 }
+@media (min-width: 640px) { .admin-header { height: 60px; padding: 0 16px; } }
+@media (min-width: 768px) { .admin-header { height: 64px; padding: 0 24px; } }
 
-.admin-header__badge {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-  color: rgba(255,255,255,0.45);
-  padding: 4px 12px; border-radius: 20px;
-  background: rgba(255,255,255,0.03);
+/* Hamburger 按钮：侧边栏可见时（≥ 1280px）自动隐藏 */
+.admin-header__hamburger {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 8px;
+  background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.6);
+  cursor: pointer; transition: all 0.15s;
 }
-.admin-header__badge-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #30d158;
-  box-shadow: 0 0 8px rgba(48,209,88,0.6);
-  animation: pulse-glow 2.5s ease-in-out infinite;
+.admin-header__hamburger:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.9);
 }
+@media (min-width: 1280px) { .admin-header__hamburger { display: none; } }
 
 .admin-header__breadcrumb {
   display: none; align-items: center; gap: 0;
@@ -846,7 +908,7 @@ const handleDeleteUser = async (id: string) => {
 }
 .admin-header__domain-dot--active {
   background: #818cf8;
-  box-shadow: 0 0 5px rgba(129,140,248,0.5);
+  
 }
 
 .admin-header__cmdk {
@@ -906,9 +968,9 @@ const handleDeleteUser = async (id: string) => {
   border-radius: 50%;
 }
 .admin-header__user:hover { 
-  opacity: 0.85; 
-  transform: scale(1.05);
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+   
+  
+  
 }
 .admin-header__user-wrapper { position: relative; }
 .admin-header__avatar {
@@ -918,7 +980,7 @@ const handleDeleteUser = async (id: string) => {
 }
 .admin-header__avatar-fallback {
   width: 28px; height: 28px; border-radius: 50%;
-  background: linear-gradient(135deg, #818cf8, #6366f1);
+  background: var(--admin-brand, #818cf8);
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 600; color: #fff;
 }
@@ -930,7 +992,7 @@ const handleDeleteUser = async (id: string) => {
   width: 256px; z-index: 50;
   background: rgba(14,14,17,0.95);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 6px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03);
   backdrop-filter: blur(24px) saturate(180%);
@@ -947,7 +1009,7 @@ const handleDeleteUser = async (id: string) => {
 }
 .admin-user-dropdown__avatar-fallback {
   width: 36px; height: 36px; border-radius: 50%;
-  background: linear-gradient(135deg, #818cf8, #6366f1);
+  background: var(--admin-brand, #818cf8);
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 600; color: #fff;
   flex-shrink: 0;
@@ -1028,7 +1090,7 @@ const handleDeleteUser = async (id: string) => {
 .admin-user-dropdown__nav-opt--active .admin-user-dropdown__nav-radio {
   border-color: #818cf8;
   background: radial-gradient(circle, #818cf8 35%, transparent 40%);
-  box-shadow: 0 0 6px rgba(129,140,248,0.35);
+  
 }
 .admin-user-dropdown__nav-text {
   display: flex;
@@ -1091,10 +1153,6 @@ const handleDeleteUser = async (id: string) => {
 .admin-user-dropdown__theme-icon {
   font-size: 16px;
   line-height: 1;
-  transition: transform 0.2s ease;
-}
-.admin-user-dropdown__theme-btn:hover .admin-user-dropdown__theme-icon {
-  transform: scale(1.1);
 }
 .admin-user-dropdown__theme-label {
   font-size: 11px;
@@ -1145,18 +1203,84 @@ const handleDeleteUser = async (id: string) => {
 .admin-mode-dropdown__radio--active {
   border-color: #818cf8;
   background: radial-gradient(circle, #818cf8 30%, transparent 35%);
-  box-shadow: 0 0 6px rgba(129,140,248,0.3);
+  
 }
 
-/* ─── 动画 ─── */
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 2px currentColor); }
-  50% { opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
-}
 
 .dropdown-enter-active { transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16,1,0.3,1); }
 .dropdown-leave-active { transition: opacity 0.1s ease, transform 0.1s ease; }
 .dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-4px) scale(0.97); }
+
+/* ─── Tab 切换过渡动画 ─── */
+.tab-content-enter-active { transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16,1,0.3,1); }
+.tab-content-leave-active { transition: opacity 0.1s ease; }
+.tab-content-enter-from { opacity: 0; transform: translateY(8px); }
+.tab-content-leave-to { opacity: 0; }
+
+/* ─── Tab 切换 Skeleton ─── */
+.admin-tab-skeleton { animation: skeleton-fade-in 0.15s ease both; }
+.admin-tab-skeleton__bar {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+.admin-tab-skeleton__grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+}
+.admin-tab-skeleton__card {
+  height: 120px; border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.02) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes skeleton-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── 侧边栏抽屉（侧边栏可见时≥ 1280px自动隐藏） ─── */
+.admin-mobile-drawer {
+  position: fixed; inset: 0; z-index: 9999;
+}
+@media (min-width: 1280px) { .admin-mobile-drawer { display: none; } }
+.admin-mobile-drawer__backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+}
+.admin-mobile-drawer__panel {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 280px; max-width: 85vw;
+  background: var(--admin-bg, #08080f);
+  box-shadow: 20px 0 60px rgba(0,0,0,0.7);
+  overflow: hidden;
+}
+.admin-mobile-drawer__panel > * {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 抽屉动画 */
+.drawer-enter-active { transition: opacity 0.25s ease; }
+.drawer-enter-active .admin-mobile-drawer__panel { transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
+.drawer-leave-active { transition: opacity 0.2s ease; }
+.drawer-leave-active .admin-mobile-drawer__panel { transition: transform 0.2s cubic-bezier(0.16,1,0.3,1); }
+.drawer-enter-from, .drawer-leave-to { opacity: 0; }
+.drawer-enter-from .admin-mobile-drawer__panel,
+.drawer-leave-to .admin-mobile-drawer__panel { transform: translateX(-100%); }
+
+/* ─── 触摸友好性 ─── */
+@media (pointer: coarse) {
+  .admin-header__icon-btn { width: 40px; height: 40px; }
+  .admin-header__hamburger { width: 44px; height: 44px; }
+  .admin-tasks-panel__close { width: 36px; height: 36px; }
+}
 </style>
 
 <!-- ════════════════════════════════════════════════════════════════
@@ -1214,6 +1338,14 @@ const handleDeleteUser = async (id: string) => {
   background-color: var(--admin-bg);
   color: var(--admin-text-primary);
   selection-color: var(--admin-text-primary);
+}
+
+/* 重置 button 默认样式，避免暗色主题下浏览器 UA 白底/边框（含 Teleport 弹窗） */
+.admin-dashboard-root button,
+body > [data-v-app] button,
+body > div button {
+  background-color: transparent;
+  border: none;
 }
 
 /* ──────────────────────────────────────────────
@@ -1406,7 +1538,7 @@ const handleDeleteUser = async (id: string) => {
 .admin-dashboard-root .admin-user-dropdown__nav-opt--active .admin-user-dropdown__nav-radio {
   border-color: var(--admin-brand) !important;
   background: radial-gradient(circle, var(--admin-brand) 35%, transparent 40%) !important;
-  box-shadow: 0 0 6px color-mix(in srgb, var(--admin-brand) 30%, transparent) !important;
+
 }
 .admin-dashboard-root .admin-user-dropdown__nav-opt--active .i-lucide-check {
   color: var(--admin-brand) !important;
@@ -1441,7 +1573,7 @@ const handleDeleteUser = async (id: string) => {
 .admin-dashboard-root .admin-mode-dropdown__radio--active {
   border-color: var(--admin-brand) !important;
   background: radial-gradient(circle, var(--admin-brand) 30%, transparent 35%) !important;
-  box-shadow: 0 0 6px color-mix(in srgb, var(--admin-brand) 30%, transparent) !important;
+
 }
 
 /* 任务面板 */
@@ -1529,19 +1661,6 @@ const handleDeleteUser = async (id: string) => {
   color: var(--admin-text-primary);
 }
 
-/* ── Light 模式：背景发光球减淡为浅紫蓝系 ── */
-.admin-dashboard-root.theme-light .bg-purple-600\/\[0\.04\] {
-  background: rgba(139,92,246,0.06) !important;
-}
-.admin-dashboard-root.theme-light .bg-blue-600\/\[0\.04\] {
-  background: rgba(99,102,241,0.05) !important;
-}
-
-/* ── Classic Dark 模式：隐藏背景发光球 ── */
-.admin-dashboard-root.theme-classic-dark .bg-purple-600\/\[0\.04\],
-.admin-dashboard-root.theme-classic-dark .bg-blue-600\/\[0\.04\] {
-  opacity: 0 !important;
-}
 
 /* ── Sidebar 组件（scoped 穿透，使用后代选择器） ── */
 /* AdminSidebarGrouped / Tabbed 背景层 */

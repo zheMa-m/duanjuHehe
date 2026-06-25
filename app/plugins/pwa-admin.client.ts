@@ -17,9 +17,11 @@ export default defineNuxtPlugin(async () => {
     return
   }
 
-  useHead({
-    link: [{ rel: 'manifest', href: '/manifest.webmanifest' }],
-  })
+  if (!import.meta.dev) {
+    useHead({
+      link: [{ rel: 'manifest', href: '/manifest.webmanifest' }],
+    })
+  }
 
   const { registerSW } = await import('virtual:pwa-register')
   registerSW({ immediate: true })

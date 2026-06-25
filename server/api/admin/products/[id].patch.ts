@@ -37,11 +37,25 @@ defineRouteMeta({
 })
 
 const updateProductSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().min(1).max(200).optional(),
   price: z.number().min(0).optional(),
+  description: z.string().max(2000).optional(),
+  image_url: z.string().url().or(z.literal('')).optional(),
   paymentMeta: z.record(z.string(), z.any()).optional(),
   isActive: z.boolean().optional(),
   category: z.enum(['subscription', 'one_time', 'addon']).optional(),
+  pricing: z.object({
+    base_price: z.number().min(0).optional(),
+    currency: z.string().min(2).max(3).optional(),
+    billing_interval: z.enum(['month', 'year', 'one_time', 'week']).optional(),
+    trial_days: z.number().int().min(0).max(365).optional(),
+    setup_fee: z.number().min(0).optional(),
+    compare_at_price: z.number().min(0).nullable().optional(),
+    tiers: z.array(z.object({
+      up_to: z.number().int().positive().nullable(),
+      unit_price: z.number().min(0),
+    })).optional(),
+  }).optional(),
 })
 
 /**
@@ -76,9 +90,12 @@ export default defineEventHandler(async (event) => {
   }
   if (body.name !== undefined) updatePayload.name = body.name
   if (body.price !== undefined) updatePayload.price = body.price
+  if (body.description !== undefined) updatePayload.description = body.description
+  if (body.image_url !== undefined) updatePayload.image_url = body.image_url
   if (body.paymentMeta !== undefined) updatePayload.payment_meta = body.paymentMeta
   if (body.isActive !== undefined) updatePayload.is_active = body.isActive
   if (body.category !== undefined) updatePayload.category = body.category
+  if (body.pricing !== undefined) updatePayload.pricing = body.pricing
 
   const { data: updated, error: updateErr } = await db
     .from('products')

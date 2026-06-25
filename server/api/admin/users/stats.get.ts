@@ -28,12 +28,11 @@ export default defineEventHandler(async (event) => {
   const { data: authResult } = await db.auth.admin.listUsers({ page: 1, perPage: 1 })
   const totalUsers = authResult?.total || 0
 
-  // ② 从 profiles 表聚合角色 / 套餐 / 认证方式 / 匿名 / 邮箱验证统计
-  const { data: profiles } = await db.from('profiles').select('role, plan_status, auth_provider, is_anonymous, email_verified')
+  // ② 从 profiles 表聚合角色 / 认证方式 / 匿名 / 邮箱验证统计
+  const { data: profiles } = await db.from('profiles').select('role, auth_provider, is_anonymous, email_verified')
   const allProfiles: any[] = profiles || []
 
   const byRole: Record<string, number> = { admin: 0, user: 0 }
-  const byPlan: Record<string, number> = { free: 0, pro: 0, enterprise: 0 }
   const byProvider: Record<string, number> = {}
   let anonymousCount = 0
   let verifiedCount = 0
@@ -42,10 +41,6 @@ export default defineEventHandler(async (event) => {
     // 角色
     const role = p.role || 'user'
     byRole[role] = (byRole[role] || 0) + 1
-
-    // 套餐
-    const plan = p.plan_status || 'free'
-    byPlan[plan] = (byPlan[plan] || 0) + 1
 
     // 认证方式
     const provider = p.auth_provider || 'email'
@@ -58,10 +53,21 @@ export default defineEventHandler(async (event) => {
     if (p.email_verified) verifiedCount++
   }
 
+  // ③ 从 subscriptions + orders 表查询去重后的付费用户总数
+  const [subsResult, ordersResult] = await Promise.all([
+    db.from('subscriptions').select('user_id'),
+    db.from('orders').select('user_id'),
+  ])
+  const paidUserIds = new Set([
+    ...(subsResult.data || []).map((s: any) => s.user_id),
+    ...(ordersResult.data || []).map((o: any) => o.user_id),
+  ])
+  const paidUserCount = paidUserIds.size
+
   return sendSuccess(event, {
     total: totalUsers,
     byRole,
-    byPlan,
+    paidUserCount,
     byProvider,
     anonymousCount,
     verifiedCount,

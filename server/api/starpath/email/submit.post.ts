@@ -12,6 +12,10 @@ const emailSchema = z.object({
   agreedTerms: z.literal(true, { error: 'You must agree to terms' }),
   reportId: z.string().min(1).optional(),
   campaignId: z.string().uuid().optional(),
+  /** 一次性购买订单 ID（支付后传递，关联邮箱与报告） */
+  orderId: z.string().min(1).optional(),
+  /** 问卷 session ID（用于查找关联报告） */
+  sessionId: z.string().min(1).optional(),
 })
 
 defineRouteMeta({
@@ -48,27 +52,40 @@ export default defineEventHandler(async (event) => {
     metadata: {
       biz_code: 'starpath',
       report_id: body.reportId || null,
+      order_id: body.orderId || null,
+      session_id: body.sessionId || null,
       source: 'starpath-email',
       submitted_at: new Date().toISOString(),
     },
   })
 
-  // 尝试发送报告邮件（非阻塞，失败不影响留资）
-  try {
-    await sendEmail({
-      to: body.email,
-      template: 'starpath-report',
-      data: {
-        name: 'Starseeker',
-        reportUrl: body.reportId
-          ? `${getRequestURL(event).origin}/h5/starpath/邮箱收到的报告`
-          : `${getRequestURL(event).origin}/h5/starpath/question-page-twelve`,
-        supportEmail: process.env.EMAIL_FROM || 'support@heheapp.com',
-      },
-    })
-  } catch (mailErr: any) {
-    console.warn('[智能问卷 Email] Failed to send report email:', mailErr.message)
-    // 不阻断流程
+  // 如果携带 orderId，支付已确认，立即触发报告生成 + 邮件发送
+  if (body.orderId) {
+    try {
+      await starpathService.triggerReportAfterPayment(event, body.orderId)
+    } catch (triggerErr: any) {
+      console.warn('[智能问卷 Email] Report trigger failed for order:', body.orderId, triggerErr.message)
+    }
+  }
+
+  // 仅当无 orderId 时才走原有邮件发送逻辑（orderId 场景已由 triggerReportAfterPayment 处理）
+  if (!body.orderId) {
+    try {
+      await sendEmail({
+        to: body.email,
+        template: 'starpath-report',
+        data: {
+          name: 'Starseeker',
+          reportUrl: body.reportId
+            ? `${getRequestURL(event).origin}/h5/starpath/report?id=${body.reportId}`
+            : `${getRequestURL(event).origin}/h5/starpath/question-page-twelve`,
+          supportEmail: process.env.EMAIL_FROM || 'support@heheapp.com',
+        },
+      })
+    } catch (mailErr: any) {
+      console.warn('[智能问卷 Email] Failed to send report email:', mailErr.message)
+      // 不阻断流程
+    }
   }
 
   await logAuditEvent(

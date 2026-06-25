@@ -55,7 +55,7 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
   position: relative; display: none; flex-direction: column;
   flex-shrink: 0; z-index: 20; width: 200px; height: 100vh;
 }
-@media (min-width: 1024px) { .nav-tabbed { display: flex; } }
+@media (min-width: 1280px) { .nav-tabbed { display: flex; } }
 
 .nav-tabbed__bg {
   position: absolute; inset: 0;

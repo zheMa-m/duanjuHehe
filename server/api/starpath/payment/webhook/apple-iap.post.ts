@@ -48,6 +48,11 @@ export default defineEventHandler(async (event) => {
         paymentProvider: 'apple_iap',
         transactionId: result.paymentIntentId || 'webhook',
       })
+
+      // 支付确认后触发报告生成 + 邮件发送（一次性购买）
+      await starpathService.triggerReportAfterPayment(event, result.orderId).catch((e: any) => {
+        console.warn('[Starpath] Report trigger after Apple IAP payment failed:', e?.message)
+      })
     }
   }
 

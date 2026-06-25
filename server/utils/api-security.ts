@@ -8,7 +8,8 @@
  *   4. 固定窗口速率限制器（内存 Map + 定期 GC）
  *   5. 缓存失效接口（管理后台写操作同步清除缓存）
  */
-import { H3Event, getHeader } from 'h3'
+import type { H3Event } from 'h3'
+import { getHeader } from 'h3'
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { getDB } from './db'
 import { getClientRealIP } from './ip'
@@ -24,6 +25,13 @@ export interface SecurityPolicy {
   countryPolicy: { enabled: boolean; mode: 'whitelist' | 'blacklist'; countrySet: Set<string> }
   signatureRequired: boolean
   endpointOverrides: Map<string, { enabled?: boolean; rateLimit?: number }>
+  corsConfig: {
+    allowedOrigins: string[]
+    allowedMethods: string[]
+    allowedHeaders: string[]
+    allowCredentials: boolean
+    maxAge: number
+  } | null
 }
 
 export interface CachedKeyData {
@@ -54,6 +62,7 @@ const DEFAULT_POLICY: SecurityPolicy = {
   countryPolicy: { enabled: false, mode: 'blacklist', countrySet: new Set() },
   signatureRequired: false,
   endpointOverrides: new Map(),
+  corsConfig: null,
 }
 
 /**
@@ -75,7 +84,7 @@ export async function loadSecurityPolicy(event: H3Event): Promise<SecurityPolicy
     const db = getDB(event)
     const { data, error } = await db
       .from('api_security_settings')
-      .select('rate_limit, ip_policy, country_policy, signature_required, endpoint_overrides')
+      .select('rate_limit, ip_policy, country_policy, signature_required, endpoint_overrides, cors_config')
       .eq('id', true)
       .single()
 
@@ -89,6 +98,15 @@ export async function loadSecurityPolicy(event: H3Event): Promise<SecurityPolicy
     const ip = data.ip_policy || {}
     const cp = data.country_policy || {}
     const eo = data.endpoint_overrides || {}
+    const cc = data.cors_config || {}
+
+    const corsConfig = cc.allowed_origins?.length > 0 ? {
+      allowedOrigins: cc.allowed_origins || [],
+      allowedMethods: cc.allowed_methods || ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: cc.allowed_headers || ['Content-Type', 'Authorization', 'X-Api-Key'],
+      allowCredentials: cc.allow_credentials ?? false,
+      maxAge: cc.max_age ?? 86400,
+    } : null
 
     const policy: SecurityPolicy = {
       rateLimit: {
@@ -111,6 +129,7 @@ export async function loadSecurityPolicy(event: H3Event): Promise<SecurityPolicy
       },
       signatureRequired: data.signature_required ?? false,
       endpointOverrides: new Map(Object.entries(eo).map(([k, v]: [string, any]) => [k, { enabled: v.enabled, rateLimit: v.rateLimit }])),
+      corsConfig,
       allDisabled: false, // 先设 false，下面计算
     }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getStarpathIntroData } from '~/utils/starpath-data'
+import { useStarpathStore } from '~/stores/starpath'
 
 const { t, locale } = useI18n()
 definePageMeta({
@@ -10,18 +11,27 @@ useHead({ title: `${t('starpath.calculating.desc')} · 智能问卷` })
 
 const router = useRouter()
 const { progressOf } = useStarpathFlow()
+const store = useStarpathStore()
 
 const steps = computed(() => getStarpathIntroData(locale.value as 'zh' | 'en').calculatingSteps)
 
 const currentStep = ref(0)
 
 onMounted(() => {
+  // 异步触发问卷完成（不阻塞动画）
+  if (store.sessionId) {
+    $fetch('/api/starpath/questionnaire/complete', {
+      method: 'POST',
+      body: { sessionId: store.sessionId },
+    }).catch((e: any) => console.warn('[Starpath] Complete failed', e))
+  }
+
   const timer = setInterval(() => {
     if (currentStep.value < steps.value.length - 1) {
       currentStep.value++
     } else {
       clearInterval(timer)
-      setTimeout(() => router.push('/h5/starpath/email'), 800)
+      setTimeout(() => router.push('/h5/starpath/purchase'), 800)
     }
   }, 1200)
 })

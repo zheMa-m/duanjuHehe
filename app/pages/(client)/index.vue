@@ -641,7 +641,7 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   background: #050814;
   color: #f8fafc;
-  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif;
+  font-family: var(--font-sans);
   overflow-x: hidden;
   padding-bottom: 24px;
 }
@@ -661,7 +661,7 @@ onBeforeUnmount(() => {
   background: rgba(10, 16, 32, 0.7);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  border-radius: 12px;
   max-width: 1200px;
   margin: 0 auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
@@ -823,16 +823,14 @@ onBeforeUnmount(() => {
 }
 
 .hero-title {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 3.25rem;
+  font-family: var(--font-sans);
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
   font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   margin: 0 0 24px;
-  background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #f8fafc;
+  text-wrap: balance;
 }
 
 .hero-desc {
@@ -841,6 +839,7 @@ onBeforeUnmount(() => {
   color: #94a3b8;
   margin: 0 0 44px;
   max-width: 600px;
+  text-wrap: pretty;
 }
 
 .hero-actions {
@@ -855,7 +854,7 @@ onBeforeUnmount(() => {
   padding: 14px 28px;
   font-size: 14px;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: 10px;
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
@@ -895,7 +894,7 @@ onBeforeUnmount(() => {
 .terminal-sandbox {
   background: #02040a;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   display: flex;
@@ -1050,11 +1049,13 @@ onBeforeUnmount(() => {
 }
 
 .section-title {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.75rem;
+  font-family: var(--font-sans);
+  font-size: clamp(1.5rem, 2.5vw, 1.75rem);
   font-weight: 700;
   margin: 0 0 16px;
   color: #f8fafc;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 .section-desc {
@@ -1117,7 +1118,7 @@ onBeforeUnmount(() => {
 .bento-card {
   background: rgba(13, 20, 38, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 32px;
   position: relative;
   display: flex;
@@ -1166,6 +1167,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   color: #f8fafc;
   margin: 0;
+  text-wrap: balance;
 }
 
 .feature-tag {
@@ -1610,7 +1612,7 @@ onBeforeUnmount(() => {
   padding: 32px;
   background: rgba(13, 20, 38, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 20px;
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1622,7 +1624,7 @@ onBeforeUnmount(() => {
 .tool-glow-border {
   position: absolute;
   inset: 0;
-  border-radius: 20px;
+  border-radius: 12px;
   border: 1.5px solid transparent;
   background: linear-gradient(135deg, #3b82f6, #8b5cf6) border-box;
   -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
@@ -1909,10 +1911,7 @@ onBeforeUnmount(() => {
       linear-gradient(90deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px);
   }
   .hero-title {
-    background: linear-gradient(135deg, #0f172a 30%, #312e81 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #0f172a;
   }
   .hero-desc {
     color: #475569;
@@ -2074,7 +2073,7 @@ onBeforeUnmount(() => {
     align-items: center;
   }
   .hero-title {
-    font-size: 2.75rem;
+    font-size: clamp(1.75rem, 3.5vw, 2.75rem);
   }
   .bento-grid {
     grid-template-columns: 1fr;
@@ -2124,7 +2123,7 @@ onBeforeUnmount(() => {
     padding: 6px 10px;
   }
   .hero-title {
-    font-size: 2.25rem;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
   }
   .hero-actions {
     flex-direction: column;

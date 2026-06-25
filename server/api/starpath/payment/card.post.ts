@@ -39,6 +39,11 @@ export default defineEventHandler(async (event) => {
     transactionId: body.paymentToken,
   })
 
+  // 支付确认后触发报告生成 + 邮件发送（一次性购买）
+  await starpathService.triggerReportAfterPayment(event, body.orderId).catch((e: any) => {
+    console.warn('[Starpath] Report trigger after card payment failed:', e?.message)
+  })
+
   // Log transaction
   await logPaymentTransaction(event, {
     orderId: body.orderId,

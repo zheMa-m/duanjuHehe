@@ -1,13 +1,25 @@
 <script setup lang="ts">
+/**
+ * H5 v1 营销落地页 — 主入口
+ *
+ * 设计模式（基于 ui-ux-pro-max 搜索结果）:
+ * - Landing: App Store Style Landing + Funnel 3-Step 混合
+ *   Hero → Form → Success/Ticket → Reviews → CTA 渐进转化
+ * - Style: Modern Dark Cinema (Cinema Mobile)
+ *   深黑渐变底 + 靛蓝强调 + 玻璃拟态卡片 + 环境光 blob
+ * - Color: Luxury Dark + Indigo Accent (#5E6AD2)
+ * - Typography: Inter 体系 + 紧凑字距 (tracking-tight)
+ * - UX: touch-action:manipulation / overscroll-contain / 底部固定 CTA
+ */
+
 const route = useRoute()
 const subdomain = computed(() => {
   const sub = route.params.subdomain
-  if (Array.isArray(sub)) {
-    return sub[0] || 'h5-v1'
-  }
+  if (Array.isArray(sub)) return sub[0] || 'h5-v1'
   return sub || 'h5-v1'
 })
 
+// ─── Types ──────────────────────────────────────────────
 interface Campaign {
   subdomain: string
   title: string
@@ -24,6 +36,7 @@ interface CampaignResponse {
   data: Campaign
 }
 
+// ─── Form State ─────────────────────────────────────────
 const email = ref('')
 const phone = ref('')
 const emailError = ref('')
@@ -32,15 +45,18 @@ const isSubmitted = ref(false)
 const isLoading = ref(false)
 const isPurchasing = ref(false)
 
-// 局部轻量 Toast 提醒，替代原生 alert
+// ─── Toast ──────────────────────────────────────────────
 const showToast = ref(false)
 const toastMessage = ref('')
-const triggerToast = (msg: string) => {
+const toastType = ref<'success' | 'error'>('success')
+const triggerToast = (msg: string, type: 'success' | 'error' = 'success') => {
   toastMessage.value = msg
+  toastType.value = type
   showToast.value = true
   setTimeout(() => { showToast.value = false }, 2500)
 }
 
+// ─── Auth & i18n ────────────────────────────────────────
 const { user, isLoggedIn, isAnonymous, signInAnonymously } = useAuth()
 const { t } = useI18n()
 const { trackEvent } = useAnalytics()
@@ -48,7 +64,7 @@ const showLoginModal = ref(false)
 const loginMode = ref<'login' | 'register' | 'bind'>('login')
 const pendingAction = ref<(() => void) | null>(null)
 
-// 支付与商品自适应匹配矩阵
+// ─── Payment ────────────────────────────────────────────
 const ticketNo = ref(Math.floor(Math.random() * 90000) + 10000)
 const { createAndRedirect } = usePayment()
 
@@ -60,10 +76,9 @@ const currentProduct = computed(() => {
   return { id: 'p1', name: 'HEHE Pro 工具套件', price: 29.99 }
 })
 
-// 统一执行拦截：需要正式登录（非匿名）的操作
+// ─── Auth Guard ─────────────────────────────────────────
 const ensureLoggedInForAction = (action: () => void): boolean => {
   if (!isLoggedIn.value) {
-    // 若已是匿名用户，则拉起绑定（bind）模式一键升级；若完全未登录，则拉起登录（login）模式
     loginMode.value = isAnonymous.value ? 'bind' : 'login'
     pendingAction.value = action
     showLoginModal.value = true
@@ -74,7 +89,6 @@ const ensureLoggedInForAction = (action: () => void): boolean => {
 
 const handlePurchase = async () => {
   if (!ensureLoggedInForAction(() => handlePurchase())) return
-  // 进行购买前打点（不上报用户信息，仅上报商品信息）
   trackEvent('purchase_initiate', {
     item_id:   currentProduct.value.id,
     item_name: currentProduct.value.name,
@@ -91,23 +105,23 @@ const handlePurchase = async () => {
       currency: 'USD',
     })
   } catch (e: any) {
-    triggerToast(e.data?.statusMessage || 'Payment failed, please try again')
+    triggerToast(e.data?.statusMessage || 'Payment failed, please try again', 'error')
   } finally {
     isPurchasing.value = false
   }
 }
 
-// 一键复制票券编码
+// ─── Ticket Copy ────────────────────────────────────────
 const copyTicketNo = async () => {
   try {
     await navigator.clipboard.writeText(ticketNo.value.toString())
-    triggerToast('票券编码已成功复制到剪贴板！')
+    triggerToast(t('h5.copySuccess'), 'success')
   } catch {
-    triggerToast('复制失败，请手动选择复制。')
+    triggerToast(t('h5.copyFailed'), 'error')
   }
 }
 
-// 登录成功回调
+// ─── Login Callbacks ────────────────────────────────────
 const onLoginSuccess = () => {
   showLoginModal.value = false
   if (pendingAction.value) {
@@ -127,49 +141,47 @@ const handleLoginRequired = () => {
   showLoginModal.value = true
 }
 
-// -------------------------------------------------------------
-// 💡 最佳实践：使用 SWR 数据驱动 (前端秒级同步后台配置变更)
-// -------------------------------------------------------------
+// ─── Campaign Data (SWR) ────────────────────────────────
 const { data: response, error: fetchError } = await useFetch<CampaignResponse>(`/api/v1/campaigns/${subdomain.value}`)
 const campaign = computed(() => response.value?.data)
 const hasError = computed(() => !!fetchError.value || !campaign.value)
 
-// 统一 SEO 注入（使用活动数据驱动标题和描述）
+// ─── SEO ────────────────────────────────────────────────
 useAppSEO({
-  title: () => campaign.value?.title || (hasError.value ? '营销活动已结束 - HEHE' : subdomain.value),
-  description: () => campaign.value?.subtitle || 'HEHE 营销 H5 矩阵平台',
+  title: () => campaign.value?.title || (hasError.value ? `${t('h5.eventEnded')} - HEHE` : subdomain.value),
+  description: () => campaign.value?.subtitle || 'HEHE H5 Marketing Platform',
 })
 
-// 背景光圈逻辑计算
+// ─── Theme Glow (ambient blob color per subdomain) ─────
 const themeGlow = computed(() => {
   const sub = subdomain.value.toLowerCase()
-  if (sub === 'ai') return 'bg-purple-500/10'
-  if (sub === 'cloud') return 'bg-blue-500/10'
-  return 'bg-rose-500/10'
+  if (sub === 'ai') return 'rgba(139, 92, 246, 0.12)'
+  if (sub === 'cloud') return 'rgba(59, 130, 246, 0.12)'
+  return 'rgba(94, 106, 210, 0.12)'
 })
 
-// 表单输入校验与实时清空报错
+// ─── Form Validation ────────────────────────────────────
 watch(phone, () => { phoneError.value = '' })
 watch(email, () => { emailError.value = '' })
 
 const validateForm = (): boolean => {
   let valid = true
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  const phoneRegex = /^1[3-9]\d{9}$/ // 匹配 11 位国内手机号
+  const phoneRegex = /^1[3-9]\d{9}$/
 
   if (!phone.value) {
-    phoneError.value = '手机号不能为空'
+    phoneError.value = t('h5.phoneRequired')
     valid = false
   } else if (!phoneRegex.test(phone.value)) {
-    phoneError.value = '手机号格式不正确（请输入11位中国大陆手机号）'
+    phoneError.value = t('h5.phoneInvalid')
     valid = false
   }
 
   if (!email.value) {
-    emailError.value = '邮箱地址不能为空'
+    emailError.value = t('h5.emailRequired')
     valid = false
   } else if (!emailRegex.test(email.value)) {
-    emailError.value = '邮箱格式不正确'
+    emailError.value = t('h5.emailInvalid')
     valid = false
   }
 
@@ -185,18 +197,21 @@ const handleRegister = async () => {
       body: { phone: phone.value, email: email.value, subdomain: subdomain.value }
     })
     isSubmitted.value = true
-    // 成功打点（严禁上报明文邮筱/手机号）
-    trackEvent('campaign_register', {
-      channel: subdomain.value,
-    })
+    trackEvent('campaign_register', { channel: subdomain.value })
   } catch (e: any) {
-    triggerToast(e.data?.statusMessage || t('h5.registerFailed'))
+    triggerToast(e.data?.statusMessage || t('h5.registerFailed'), 'error')
   } finally {
     isLoading.value = false
   }
 }
 
-// 首次挂载：静默匿名登录
+// ─── Scroll to form (for sticky CTA) ───────────────────
+const formSectionRef = ref<HTMLElement | null>(null)
+const scrollToForm = () => {
+  formSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+// ─── Lifecycle: silent anonymous login ──────────────────
 onMounted(async () => {
   if (!user.value) {
     try {
@@ -209,8 +224,19 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen p-4 md:p-8 bg-slate-950 relative overflow-hidden">
-    <!-- 用户认证弹窗 -->
+  <div class="min-h-dvh bg-[#020203] relative overflow-x-hidden overscroll-none" style="touch-action: manipulation">
+
+    <!-- ═══ 环境光 Blob (Cinema Mobile: ambient glow) ═══ -->
+    <div
+      class="fixed top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vw] max-w-[600px] max-h-[600px] rounded-full pointer-events-none blur-[120px]"
+      :style="{ background: themeGlow }"
+    />
+    <div
+      class="fixed bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vw] max-w-[400px] rounded-full pointer-events-none blur-[100px] opacity-40"
+      :style="{ background: themeGlow }"
+    />
+
+    <!-- ═══ 登录弹窗 ═══ -->
     <H5LoginModal
       :visible="showLoginModal"
       :mode="loginMode"
@@ -218,156 +244,162 @@ onMounted(async () => {
       @success="onLoginSuccess"
     />
 
+    <!-- ═══ 顶部用户栏 (Glassmorphic header) ═══ -->
+    <header class="sticky top-0 z-40 backdrop-blur-xl bg-[#020203]/60 border-b border-white/[0.06]">
+      <H5UserBar
+        @login="loginMode = 'login'; showLoginModal = true"
+        @register="showRegisterModal"
+        @logout="showLoginModal = false"
+      />
+    </header>
 
-    <!-- 动态背景发光圈 -->
-    <div 
-      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] md:w-[40vw] md:h-[40vw] rounded-full blur-[100px] pointer-events-none transition-all duration-700"
-      :class="themeGlow"
-    ></div>
+    <!-- ═══ 主内容流 ═══ -->
+    <main class="relative z-10 px-5 pb-36 max-w-md mx-auto">
 
-    <!-- 手机模拟框体容器 -->
-    <div class="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-[40px] shadow-2xl p-3 aspect-[9/19] flex flex-col overflow-hidden ring-12 ring-slate-800/40">
-      <!-- 手机顶部刘海屏 -->
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-6 bg-slate-950 rounded-b-2xl z-30 flex items-center justify-around px-4">
-        <span class="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
-        <span class="w-10 h-1 bg-slate-800 rounded-full"></span>
-      </div>
-
-      <!-- 手机屏幕内部 -->
-      <div class="flex-1 rounded-[32px] overflow-y-auto bg-slate-950 border border-slate-800/50 p-6 pt-10 flex flex-col justify-between relative z-10 scrollbar-none">
-        
-        <!-- 用户状态栏 -->
-        <H5UserBar
-          @login="loginMode = 'login'; showLoginModal = true"
-          @register="showRegisterModal"
-          @logout="showLoginModal = false"
-        />
-
-        <template v-if="!hasError">
-          <!-- 头部导航与子活动状态 -->
-          <div class="space-y-4 mt-4">
-            <div class="flex justify-between items-center text-xs text-slate-500">
-              <span>HEHE H5 Mobile</span>
-              <span class="font-mono text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/20">{{ t('h5.swrRender') }}</span>
-            </div>
-
-            <!-- 子域名状态卡片 -->
-            <div class="p-3 bg-white/5 border border-white/5 rounded-2xl text-[10px] text-slate-400">
-              {{ t('h5.campaignSubdomain') }}：<code class="text-white font-semibold">{{ subdomain }}.yourdomain.localhost</code>
-            </div>
+      <template v-if="!hasError && campaign">
+        <!-- ──── Hero 区 ──── -->
+        <section class="pt-10 pb-6">
+          <div class="flex items-center justify-between mb-6">
+            <span class="text-[11px] text-white/20 font-medium tracking-wide">HEHE H5</span>
+            <span class="text-[10px] font-mono text-[#5E6AD2]/70 bg-[#5E6AD2]/8 px-2.5 py-1 rounded-full border border-[#5E6AD2]/15">
+              {{ t('h5.swrRender') }}
+            </span>
           </div>
 
-          <!-- 中部动态营销卡片区 -->
-          <div class="my-6 flex-1 flex flex-col justify-center">
-            <div v-if="!isSubmitted && campaign" class="space-y-6">
-              <div>
-                <span 
-                  class="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-gradient-to-r text-white mb-3"
-                  :class="(campaign.color_from || 'from-rose-600') + ' ' + (campaign.color_to || 'to-orange-600')"
-                >
-                  {{ campaign.badge }}
-                </span>
-                <h1 class="text-xl font-extrabold text-white tracking-tight leading-snug">
-                  {{ campaign.title }}
-                </h1>
-                <p class="text-slate-400 text-xs mt-3 leading-relaxed">
-                  {{ campaign.subtitle }}
-                </p>
+          <span
+            class="inline-block text-[11px] font-bold px-3 py-1 rounded-full text-white mb-4"
+            :style="{
+              background: `linear-gradient(135deg, ${campaign.color_from || '#5E6AD2'}, ${campaign.color_to || '#818cf8'})`
+            }"
+          >
+            {{ campaign.badge }}
+          </span>
+
+          <h1 class="text-[28px] font-extrabold text-white tracking-[-0.03em] leading-[1.15] mb-3">
+            {{ campaign.title }}
+          </h1>
+          <p class="text-[14px] text-white/45 leading-relaxed">
+            {{ campaign.subtitle }}
+          </p>
+        </section>
+
+        <!-- ──── 表单区 / 成功态 ──── -->
+        <section ref="formSectionRef" class="pb-8">
+          <Transition name="fade-slide" mode="out-in">
+
+            <!-- 未提交：注册表单 -->
+            <div v-if="!isSubmitted" key="form">
+              <div class="mb-5">
+                <h2 class="text-[16px] font-bold text-white mb-1">{{ t('h5.formTitle') }}</h2>
+                <p class="text-[12px] text-white/35">{{ t('h5.formDesc') }}</p>
               </div>
 
-              <!-- 表单区 -->
               <form @submit.prevent="handleRegister" class="space-y-3">
                 <div>
-                  <input 
-                    v-model="phone" 
-                    type="tel" 
+                  <input
+                    v-model="phone"
+                    type="tel"
                     :placeholder="t('h5.phonePlaceholder')"
+                    inputmode="numeric"
                     required
-                    class="w-full bg-slate-900/80 border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
+                    class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-[13px] text-white placeholder-white/25 focus:outline-none focus:border-[#5E6AD2]/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#5E6AD2]/15 transition-all duration-200"
                   />
-                  <span v-if="phoneError" class="text-[9px] text-rose-400 mt-1.5 block text-left">{{ phoneError }}</span>
+                  <span v-if="phoneError" class="text-[11px] text-rose-400 mt-1.5 block pl-1">{{ phoneError }}</span>
                 </div>
                 <div>
-                  <input 
-                    v-model="email" 
-                    type="email" 
+                  <input
+                    v-model="email"
+                    type="email"
                     :placeholder="t('h5.emailPlaceholder')"
                     required
-                    class="w-full bg-slate-900/80 border border-slate-700/50 hover:border-slate-600 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
+                    class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-[13px] text-white placeholder-white/25 focus:outline-none focus:border-[#5E6AD2]/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#5E6AD2]/15 transition-all duration-200"
                   />
-                  <span v-if="emailError" class="text-[9px] text-rose-400 mt-1.5 block text-left">{{ emailError }}</span>
+                  <span v-if="emailError" class="text-[11px] text-rose-400 mt-1.5 block pl-1">{{ emailError }}</span>
                 </div>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   :disabled="isLoading || !!phoneError || !!emailError"
-                  class="w-full font-bold text-xs py-3 rounded-xl transition-all shadow-lg active:scale-[0.97] text-white flex items-center justify-center gap-2"
-                  :class="[isLoading || !!phoneError || !!emailError ? 'opacity-40 cursor-not-allowed bg-slate-700 text-slate-400' : 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 shadow-indigo-500/25']"
+                  class="w-full font-bold text-[13px] py-3.5 rounded-2xl transition-all duration-200 active:scale-[0.97] text-white flex items-center justify-center gap-2"
+                  :class="[
+                    isLoading || !!phoneError || !!emailError
+                      ? 'opacity-35 cursor-not-allowed bg-white/10 text-white/40'
+                      : 'bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:brightness-110'
+                  ]"
                 >
-                  <span v-if="isLoading" class="i-lucide-loader-circle animate-spin text-[13px]" />
+                  <span v-if="isLoading" class="i-lucide-loader-circle animate-spin text-[14px]" />
                   {{ isLoading ? t('h5.submitting') : t('h5.submitRegister') }}
                 </button>
               </form>
 
+              <div class="flex items-center justify-center gap-1.5 mt-4">
+                <span class="i-lucide-lock text-[11px] text-white/15" />
+                <span class="text-[11px] text-white/15">{{ t('h5.secureRegistration') }}</span>
+              </div>
             </div>
 
-            <!-- 预约成功态（虚拟票券） -->
-            <div v-else-if="isSubmitted" class="text-center space-y-6 animate-fade-in">
-              <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2">
-                <span class="i-lucide-check text-[20px]" />
-              </div>
-              <h2 class="text-lg font-bold text-white">{{ t('h5.registerSuccess') }}</h2>
-              
-              <!-- 发光电子门票 -->
-              <div class="shimmer-card relative p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 border border-indigo-500/20 overflow-hidden shadow-xl shadow-indigo-500/10">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl"></div>
-                <div class="text-[10px] text-slate-500 uppercase tracking-widest text-left">{{ t('h5.ticketTitle') }}</div>
-                <div class="text-lg font-black text-white mt-2 tracking-tight text-left">{{ currentProduct.name }}</div>
-                
-                <div class="flex items-center justify-between mt-1">
-                  <div class="text-[9px] font-mono text-indigo-400">NO. {{ ticketNo }}</div>
-                  <button 
-                    @click="copyTicketNo"
-                    class="text-[9px] px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 active:scale-95 transition-all cursor-pointer"
-                  >
-                    复制
-                  </button>
+            <!-- 已提交：成功态 + 电子票券 -->
+            <div v-else key="success" class="space-y-6">
+              <div class="text-center pt-2">
+                <div class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3">
+                  <span class="i-lucide-check text-[24px]" />
                 </div>
-                
-                <div class="border-t border-dashed border-slate-800 my-4"></div>
-                
-                <div class="grid grid-cols-2 gap-2 text-left text-[9px] text-slate-400">
-                  <div>
-                    <span class="block text-slate-500">{{ t('h5.ticketChannel') }}</span>
-                    <span class="text-slate-200 font-semibold">{{ subdomain }}</span>
-                  </div>
-                  <div>
-                    <span class="block text-slate-500">{{ t('h5.ticketTime') }}</span>
-                    <span class="text-slate-200 font-semibold">Live Now</span>
-                  </div>
-                </div>
+                <h2 class="text-[18px] font-bold text-white">{{ t('h5.registerSuccess') }}</h2>
               </div>
 
-              <button 
-                @click="isSubmitted = false; phone = ''; email = '';" 
-                class="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer"
-              >
-                {{ t('h5.reRegister') }}
-              </button>
+              <!-- 发光电子票券 -->
+              <div class="ticket-shimmer relative p-5 rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-md border border-white/[0.08] overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-[#5E6AD2]/10 rounded-full blur-3xl pointer-events-none" />
 
-              <!-- 付费引导按钮 -->
-              <button
-                @click="handlePurchase"
-                :disabled="isPurchasing"
-                class="w-full font-bold text-[11px] py-3 rounded-xl transition-all shadow-lg active:scale-[0.97] text-white flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-orange-500/20 cursor-pointer"
-                :class="[isPurchasing ? 'opacity-50 cursor-wait' : '']"
-              >
-                <span v-if="isPurchasing" class="i-lucide-loader-circle animate-spin text-[13px]" />
-                {{ isPurchasing ? t('h5.processing') : `升级 ${currentProduct.name} ($${currentProduct.price})` }}
-              </button>
+                <div class="relative">
+                  <div class="text-[10px] text-white/30 uppercase tracking-[0.2em]">{{ t('h5.ticketTitle') }}</div>
+                  <div class="text-[17px] font-extrabold text-white mt-2 tracking-tight">{{ currentProduct.name }}</div>
 
-              <!-- 社交分享 -->
-              <div class="pt-2 border-t border-dashed border-slate-800">
-                <p class="text-[9px] text-slate-500 text-center mb-2">{{ t('h5.shareTitle') }}</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <span class="text-[11px] font-mono text-[#5E6AD2]/80">NO. {{ ticketNo }}</span>
+                    <button
+                      @click="copyTicketNo"
+                      class="text-[10px] px-2.5 py-1 rounded-lg bg-[#5E6AD2]/10 border border-[#5E6AD2]/15 text-[#5E6AD2] hover:bg-[#5E6AD2]/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      {{ t('h5.copyTicket') }}
+                    </button>
+                  </div>
+
+                  <div class="border-t border-dashed border-white/[0.08] my-4" />
+
+                  <div class="grid grid-cols-2 gap-3 text-[11px]">
+                    <div>
+                      <span class="block text-white/25 mb-0.5">{{ t('h5.ticketChannel') }}</span>
+                      <span class="text-white/70 font-semibold">{{ subdomain }}</span>
+                    </div>
+                    <div>
+                      <span class="block text-white/25 mb-0.5">{{ t('h5.ticketTime') }}</span>
+                      <span class="text-white/70 font-semibold">{{ t('h5.liveNow') }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <button
+                  @click="handlePurchase"
+                  :disabled="isPurchasing"
+                  class="w-full font-bold text-[13px] py-3.5 rounded-2xl transition-all duration-200 active:scale-[0.97] text-white flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg shadow-orange-500/15 hover:shadow-orange-500/25 hover:brightness-110 cursor-pointer"
+                  :class="[isPurchasing ? 'opacity-40 cursor-wait' : '']"
+                >
+                  <span v-if="isPurchasing" class="i-lucide-loader-circle animate-spin text-[14px]" />
+                  {{ isPurchasing ? t('h5.processing') : t('h5.upgradeProduct', { name: currentProduct.name, price: currentProduct.price }) }}
+                </button>
+
+                <button
+                  @click="isSubmitted = false; phone = ''; email = '';"
+                  class="w-full text-[12px] text-white/30 hover:text-white/50 font-medium transition-colors cursor-pointer py-1"
+                >
+                  {{ t('h5.reRegister') }}
+                </button>
+              </div>
+
+              <div class="pt-4 border-t border-white/[0.06]">
+                <p class="text-[11px] text-white/20 text-center mb-3">{{ t('h5.shareTitle') }}</p>
                 <div class="flex justify-center">
                   <SharedSocialShare
                     :title="campaign?.title || currentProduct.name"
@@ -378,64 +410,84 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
+
+          </Transition>
+        </section>
+
+        <!-- ──── 评价区 ──── -->
+        <section class="py-6 border-t border-white/[0.06]">
+          <H5ReviewSection
+            :subdomain="subdomain"
+            @login-required="handleLoginRequired"
+            @toast="(msg: string, type: 'success' | 'error') => triggerToast(msg, type)"
+          />
+        </section>
+      </template>
+
+      <!-- ═══ 错误态 ═══ -->
+      <template v-else>
+        <div class="flex flex-col items-center justify-center text-center py-24 my-auto">
+          <div class="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-5">
+            <span class="i-lucide-power-off text-[24px] text-white/25" />
           </div>
-
-          <!-- 用户评价区 -->
-          <div class="mt-6 pt-4 border-t border-slate-800/50">
-            <H5ReviewSection
-              :subdomain="subdomain"
-              @login-required="handleLoginRequired"
-            />
-          </div>
-
-
-        </template>
-
-        <template v-else>
-          <div class="flex-1 flex flex-col items-center justify-center text-center space-y-5 my-auto py-10 animate-fade-in">
-            <div class="w-14 h-14 rounded-full bg-slate-900 border border-slate-800/80 flex items-center justify-center shadow-inner shadow-white/5">
-              <span class="i-lucide-power-off text-[20px] text-slate-500" />
-            </div>
-            <div class="space-y-2">
-              <h2 class="text-sm font-bold text-slate-200">活动已结束或不存在</h2>
-              <p class="text-[10px] text-slate-500 max-w-[220px] mx-auto leading-relaxed">
-                营销子域名 <code class="text-indigo-400 font-semibold">{{ subdomain }}</code> 暂无生效的推广活动。请稍后再试或返回首页。
-              </p>
-            </div>
-            <NuxtLink 
-              to="/" 
-              class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold text-white active:scale-95 transition-all shadow-md shadow-indigo-600/20"
-            >
-              返回官网首页
-            </NuxtLink>
-          </div>
-        </template>
-
-        <!-- 底部声明 -->
-        <div class="text-center">
-          <p class="text-[9px] text-slate-600 leading-normal">
-            {{ t('h5.footerNote') }}
+          <h2 class="text-[16px] font-bold text-white/70 mb-2">{{ t('h5.eventEnded') }}</h2>
+          <p class="text-[13px] text-white/30 max-w-[260px] leading-relaxed">
+            {{ t('h5.eventEndedDesc', { sub: subdomain }) }}
           </p>
+          <NuxtLink
+            to="/"
+            class="mt-6 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-2xl bg-[#5E6AD2] hover:bg-[#5E6AD2]/90 text-[12px] font-bold text-white active:scale-95 transition-all shadow-md shadow-indigo-500/20"
+          >
+            {{ t('h5.backHome') }}
+          </NuxtLink>
         </div>
-      </div>
-    </div>
-  </div>
+      </template>
 
-  <!-- 顶部浮动 Toast 通知 -->
-  <Transition name="toast-fade">
-    <div v-if="showToast" class="fixed top-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900/90 border border-white/10 rounded-xl shadow-2xl z-9999 text-[11px] font-semibold text-indigo-300 backdrop-blur-md">
-      {{ toastMessage }}
+      <!-- ──── 底部声明 ──── -->
+      <footer class="pt-8 pb-4 text-center">
+        <p class="text-[10px] text-white/15 leading-normal">
+          {{ t('h5.footerNote') }}
+        </p>
+      </footer>
+    </main>
+
+    <!-- ═══ 底部固定 CTA (Funnel: 始终可见的转化入口) ═══ -->
+    <div
+      v-if="!hasError && !isSubmitted"
+      class="fixed bottom-0 left-0 right-0 z-50 p-4 pb-5 backdrop-blur-xl bg-[#020203]/80 border-t border-white/[0.06]"
+    >
+      <button
+        @click="scrollToForm"
+        class="w-full max-w-md mx-auto font-bold text-[14px] py-3.5 rounded-2xl text-white bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] shadow-lg shadow-indigo-500/25 active:scale-[0.97] transition-all duration-200 flex items-center justify-center gap-2"
+      >
+        <span class="i-lucide-ticket text-[16px]" />
+        {{ t('h5.registerNow') }}
+      </button>
     </div>
-  </Transition>
+
+    <!-- ═══ 浮动 Toast 通知 ═══ -->
+    <Transition name="toast-fade">
+      <div
+        v-if="showToast"
+        class="fixed top-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-2xl shadow-2xl z-[9999] text-[12px] font-semibold backdrop-blur-md border"
+        :class="[
+          toastType === 'success'
+            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+        ]"
+      >
+        {{ toastMessage }}
+      </div>
+    </Transition>
+  </div>
 </template>
 
 <style scoped>
-/* 扫光动效 — 更平滑的渐变过渡 */
-.shimmer-card {
+.ticket-shimmer {
   position: relative;
   overflow: hidden;
 }
-.shimmer-card::after {
+.ticket-shimmer::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -443,12 +495,12 @@ onMounted(async () => {
   background: linear-gradient(
     105deg,
     transparent 30%,
-    rgba(255, 255, 255, 0.06) 45%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.06) 55%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 55%,
     transparent 70%
   );
-  animation: shimmer 3.5s ease-in-out infinite;
+  animation: shimmer 4s ease-in-out infinite;
   pointer-events: none;
 }
 @keyframes shimmer {
@@ -457,14 +509,19 @@ onMounted(async () => {
   100% { transform: translateX(100%); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .shimmer-card::after {
-    animation: none;
-    display: none;
-  }
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
-/* Toast 动画 */
 .toast-fade-enter-active,
 .toast-fade-leave-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -472,7 +529,13 @@ onMounted(async () => {
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
-  transform: translate(-50%, -20px);
+  transform: translate(-50%, -16px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .ticket-shimmer::after {
+    animation: none;
+    display: none;
+  }
+}
 </style>

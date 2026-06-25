@@ -4,8 +4,8 @@ import { onMounted, onBeforeUnmount, computed } from 'vue'
 const { t, locale } = useI18n()
 
 useAppSEO({
-  title: () => '帮助文档中心 - HeHe App',
-  description: () => 'HeHe App 完整帮助文档 — 从项目搭建到部署上线的全流程指南。',
+  title: () => t('help.title') || '帮助文档中心 - HeHe App',
+  description: () => t('help.description') || 'HeHe App 完整帮助文档 — 从项目搭建到部署上线的全流程指南。',
 })
 
 // JSON-LD structured data for SEO
@@ -120,7 +120,7 @@ const copyCode = async (event: MouseEvent) => {
   try {
     await navigator.clipboard.writeText(text)
     const original = btn.textContent
-    btn.textContent = '已复制'
+    btn.textContent = t('common.copied')
     btn.classList.add('copied')
     setTimeout(() => {
       btn.textContent = original
@@ -135,8 +135,8 @@ const copyCode = async (event: MouseEvent) => {
     ta.select()
     document.execCommand('copy')
     document.body.removeChild(ta)
-    btn.textContent = '已复制'
-    setTimeout(() => { btn.textContent = '复制代码' }, 2000)
+    btn.textContent = t('common.copied')
+    setTimeout(() => { btn.textContent = t('help.copyCode') }, 2000)
   }
 }
 
@@ -838,7 +838,7 @@ const paymentComposableRows = [
             <div class="subsection">
               <h3>{{ '快速启动' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ quickStartCode }}</code></pre>
               </div>
               <p>{{ 'Mock DB 模式（MOCK_DB=true）无需 Supabase 账号，所有数据存储在内存中，支持完整的 CRUD、Auth 模拟和链式查询，适合前端 UI 开发和快速原型验证。' }}</p>
@@ -882,7 +882,7 @@ const paymentComposableRows = [
             <div class="subsection">
               <h3>{{ '目录结构' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>hehe-app/
 ├── app/
 │   ├── components/
@@ -1065,7 +1065,7 @@ const paymentComposableRows = [
             <div class="subsection">
               <h3>{{ 'routeRules 配置速查' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>// nuxt.config.ts
 export default defineNuxtConfig({
   routeRules: {
@@ -1185,7 +1185,7 @@ export default defineNuxtConfig({
               <p>{{ '在 Supabase Dashboard → SQL Editor 中，按顺序复制粘贴迁移文件内容并执行。每次执行一个文件，确认无报错后再执行下一个。执行后进入 Table Editor 确认所有表已创建。' }}</p>
               <p><strong>{{ '方式二：Supabase CLI 自动推送（推荐）' }}</strong></p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>supabase login
 supabase link --project-ref &lt;your-project-ref&gt;
 supabase db push</code></pre>
@@ -1196,7 +1196,7 @@ supabase db push</code></pre>
               <p>{{ '数据库迁移仅创建表结构，不包含业务数据。如果切换为物理数据库而未填充初始数据，H5 页面会因为 campaigns 表为空而白屏。' }}</p>
               <p>{{ '在 Supabase Dashboard → SQL Editor 中运行以下 SQL 以插入营销活动及商品初始数据：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ seedSql }}</code></pre>
               </div>
             </div>
@@ -1210,13 +1210,13 @@ supabase db push</code></pre>
               </ol>
               <p><strong>{{ '方式二：通过 SQL 快速设置' }}</strong></p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ adminSql }}</code></pre>
               </div>
               <p><strong>{{ '方式三：通过 CLI 脚本创建/更新' }}</strong></p>
               <p>{{ '项目提供 ' }}<code>temp-create-admin.mjs</code> {{ '脚本，可通过 CLI 快速创建或更新内置管理员账号：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>node temp-create-admin.mjs</code></pre>
               </div>
             </div>
@@ -1237,12 +1237,12 @@ supabase db push</code></pre>
             </div>
             <div class="subsection">
               <h3>{{ 'Supabase Storage' }}</h3>
-              <p>{{ '项目内置 Supabase Storage 支持，提供 3 个 Bucket 覆盖全部业务场景，RLS 策略内置于 0001_core.sql 迁移中：' }}</p>
+              <p>{{ '项目内置 Supabase Storage 支持，默认提供 1 个系统 Bucket（campaign-assets），管理员可通过媒体库管理自由创建更多 Bucket。RLS 策略内置于 0001_core.sql 迁移中：' }}</p>
               <div class="table-wrap">
                 <table>
                   <thead><tr><th v-for="col in (['Bucket', '可见性', '大小限制', '允许类型', '写入权限'] as string[])" :key="col">{{ col }}</th></tr></thead>
                   <tbody>
-                    <tr v-for="(row, i) in ([['avatars', '公开', '2 MB', 'png / jpeg / gif / webp', '认证用户写自己目录'],['campaign-assets', '公开', '10 MB', 'png / jpeg / gif / webp / mp4', '仅管理员'],['uploads', '私有', '50 MB', '不限制', '认证用户写自己目录']] as string[][])" :key="i">
+                    <tr v-for="(row, i) in ([['campaign-assets', '公开', '10 MB', 'png / jpeg / gif / webp / mp4', '仅管理员']] as string[][])" :key="i">
                       <td v-for="(cell, j) in row" :key="j"><code v-if="j === 0">{{ cell }}</code><span v-else>{{ cell }}</span></td>
                     </tr>
                   </tbody>
@@ -1253,9 +1253,8 @@ supabase db push</code></pre>
               <h3>{{ 'Storage 路径规范与 RLS 隔离' }}</h3>
               <p>{{ '所有文件路径遵循 ' }}<code>{user_id}/{timestamp}_{filename}</code> {{ '格式。RLS 策略通过 ' }}<code>(storage.foldername(name))[1] = auth.uid()::text</code> {{ '校验路径首段与用户 uid 一致，实现行级隔离：' }}</p>
               <ul>
-                <li><strong>avatars：</strong>{{ '认证用户可上传/更新/删除自己目录下的文件，所有人可公开读取，管理员全权限' }}</li>
                 <li><strong>campaign-assets：</strong>{{ '仅管理员可写入/更新/删除，所有人可公开读取' }}</li>
-                <li><strong>uploads：</strong>{{ '认证用户仅可读写自己目录下的文件，管理员全权限' }}</li>
+                <li><strong>自定义 Bucket：</strong>{{ '管理员可通过媒体库管理界面创建，自由配置公开/私有、大小限制和 MIME 白名单' }}</li>
               </ul>
             </div>
             <div class="subsection">
@@ -1290,37 +1289,36 @@ supabase db push</code></pre>
               <h3>{{ 'useStorage() Composable' }}</h3>
               <p>{{ '前端使用 useStorage() composable 进行文件操作，自动选择上传模式：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>const { upload, remove, getSignedUrl, getPublicUrl } = useStorage()
 
 // 上传文件（自动判断大小，选择中转或直传）
-const result = await upload(file, 'avatars')
+const result = await upload(file, 'campaign-assets')
 console.log(result.path, result.publicUrl)
 
 // 删除文件
-await remove('avatars', 'user-id/1234_photo.png')
+await remove('campaign-assets', 'user-id/1234_photo.png')
 
 // 获取私有文件临时访问链接
-const url = await getSignedUrl('uploads', 'user-id/5678_doc.pdf')
+const url = await getSignedUrl('my-bucket', 'user-id/5678_doc.pdf')
 
 // 获取公开文件 URL（无需 API 请求）
-const publicUrl = getPublicUrl('avatars', 'user-id/1234_photo.png')</code></pre>
+const publicUrl = getPublicUrl('campaign-assets', 'user-id/1234_photo.png')</code></pre>
               </div>
             </div>
             <div class="subsection">
               <h3>{{ 'Storage RLS 安全加固' }}</h3>
               <p>{{ 'Supabase 对 public bucket 默认创建的 DELETE 策略过于宽松（anon 用户可删除任意文件）。0001_core.sql 添加了 RESTRICTIVE 策略进行加固：' }}</p>
               <ul>
-                <li><strong>storage_scope_restrict：</strong>{{ '限制所有操作只能在 3 个业务 bucket 范围内' }}</li>
+                <li><strong>storage_scope_restrict：</strong>{{ '限制所有操作只能在业务 bucket 范围内' }}</li>
                 <li><strong>campaign_assets_restrict_delete：</strong>{{ 'campaign-assets bucket 禁止非管理员删除' }}</li>
-                <li><strong>uploads_restrict_anon：</strong>{{ 'anon 用户完全禁止访问 uploads bucket' }}</li>
               </ul>
               <p>{{ '注意：RESTRICTIVE 策略与 PERMISSIVE 策略是 AND 逻辑。Supabase Storage API 的 remove() 在 RLS 阻止删除时返回 error=null, data=[]（假成功），需检查文件是否仍存在。' }}</p>
             </div>
             <div class="subsection">
               <h3>{{ '本地 Supabase 开发环境' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 安装 Supabase CLI
 npm install -g supabase
 
@@ -1376,7 +1374,7 @@ supabase start
             <div class="subsection">
               <h3>{{ 'TypeScript 类型生成' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 生成 Supabase 数据库类型定义
 npm run gen:types
 
@@ -1395,7 +1393,7 @@ npm run gen:types
             <div class="subsection">
               <h3>{{ '快速参考命令' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 数据库连接测试
 npm run test:supabase
 
@@ -1519,7 +1517,7 @@ npm run gen:rls &lt;table&gt; [--admin]</code></pre>
               <h3>{{ 'handle_new_user 触发器' }}</h3>
               <p>{{ '新用户注册时，Supabase 自动在 profiles 表中创建对应记录。触发器逻辑：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -1683,7 +1681,7 @@ CREATE TRIGGER on_auth_user_created
               </div>
               <p>{{ '环境变量修改后需重新部署才能生效。可推送一个空 commit 触发：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>git commit --allow-empty -m "chore: redeploy for env update" && git push</code></pre>
               </div>
             </div>
@@ -1764,13 +1762,13 @@ CREATE TRIGGER on_auth_user_created
               <p>{{ 'Vercel 提供内置的性能监控与流量分析工具：' }}</p>
               <p>{{ '安装统计与监控依赖：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 安装 Vercel 性能分析与监控包
 npm i @vercel/analytics @vercel/speed-insights</code></pre>
               </div>
               <p>{{ '在 app.vue 中引入并挂载（Nuxt 4 集成方式）：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>&lt;script setup lang="ts"&gt;
 import { Analytics } from '@vercel/analytics/nuxt'
 import { SpeedInsights } from '@vercel/speed-insights/nuxt'
@@ -1808,7 +1806,7 @@ import { SpeedInsights } from '@vercel/speed-insights/nuxt'
               <h3>{{ 'Vercel CLI 部署（可选）' }}</h3>
               <p>{{ '除了 Dashboard 导入，也可以通过 Vercel CLI 部署：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 安装 Vercel CLI
 npm i -g vercel
 
@@ -1825,7 +1823,7 @@ vercel --prod</code></pre>
               <p>{{ '每次推送代码到非 main 分支或创建 Pull Request 时，Vercel 都会自动创建一个独立的预览部署。' }}</p>
               <p>{{ '预览部署的典型开发流程示例：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 1. 检出新功能分支
 git checkout -b feature/new-campaign
 
@@ -1929,13 +1927,13 @@ git push origin feature/new-campaign
               <ol>
                 <li>{{ '注册 GitHub 账号，并推荐在本地配置 Git 身份信息：' }}</li>
                 <div class="code-block">
-                  <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                  <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                   <pre><code>git config --global user.name "Your Name"
 git config --global user.email "your-email@example.com"</code></pre>
                 </div>
                 <li>{{ '安装 GitHub CLI（推荐），方便通过命令行管理 PR 与仓库：' }}</li>
                 <div class="code-block">
-                  <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                  <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                   <pre><code>brew install gh
 gh auth login</code></pre>
                 </div>
@@ -1948,7 +1946,7 @@ gh auth login</code></pre>
                 <li>{{ '在 GitHub 上创建一个名为 ' }}<code>hehe-app</code>{{ ' 的私有仓库（Private）。' }}</li>
                 <li>{{ '在本地项目根目录下，运行以下命令进行关联并推送：' }}</li>
                 <div class="code-block">
-                  <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                  <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                   <pre><code># 初始化 git 并设置默认分支为 main
 git init
 git branch -M main
@@ -1967,7 +1965,7 @@ git push -u origin main</code></pre>
               <h3>{{ '.gitignore 配置' }}</h3>
               <p>{{ '确保敏感和不必要的构建文件不被提交。项目根目录下应包含完整的 .gitignore：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 依赖与临时文件
 node_modules/
 .nuxt/
@@ -2017,7 +2015,7 @@ dist/
               <h3>{{ 'GitHub Actions CI' }}</h3>
               <p>{{ '在 .github/workflows/ci.yml 中配置自动类型检查和构建验证：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ ciYaml }}</code></pre>
               </div>
             </div>
@@ -2055,7 +2053,7 @@ dist/
               <h3>{{ 'PR 模板' }}</h3>
               <p>{{ '在 .github/pull_request_template.md 中创建 PR 模板：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>## 变更说明
 <!-- 简要描述本次变更内容 -->
 
@@ -2236,7 +2234,7 @@ dist/
               <h3>{{ 'Checkout Session 参数' }}</h3>
               <p>{{ '创建 Stripe Checkout Session 的关键参数：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>const session = await stripe.checkout.sessions.create({
   payment_method_types: ['card'],
   line_items: [{
@@ -2311,7 +2309,7 @@ dist/
               <h3>{{ 'Webhook 签名验证' }}</h3>
               <p>{{ '服务端使用 Stripe SDK 的 constructEvent() 方法验证 Webhook 签名，防止伪造回调。关键代码：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>// Webhook 签名已迁移至策略层（server/utils/payment-strategies/stripe.ts），
 // 从 system_configs.payment_secrets 读取密钥，自动完成签名验证。
 const strategy = getPaymentStrategy('stripe')
@@ -2498,7 +2496,7 @@ const result = await strategy.verifyWebhook(rawBody, signature)</code></pre>
             <div class="subsection">
               <h3>{{ 'DNS 验证命令' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code># 检查 NS 记录是否指向 Cloudflare
 dig yourdomain.com NS
 
@@ -2608,14 +2606,14 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
             <div class="subsection">
               <h3>{{ '快速启动' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ quickStartCode }}</code></pre>
               </div>
             </div>
             <div class="subsection">
               <h3>{{ '本地 Supabase 实例' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ localSupabaseCode }}</code></pre>
               </div>
             </div>
@@ -2662,7 +2660,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
               <h3>{{ '统一响应格式' }}</h3>
               <p>{{ '项目所有 API 使用统一的响应格式，通过 sendSuccess() 和 createError() 工具函数返回。错误信息在服务端使用英文，前端展示层通过 t() 翻译。' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ apiResponseExample }}</code></pre>
               </div>
             </div>
@@ -2670,7 +2668,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
               <h3>{{ 'API 鉴权声明' }}</h3>
               <p>{{ '每个 API 文件顶部通过注释声明鉴权级别，供 test:api-safety 扫描器自动验证：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ apiAuthDeclareExample }}</code></pre>
               </div>
               <div class="table-wrap">
@@ -2688,7 +2686,7 @@ openssl s_client -connect yourdomain.com:443 -servername yourdomain.com</code></
               <h3>{{ 'Zod 输入校验' }}</h3>
               <p>{{ '所有 API 使用 Zod 进行输入校验，格式示例：' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>import { z } from 'zod'
 
 const bodySchema = z.object({
@@ -2729,7 +2727,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
               <h3>{{ 'i18n 策略' }}</h3>
               <p>{{ '项目使用 @nuxtjs/i18n 模块，采用 prefix_except_default 策略：默认语言（中文）URL 不加前缀，英文加 /en 前缀。Admin 后台和帮助文档页面使用硬编码中文，不走 i18n。' }}</p>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ i18nConfigExample }}</code></pre>
               </div>
             </div>
@@ -2743,7 +2741,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
             <div class="subsection">
               <h3>{{ '使用方式' }}</h3>
               <div class="code-block">
-                <button class="copy-btn" @click="copyCode($event)">{{ '复制代码' }}</button>
+                <button class="copy-btn" @click="copyCode($event)">{{ t("help.copyCode") }}</button>
                 <pre><code>{{ i18nUsageExample }}</code></pre>
               </div>
             </div>
@@ -2854,7 +2852,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* ── SIDEBAR ── */
@@ -3162,15 +3160,13 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
 .tag-cyan { color: var(--accent-cyan); border-color: rgba(34, 211, 238, 0.3); background: rgba(34, 211, 238, 0.08); }
 
 .hero-title {
-  font-size: 2.5rem;
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   margin: 0 0 16px;
-  background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
+  text-wrap: balance;
 }
 .hero-desc {
   font-size: 1.05rem;
@@ -3178,6 +3174,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
   line-height: 1.7;
   margin: 0 0 28px;
   max-width: 640px;
+  text-wrap: pretty;
 }
 .hero-meta {
   display: flex;
@@ -3232,12 +3229,15 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
   font-variant-numeric: tabular-nums;
 }
 .section-header h2 {
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 .section-body { color: var(--text-secondary); line-height: 1.75; }
+.section-body p { text-wrap: pretty; }
 .section-body p { margin: 0 0 14px; }
 .section-body a { color: var(--accent-blue); text-decoration: none; }
 .section-body a:hover { text-decoration: underline; }
@@ -3250,6 +3250,7 @@ const body = await readValidatedBody(event, bodySchema.parse)</code></pre>
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 12px;
+  text-wrap: balance;
 }
 .subsection h4 {
   font-size: 0.95rem;
@@ -3610,7 +3611,7 @@ tr:last-child td { border-bottom: none; }
   .doc-content { padding: 0 24px 60px; }
   .doc-footer { padding: 24px; }
   .hero { padding: 80px 24px 48px; }
-  .hero-title { font-size: 1.8rem; }
+  .hero-title { font-size: clamp(1.25rem, 2.5vw, 1.8rem); }
   .doc-grid { grid-template-columns: repeat(2, 1fr); }
   .schema-row { flex-wrap: wrap; }
   .flow-steps { gap: 4px; }
@@ -3622,7 +3623,7 @@ tr:last-child td { border-bottom: none; }
 @media (max-width: 640px) {
   .top-header-left { display: none; }
   .top-header-menu { width: 100%; justify-content: flex-end; }
-  .hero-title { font-size: 1.4rem; }
+  .hero-title { font-size: clamp(1.1rem, 2vw, 1.4rem); }
   .doc-grid { grid-template-columns: 1fr; }
   .footer-inner { flex-direction: column; gap: 12px; text-align: center; }
   .search-input { width: 100px; }
@@ -3647,10 +3648,7 @@ tr:last-child td { border-bottom: none; }
     background: rgba(248, 250, 252, 0.85);
   }
   .app-help-root .hero-title {
-    background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #0f172a;
   }
   .app-help-root .code-block pre { background: #f1f5f9; }
   .app-help-root th { background: #f1f5f9; }
@@ -3674,10 +3672,7 @@ tr:last-child td { border-bottom: none; }
     background: rgba(248, 250, 252, 0.85);
   }
   .app-help-root:not(.theme-dark) .hero-title {
-    background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #0f172a;
   }
   .app-help-root:not(.theme-dark) .code-block pre { background: #f1f5f9; }
   .app-help-root:not(.theme-dark) th { background: #f1f5f9; }
@@ -3699,10 +3694,7 @@ tr:last-child td { border-bottom: none; }
 }
 .theme-light .top-header { background: rgba(248, 250, 252, 0.85) !important; }
 .theme-light .hero-title {
-  background: linear-gradient(135deg, #0f172a 0%, #475569 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
+  color: #0f172a !important;
 }
 .theme-light .code-block pre { background: #f1f5f9 !important; }
 .theme-light th { background: #f1f5f9 !important; }

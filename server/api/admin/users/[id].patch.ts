@@ -21,7 +21,6 @@ defineRouteMeta({
             type: 'object',
             properties: {
               role: { type: 'string', enum: ['user', 'admin'] },
-              plan_status: { type: 'string', enum: ['free', 'pro', 'enterprise'] },
               display_name: { type: 'string', maxLength: 100 },
             },
           },
@@ -38,12 +37,11 @@ defineRouteMeta({
 
 const userUpdateSchema = z.object({
   role: z.enum(['user', 'admin']).optional(),
-  plan_status: z.enum(['free', 'pro', 'enterprise']).optional(),
   display_name: z.string().max(100).optional(),
 })
 
 /**
- * 管理员：编辑用户角色、套餐、显示名称
+ * 管理员：编辑用户角色、显示名称
  * PATCH /api/admin/users/:id
  */
 export default defineEventHandler(async (event) => {
@@ -66,22 +64,12 @@ export default defineEventHandler(async (event) => {
   // ② 更新 profiles 表
   const profileUpdate: Record<string, any> = {}
   if (body.role !== undefined) profileUpdate.role = body.role
-  if (body.plan_status !== undefined) profileUpdate.plan_status = body.plan_status
   if (body.display_name !== undefined) profileUpdate.display_name = body.display_name
 
   if (Object.keys(profileUpdate).length > 0) {
     const { error: updateErr } = await db.from('profiles').update(profileUpdate).eq('id', id).select().single()
     if (updateErr) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to update user profile' })
-    }
-
-    // 🔒 P1-7: 手动降级为 free 时，同步取消用户的活跃订阅
-    if (body.plan_status === 'free') {
-      await db.from('subscriptions').update({
-        status: 'canceled',
-        cancel_at_period_end: false,
-        updated_at: new Date().toISOString(),
-      }).eq('user_id', id).eq('status', 'active')
     }
   }
 

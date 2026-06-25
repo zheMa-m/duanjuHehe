@@ -17,6 +17,8 @@ const answerSchema = z.object({
   birthTime: z.string().optional(),
   birthCity: z.string().optional(),
   fullName: z.string().optional(),
+  // ✅ Intro 阶段数据（首次 q1 提交时附带，存入 questionnaire_answers）
+  introAnswers: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
 })
 
 defineRouteMeta({
@@ -63,6 +65,11 @@ export default defineEventHandler(async (event) => {
     questionKey: body.questionKey,
     answerValue: body.answerValue,
   })
+
+  // 3. 首次提交时存储 intro 阶段数据（familiarity/focus/goal/relationship）
+  if (body.introAnswers && Object.keys(body.introAnswers).length > 0) {
+    await starpathService.submitIntroAnswers(event, session.id, body.introAnswers)
+  }
 
   return sendSuccess(event, { answerId: answer.id, sessionId: session.id }, 'Answer recorded')
 })

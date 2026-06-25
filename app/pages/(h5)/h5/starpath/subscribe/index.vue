@@ -1,13 +1,9 @@
 <script setup lang="ts">
-// Auto-redirect based on platform detection
+// 订阅页已废弃，统一重定向到一次性购买页
 // router.push 前缀由 plugins/01.subdomain-router.client.ts 自动剥离
 if (process.client) {
   const router = useRouter()
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
-  const isAndroid = /android/i.test(navigator.userAgent)
-  if (isIOS) router.push('/h5/starpath/subscribe/ios')
-  else if (isAndroid) router.push('/h5/starpath/subscribe/android')
-  else router.push('/h5/starpath/subscribe/ios')
+  router.replace('/h5/starpath/purchase')
 }
 </script>
 

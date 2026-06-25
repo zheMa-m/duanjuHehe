@@ -31,7 +31,6 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
     <div class="nav-sidebar__header">
       <div class="nav-sidebar__logo-row" :class="{ 'nav-sidebar__logo-row--center': collapsed }">
         <div class="nav-sidebar__logo">
-          <span class="nav-sidebar__logo-glow" />
           <span class="nav-sidebar__logo-letter">H</span>
         </div>
         <transition name="nav-fade">
@@ -119,14 +118,13 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .nav-sidebar--collapsed { width: 68px; }
-@media (min-width: 1024px) { .nav-sidebar { display: flex; } }
+@media (min-width: 1280px) { .nav-sidebar { display: flex; } }
 
 /* 背景层 */
 .nav-sidebar__bg {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, #08080f 0%, #0a0a14 100%);
-  border-right: 1px solid rgba(255,255,255,0.05);
-  box-shadow: 2px 0 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
+  background: var(--admin-bg, #08080f);
+  border-right: 1px solid var(--admin-border-subtle, rgba(255,255,255,0.06));
 }
 
 /* ─── Header / Logo ─── */
@@ -143,14 +141,9 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-sidebar__logo {
   position: relative; width: 32px; height: 32px; flex-shrink: 0;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--brand-accent), var(--brand-blue-500));
+  background: var(--admin-brand, #818cf8);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 12px rgba(99,102,241,0.3);
-}
-.nav-sidebar__logo-glow {
-  position: absolute; inset: -3px; border-radius: 13px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(59,130,246,0.15));
-  filter: blur(6px); z-index: -1;
+  
 }
 .nav-sidebar__logo-letter {
   font-size: 14px; font-weight: 700; color: #fff;
@@ -186,12 +179,11 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   background: #111114; border: 1px solid rgba(255,255,255,0.08);
   display: flex; align-items: center; justify-content: center;
   color: rgba(255,255,255,0.35); cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  
   transition: all 0.2s;
 }
 .nav-sidebar__expand:hover {
   color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.15);
-  transform: scale(1.08);
 }
 
 /* ─── 导航区 ─── */
@@ -236,8 +228,8 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-item__bar {
   position: absolute; left: 0; top: 22%; bottom: 22%;
   width: 3px; border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, var(--brand-accent-light), var(--brand-accent), var(--brand-accent-dark));
-  box-shadow: 0 0 10px rgba(99,102,241,0.4), 0 0 3px rgba(99,102,241,0.6);
+  background: var(--admin-brand, #818cf8);
+  
 }
 
 /* 图标 */
@@ -249,7 +241,7 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-item:hover .nav-item__icon { color: var(--admin-text-secondary, rgba(255,255,255,0.65)); }
 .nav-item__icon--active {
   color: var(--brand-accent-soft) !important;
-  filter: drop-shadow(0 0 6px rgba(165,180,252,0.4));
+
 }
 
 /* 标签 */

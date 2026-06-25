@@ -123,7 +123,27 @@
     "purchaseVip": "购买 VIP — $29.99",
     "processing": "处理中...",
     "shareTitle": "分享给好友",
-    "footerNote": "此活动方案由 Monorepo app/pages/(h5) 精准构建，利用子域名中间件做反向路径代理，避免了跨域配置的烦恼。"
+    "footerNote": "此活动方案由 Monorepo app/pages/(h5) 精准构建，利用子域名中间件做反向路径代理，避免了跨域配置的烦恼。",
+    "copyTicket": "复制",
+    "copySuccess": "票券编码已复制！",
+    "copyFailed": "复制失败，请手动操作",
+    "upgradeProduct": "升级 {name} (${price})",
+    "eventEnded": "活动已结束",
+    "eventEndedDesc": "营销子域名 {sub} 暂无生效的推广活动。",
+    "backHome": "返回首页",
+    "registerNow": "立即预约",
+    "secureRegistration": "安全注册",
+    "liveNow": "正在进行",
+    "formTitle": "预约抢先体验",
+    "formDesc": "填写信息，获取专属优先体验资格",
+    "phoneInvalid": "请输入有效的11位中国大陆手机号",
+    "emailInvalid": "请输入有效的邮箱地址",
+    "phoneRequired": "手机号不能为空",
+    "emailRequired": "邮箱不能为空",
+    "phone": "手机号",
+    "email": "邮箱",
+    "reserveNow": "立即预约",
+    "registered": "预约成功"
   },
   "userBar": {
     "signOut": "退出登录",
@@ -175,7 +195,9 @@
     "minutesAgo": "{n} 分钟前",
     "hoursAgo": "{n} 小时前",
     "daysAgo": "{n} 天前",
-    "monthsAgo": "{n} 个月前"
+    "monthsAgo": "{n} 个月前",
+    "submitSuccess": "评价提交成功！",
+    "submitFailedToast": "提交失败，请稍后重试"
   },
   "share": {
     "wechat": "微信",
@@ -814,7 +836,26 @@
       "title": "你的报告正在路上",
       "desc": "我们已将你的独家星盘解读发送到你的邮箱",
       "checkInbox": "请检查收件箱（包括垃圾邮件文件夹）",
-      "backToHome": "返回首页"
+      "backToHome": "返回首页",
+      "emailNotice": "你的报告已发送到邮箱",
+      "footerNote": "仅供娱乐参考。如需帮助请联系客服。"
+    },
+    "purchase": {
+      "title": "你的星盘报告已准备就绪",
+      "subtitle": "一次付款即可解锁你的专属 AI 占星解读报告",
+      "badge": "限时优惠",
+      "todayOnly": "今日特价",
+      "oneTimeNotice": "一次性付款，无订阅、无隐藏费用。",
+      "payWithApple": "解锁报告 — ¥9.99",
+      "error": "购买失败，请重试",
+      "sessionError": "会话已过期，请重新开始问卷。",
+      "securePayment": "安全支付",
+      "refundGuarantee": "30 天无条件退款保证",
+      "orderSummary": "订单详情",
+      "product": "商品",
+      "productName": "AI 占星报告",
+      "amountPaid": "实付金额",
+      "paymentMethod": "支付方式"
     }
   }
 }

@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
         <span class="hero-tag tag-orange">🔷 Vue 3</span>
       </div>
       <h1>{{ t('hero.title') }}</h1>
-      <p style="color:var(--text-secondary);font-size:14px;max-width:640px;">{{ t('hero.description') }}</p>
+      <p class="hero-desc-inline">{{ t('hero.description') }}</p>
       <div class="hero-meta">
         <div class="meta-card">
           <div class="meta-label">{{ t('hero.projectType') }}</div>
@@ -1360,7 +1360,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-:global(:root) {
+.app-arch-root {
       --bg-primary: #0a0e1a;
       --bg-secondary: #0f1628;
       --bg-card: #131d35;
@@ -1379,19 +1379,10 @@ onBeforeUnmount(() => {
       --text-muted: #64748b;
       --code-bg: #0d1626;
       --tag-bg: #1e3a5f;
-      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --gradient-2: linear-gradient(135deg, #4f8ef7 0%, #22d3ee 100%);
-      --gradient-3: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    }
-
-    :global(*) { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :global(html) { scroll-behavior: smooth; }
-
-    :global(body) {
-      font-family: 'Inter', 'Noto Sans SC', sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
+      min-height: 100vh;
+      font-family: var(--font-sans);
       line-height: 1.7;
       overflow-x: hidden;
     }
@@ -1553,7 +1544,7 @@ onBeforeUnmount(() => {
       align-items: center;
       gap: 6px;
       padding: 4px 12px;
-      border-radius: 20px;
+      border-radius: 9999px;
       font-size: 11px;
       font-weight: 500;
       border: 1px solid;
@@ -1566,13 +1557,21 @@ onBeforeUnmount(() => {
     .tag-orange { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #fbbf24; }
 
     .hero h1 {
-      font-size: 32px;
+      font-size: clamp(1.5rem, 3vw, 2rem);
       font-weight: 700;
-      background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--text-primary);
       margin-bottom: 16px;
       line-height: 1.3;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .hero-desc-inline {
+      color: var(--text-secondary);
+      font-size: 14px;
+      max-width: 640px;
+      line-height: 1.7;
+      text-wrap: pretty;
     }
 
     .hero-meta {
@@ -1640,9 +1639,11 @@ onBeforeUnmount(() => {
     .num-red { background: rgba(239,68,68,0.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); }
 
     .section-header h2 {
-      font-size: 22px;
+      font-size: clamp(1.125rem, 2vw, 1.375rem);
       font-weight: 700;
       color: var(--text-primary);
+      letter-spacing: -0.02em;
+      text-wrap: balance;
     }
 
     .subsection { margin-bottom: 36px; }
@@ -2594,9 +2595,6 @@ onBeforeUnmount(() => {
       .hero h1 {
         font-size: 24px !important;
         margin-bottom: 8px !important;
-        background: none !important;
-        -webkit-background-clip: initial !important;
-        -webkit-text-fill-color: #e2e8f0 !important;
         color: #e2e8f0 !important;
       }
       .hero-meta {

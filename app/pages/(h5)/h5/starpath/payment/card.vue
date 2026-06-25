@@ -11,8 +11,9 @@ const route = useRoute()
 const router = useRouter()
 const CARD_PAYMENT_ENDPOINT = '/api/h5/starpath/payment/card'
 
-// 从 query 参数获取预创建的订单 ID
+// 从 query 参数获取预创建的订单 ID 和购买模式
 const orderId = computed(() => (route.query.orderId as string) || '')
+const isPurchaseMode = computed(() => route.query.purchase === '1')
 
 const cardNumber = ref('')
 const expiry = ref('')
@@ -49,7 +50,12 @@ async function submitPayment() {
       paymentToken,
       cardholderName: cardholderName.value,
     })
-    navigateTo(`/h5/starpath/payment/confirmation?orderId=${orderId.value}`)
+    // 一次性购买模式：跳转邮箱收集页；订阅模式：跳转确认页
+    if (isPurchaseMode.value) {
+      navigateTo(`/h5/starpath/email?orderId=${orderId.value}`)
+    } else {
+      navigateTo(`/h5/starpath/payment/confirmation?orderId=${orderId.value}`)
+    }
   } catch (e: any) {
     errorMsg.value = e?.message || 'Payment failed. Please try again.'
   } finally {

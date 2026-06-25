@@ -32,11 +32,29 @@ defineRouteMeta({
   } as any,
 })
 
+const pricingTierSchema = z.object({
+  up_to: z.number().int().positive().nullable(),
+  unit_price: z.number().min(0),
+})
+
+const pricingSchema = z.object({
+  base_price: z.number().min(0).optional(),
+  currency: z.string().min(2).max(3).default('USD').optional(),
+  billing_interval: z.enum(['month', 'year', 'one_time', 'week']).optional(),
+  trial_days: z.number().int().min(0).max(365).optional(),
+  setup_fee: z.number().min(0).optional(),
+  compare_at_price: z.number().min(0).nullable().optional(),
+  tiers: z.array(pricingTierSchema).optional(),
+}).optional().default({})
+
 const createProductSchema = z.object({
-  name: z.string().min(1, 'Product name cannot be empty'),
+  name: z.string().min(1, 'Product name cannot be empty').max(200),
   price: z.number().min(0, 'Price must be a non-negative number'),
+  description: z.string().max(2000).default('').optional(),
+  image_url: z.string().url().or(z.literal('')).default('').optional(),
   paymentMeta: z.record(z.string(), z.any()).optional().default({}),
   category: z.enum(['subscription', 'one_time', 'addon']).optional().default('subscription'),
+  pricing: pricingSchema,
 })
 
 /**
@@ -52,6 +70,9 @@ export default defineEventHandler(async (event) => {
     name: body.name,
     price: body.price,
     category: body.category,
+    description: body.description || '',
+    image_url: body.image_url || '',
+    pricing: body.pricing || {},
     tenant_id: BUILTIN_ADMIN_UUID, // 全局商品绑定为内置管理员 UUID
     payment_meta: body.paymentMeta,
     created_at: new Date().toISOString(),

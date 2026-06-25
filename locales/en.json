@@ -123,7 +123,27 @@
     "purchaseVip": "Purchase VIP — $29.99",
     "processing": "Processing...",
     "shareTitle": "Share with friends",
-    "footerNote": "This campaign page is built from the Monorepo app/pages/(h5), using subdomain middleware for reverse path proxy to avoid cross-origin configuration."
+    "footerNote": "This campaign page is built from the Monorepo app/pages/(h5), using subdomain middleware for reverse path proxy to avoid cross-origin configuration.",
+    "copyTicket": "Copy",
+    "copySuccess": "Ticket code copied!",
+    "copyFailed": "Copy failed, please try manually",
+    "upgradeProduct": "Upgrade {name} (${price})",
+    "eventEnded": "Event Ended",
+    "eventEndedDesc": "Campaign subdomain {sub} has no active promotions.",
+    "backHome": "Back to Home",
+    "registerNow": "Register Now",
+    "secureRegistration": "Secure Registration",
+    "liveNow": "Live Now",
+    "formTitle": "Reserve Your Spot",
+    "formDesc": "Fill in your info for exclusive early access",
+    "phoneInvalid": "Please enter a valid 11-digit phone number",
+    "emailInvalid": "Please enter a valid email address",
+    "phoneRequired": "Phone number is required",
+    "emailRequired": "Email is required",
+    "phone": "Phone",
+    "email": "Email",
+    "reserveNow": "Register Now",
+    "registered": "Registered"
   },
   "userBar": {
     "signOut": "Sign Out",
@@ -175,7 +195,9 @@
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n} hours ago",
     "daysAgo": "{n} days ago",
-    "monthsAgo": "{n} months ago"
+    "monthsAgo": "{n} months ago",
+    "submitSuccess": "Review submitted successfully!",
+    "submitFailedToast": "Submission failed, please try again"
   },
   "share": {
     "wechat": "WeChat",
@@ -814,7 +836,26 @@
       "title": "Your Report is on Its Way",
       "desc": "We've sent your exclusive astrology reading to your email",
       "checkInbox": "Please check your inbox (including spam folder)",
-      "backToHome": "Back to Home"
+      "backToHome": "Back to Home",
+      "emailNotice": "Your report has been sent",
+      "footerNote": "For entertainment purposes only. Contact support for help."
+    },
+    "purchase": {
+      "title": "Your Cosmic Report is Ready",
+      "subtitle": "Unlock your personalized AI astrology reading with a one-time purchase",
+      "badge": "Limited Offer",
+      "todayOnly": "Today Only",
+      "oneTimeNotice": "One-time payment. No subscription, no hidden fees.",
+      "payWithApple": "Unlock Report — $9.99",
+      "error": "Purchase failed, please try again",
+      "sessionError": "Session expired. Please restart the questionnaire.",
+      "securePayment": "Secure payment",
+      "refundGuarantee": "30-day money-back guarantee",
+      "orderSummary": "Order Summary",
+      "product": "Product",
+      "productName": "AI Astrology Report",
+      "amountPaid": "Amount",
+      "paymentMethod": "Payment Method"
     }
   }
 }

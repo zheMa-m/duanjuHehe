@@ -31,6 +31,43 @@ function pick(opt: string) {
   emit('update:modelValue', opt)
   emit('picked', opt)
   store.setQuestion(props.index, opt)
+
+  // 异步提交答案到数据库（fire-and-forget，不阻塞跳转）
+  const sid = store.sessionId || `sp_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  if (!store.sessionId) store.setSessionId(sid)
+
+  $fetch('/api/starpath/questionnaire/answer', {
+    method: 'POST',
+    body: {
+      sessionId: sid,
+      step: props.index,
+      questionKey: `q${props.index}`,
+      answerValue: opt,
+      // 首次提交时附带基础信息（由前序页面存入 store）
+      ...(props.index === 1 ? {
+        gender: store.answers.gender,
+        birthDate: store.answers.birthDate,
+        birthTime: store.answers.birthTime,
+        birthCity: store.answers.birthCity,
+        fullName: store.answers.fullName,
+        // Intro 阶段数据（用户画像）
+        introAnswers: {
+          ...(store.answers.familiarity ? { familiarity: store.answers.familiarity } : {}),
+          ...(store.answers.focus?.length ? { focus: store.answers.focus } : {}),
+          ...(store.answers.goal ? { goal: store.answers.goal } : {}),
+          ...(store.answers.relationship ? { relationship: store.answers.relationship } : {}),
+        },
+      } : {}),
+    },
+  }).then((res: any) => {
+    // API 返回真实 DB session ID，覆盖本地临时 key
+    if (res?.data?.sessionId && res.data.sessionId !== sid) {
+      store.setSessionId(res.data.sessionId)
+    }
+  }).catch((e: any) => {
+    console.warn('[Starpath] Answer submit failed, continuing offline', e)
+  })
+
   setTimeout(() => {
     if (props.nextPath) router.push(encodeURI(props.nextPath))
     else flowNext()

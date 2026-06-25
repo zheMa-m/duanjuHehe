@@ -29,10 +29,6 @@ defineExpose({ showError })
 
 <template>
   <div class="login-root">
-    <!-- 背景装饰 -->
-    <div class="login-bg-orb login-bg-orb--a" />
-    <div class="login-bg-orb login-bg-orb--b" />
-    <div class="login-grid-overlay" />
 
     <!-- 卡片主体 -->
     <div class="login-card">
@@ -40,7 +36,6 @@ defineExpose({ showError })
       <!-- 顶部品牌区 -->
       <div class="login-brand">
         <div class="login-logo">
-          <div class="login-logo__glow" />
           <span class="login-logo__letter">H</span>
         </div>
         <h1 class="login-title">管理后台</h1>
@@ -140,58 +135,6 @@ defineExpose({ showError })
   overflow: hidden;
 }
 
-/* ─── 背景装饰光球 ─── */
-.login-bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(100px);
-  animation: login-orb-pulse 6s ease-in-out infinite;
-}
-.login-bg-orb--a {
-  width: 480px; height: 480px;
-  top: -10%; left: 10%;
-  background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
-  animation-delay: 0s;
-}
-.login-bg-orb--b {
-  width: 400px; height: 400px;
-  bottom: -5%; right: 5%;
-  background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
-  animation-delay: 3s;
-}
-@keyframes login-orb-pulse {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.08); }
-}
-
-/* Light 主题：调低光球亮度 */
-:global(.theme-light .login-bg-orb--a) {
-  background: radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%);
-}
-:global(.theme-light .login-bg-orb--b) {
-  background: radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 70%);
-}
-/* Classic Dark：隐藏光球 */
-:global(.theme-classic-dark .login-bg-orb) {
-  display: none;
-}
-
-/* ─── 网格覆盖 ─── */
-.login-grid-overlay {
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 50%, transparent 100%);
-  pointer-events: none;
-}
-:global(.theme-light .login-grid-overlay) {
-  background-image:
-    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
-}
 
 /* ─── 卡片 ─── */
 .login-card {
@@ -199,14 +142,14 @@ defineExpose({ showError })
   width: 100%;
   max-width: 400px;
   padding: 40px 36px;
-  border-radius: 20px;
+  border-radius: 12px;
   background: var(--admin-bg-elevated, rgba(255,255,255,0.04));
   border: 1px solid var(--admin-border-medium, rgba(255,255,255,0.10));
   box-shadow:
     0 0 0 1px var(--admin-border-subtle, rgba(255,255,255,0.06)),
     0 24px 64px rgba(0,0,0,0.28),
     0 8px 24px rgba(0,0,0,0.15);
-  backdrop-filter: blur(24px);
+
   animation: login-card-in 0.4s cubic-bezier(0.16,1,0.3,1) both;
 }
 @keyframes login-card-in {
@@ -237,19 +180,11 @@ defineExpose({ showError })
 .login-logo {
   position: relative;
   width: 52px; height: 52px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #818cf8, #6366f1);
+  border-radius: 10px;
+  background: var(--admin-brand, #818cf8);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 20px;
-  box-shadow: 0 4px 20px rgba(99,102,241,0.35);
-}
-.login-logo__glow {
-  position: absolute; inset: -4px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(129,140,248,0.2), rgba(99,102,241,0.15));
-  filter: blur(8px);
-  z-index: -1;
-  animation: login-orb-pulse 4s ease-in-out infinite;
+  
 }
 .login-logo__letter {
   font-size: 22px; font-weight: 700; color: #fff;
@@ -258,8 +193,8 @@ defineExpose({ showError })
 
 /* Classic Dark 调整品牌蓝 */
 :global(.theme-classic-dark .login-logo) {
-  background: linear-gradient(135deg, #60a5fa, #3b82f6);
-  box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+  background: var(--admin-brand, #60a5fa);
+  
 }
 
 .login-title {
@@ -285,7 +220,7 @@ defineExpose({ showError })
 .login-error {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 13px;
   color: #ff453a;
   background: rgba(255,69,58,0.08);
@@ -329,7 +264,7 @@ defineExpose({ showError })
 .login-input {
   width: 100%;
   padding: 12px 14px 12px 40px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 14px;
   color: var(--admin-text-primary, #fff);
   background: var(--admin-bg-input, rgba(255,255,255,0.04));
@@ -373,19 +308,19 @@ defineExpose({ showError })
 .login-submit {
   width: 100%;
   padding: 13px 20px;
-  border-radius: 11px;
+  border-radius: 8px;
   border: none; cursor: pointer;
-  background: linear-gradient(135deg, var(--admin-brand, #818cf8), var(--admin-brand-alt, #6366f1));
+  background: var(--admin-brand, #818cf8);
   color: #ffffff;
   font-size: 15px; font-weight: 600;
   letter-spacing: 0.01em;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--admin-brand, #818cf8) 30%, transparent);
+  
   transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
   margin-top: 4px;
 }
 .login-submit:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px color-mix(in srgb, var(--admin-brand, #818cf8) 40%, transparent);
+
+  
   filter: brightness(1.08);
 }
 .login-submit:active:not(:disabled) {

@@ -35,8 +35,11 @@ defineRouteMeta({
 })
 
 const productUpdateSchema = z.object({
-  name: z.string().min(1, 'Product name cannot be empty').optional(),
-  price: z.number().min(0, 'Price must be a non-negative number').optional()
+  name: z.string().min(1, 'Product name cannot be empty').max(200).optional(),
+  price: z.number().min(0, 'Price must be a non-negative number').optional(),
+  description: z.string().max(2000).optional(),
+  image_url: z.string().url().or(z.literal('')).optional(),
+  pricing: z.record(z.string(), z.any()).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -52,10 +55,12 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, productUpdateSchema.parse)
   const db = getDB(event)
 
-  // 白名单字段：仅允许修改 name 和 price，tenant_id 由服务端强制注入，防止越权
   const updatePayload: Record<string, any> = {}
   if (body.name !== undefined) updatePayload.name = body.name
   if (body.price !== undefined) updatePayload.price = body.price
+  if (body.description !== undefined) updatePayload.description = body.description
+  if (body.image_url !== undefined) updatePayload.image_url = body.image_url
+  if (body.pricing !== undefined) updatePayload.pricing = body.pricing
 
   const { data, error } = await db
     .from('products')

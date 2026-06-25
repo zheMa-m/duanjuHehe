@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AdminMedia from './AdminMedia.vue'
+
 const emit = defineEmits<{
   close: []
   saved: []
@@ -26,6 +28,30 @@ const handleAvatarClick = () => {
   avatarInput.value?.click()
 }
 
+// 媒体库选取器
+const showMediaPicker = ref(false)
+
+async function handleMediaSelected(file: { url: string | null; path: string }) {
+  showMediaPicker.value = false
+  isUploading.value = true
+  profileError.value = ''
+  try {
+    const avatarUrl = file.url || file.path
+    await $fetch('/api/v1/auth/profile', {
+      method: 'PATCH',
+      body: { avatar_url: avatarUrl }
+    })
+    currentAvatarUrl.value = avatarUrl
+    profileSuccess.value = '头像更新成功！'
+    emit('saved')
+    setTimeout(() => { profileSuccess.value = '' }, 2000)
+  } catch (e: any) {
+    profileError.value = '头像更新失败: ' + (e.data?.statusMessage || e.message)
+  } finally {
+    isUploading.value = false
+  }
+}
+
 const handleAvatarChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -47,7 +73,7 @@ const handleAvatarChange = async (event: Event) => {
   profileError.value = ''
 
   try {
-    const result = await uploadFile(file, 'avatars')
+    const result = await uploadFile(file, 'campaign-assets')
 
     // 更新 profile 的 avatar_url
     await $fetch('/api/v1/auth/profile', {
@@ -55,7 +81,7 @@ const handleAvatarChange = async (event: Event) => {
       body: { avatar_url: result.publicUrl || result.path }
     })
 
-    currentAvatarUrl.value = result.publicUrl || getPublicUrl('avatars', result.path)
+    currentAvatarUrl.value = result.publicUrl || getPublicUrl('campaign-assets', result.path)
     profileSuccess.value = '头像更新成功！'
     emit('saved')
 
@@ -186,6 +212,11 @@ const handleClose = () => {
             <div class="text-[10px] text-white/30 space-y-0.5 leading-relaxed font-light">
               <p class="text-white/50 font-medium">点击图片上传新头像</p>
               <p>支持 JPG/PNG，最大限额 2MB</p>
+              <button
+                type="button"
+                @click="showMediaPicker = true"
+                class="mt-1 text-indigo-400/70 hover:text-indigo-400 cursor-pointer flex items-center gap-1 transition-colors"
+              ><span class="i-lucide-image text-[10px]" /> 从媒体库选取</button>
             </div>
             <input
               ref="avatarInput"
@@ -252,6 +283,21 @@ const handleClose = () => {
         </div>
       </form>
     </div>
+
+    <!-- 媒体库选取器弹窗 -->
+    <Teleport to="body">
+      <div v-if="showMediaPicker" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm" @click.self="showMediaPicker = false">
+        <div class="bg-[#0a0a0c]/95 border border-white/[0.08] rounded-2xl w-[90vw] max-w-4xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+          <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06] flex-shrink-0">
+            <span class="text-xs font-semibold text-white/80 uppercase tracking-widest font-mono">从媒体库选取头像</span>
+            <button @click="showMediaPicker = false" class="text-white/50 hover:text-white transition-all cursor-pointer text-xs">✕ 关闭</button>
+          </div>
+          <div class="flex-1 overflow-y-auto p-5">
+            <AdminMedia :picker-mode="true" @selected="handleMediaSelected" @close="showMediaPicker = false" />
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
