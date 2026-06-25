@@ -25,7 +25,7 @@ import { useAdminMenu, tabDomains } from '~/composables/useAdminMenu'
 import { useAdminTheme } from '~/composables/useAdminTheme'
 import { resolveMainSiteHref, resolveApiDocHref } from '~/utils/subdomain'
 
-const { user, isAdmin, signInAsAdmin, signOut, refreshUser } = useAuth()
+const { user, isAdmin, authReady, signInAsAdmin, signOut, refreshUser } = useAuth()
 const { mode, sidebarCollapsed, switchMode, toggleSidebar, trackRecent } = useAdminNav()
 const { getItemByKey, getDomainForItem, getGroupLabel } = useAdminMenu()
 const { resolvedTheme, colorScheme } = useAdminTheme()
@@ -524,8 +524,13 @@ const handleDeleteUser = async (id: string) => {
 
     <AdminToast ref="toastRef" />
 
+    <!-- ── 认证状态加载中（防止闪烁）── -->
+    <div v-if="!authReady" class="flex items-center justify-center h-screen bg-[#0c0c14]">
+      <div class="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+    </div>
+
     <!-- ── 登录态 ── -->
-    <AdminLoginCard v-if="!isLoggedIn" ref="loginCardRef" @login="handleLogin" />
+    <AdminLoginCard v-else-if="!isLoggedIn" ref="loginCardRef" @login="handleLogin" />
 
     <!-- ── 登录后主界面 ── -->
     <template v-else>

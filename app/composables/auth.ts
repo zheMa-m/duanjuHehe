@@ -286,17 +286,21 @@ export function useAuth() {
   }
 
   // ── 初始化：从 cookie 恢复会话 ──────────────────────────
+  const authReady = useState<boolean>('auth_ready', () => false)
+
   async function initAuth() {
     deviceId.value = generateDeviceId()
     const token = getCookie(AUTH_COOKIE_NAME)
     if (token) {
       await refreshUser()
     }
+    authReady.value = true
   }
 
   return {
     user: readonly(user),
     session: readonly(session),
+    authReady: readonly(authReady),
     isLoggedIn,
     isAnonymous,
     isAdmin,
