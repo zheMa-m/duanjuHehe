@@ -45,8 +45,6 @@ const BYPASS_EXACT = [
 const SECURITY_HEADERS: Record<string, string> = {
   // 仅允许 HTTPS 访问（含子域名，HSTS 预加载候选）
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-  // 仅允许同域 iframe 嵌入（管理后台预览需要），阻止跨域点击劫持
-  'X-Frame-Options': 'SAMEORIGIN',
   // 禁止浏览器 MIME 类型嗅探
   'X-Content-Type-Options': 'nosniff',
   // 跨域不泄露完整 URL（仅同源发送 referrer）
@@ -55,11 +53,30 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 }
 
+/**
+ * 动态生成 iframe 嵌入策略（CSP frame-ancestors）
+ * - 生产自定义域名：允许 *.rootdomain 嵌入（管理后台预览跨子域名）
+ * - localhost / vercel.app：仅允许同源
+ */
+function resolveFrameAncestors(host: string): string {
+  if (!host || host === 'localhost' || host.endsWith('.vercel.app')) {
+    return "frame-ancestors 'self'"
+  }
+  // 提取根域名，允许所有子域名嵌入
+  const parts = host.split('.')
+  const root = parts.length > 2 ? parts.slice(-2).join('.') : host
+  return `frame-ancestors 'self' https://*.${root}`
+}
+
 export default defineEventHandler(async (event) => {
   // ── 全局安全响应头（最先注入，覆盖所有页面 + API） ──
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     setHeader(event, key, value)
   }
+
+  // ── 动态 iframe 嵌入策略（CSP frame-ancestors，支持跨子域名预览） ──
+  const host = (getHeader(event, 'host') || '').split(':')[0] || ''
+  setHeader(event, 'Content-Security-Policy', resolveFrameAncestors(host))
 
   const path = event.path
 
