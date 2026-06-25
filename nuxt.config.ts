@@ -72,7 +72,8 @@ export default defineNuxtConfig({
   
   routeRules: {
     // 管理后台强制设为 SPA 纯客户端渲染，完全隔离 SSR 安全隐患
-    // /admin/** 路径由 01.subdomain-rewrite 中间件将 admin. 子域名重写而来
+    // /admin 路径由 01.subdomain 中间件将 admin. 子域名重写而来
+    '/admin': { ssr: false },
     '/admin/**': { ssr: false },
     // 营销 H5：浏览器不缓存 HTML，CDN 走 ISR（子域名剥离路径由 00.build-cache 中间件覆盖）
     '/h5/**': {
