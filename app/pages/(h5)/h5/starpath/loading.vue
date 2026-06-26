@@ -35,11 +35,15 @@ onMounted(async () => {
   if (store.sessionId) {
     for (let attempt = 0; attempt < 3 && !completeOk; attempt++) {
       try {
-        await $fetch('/api/starpath/questionnaire/complete', {
+        const res = await $fetch<any>('/api/starpath/questionnaire/complete', {
           method: 'POST',
           body: { sessionId: store.sessionId },
         })
         completeOk = true
+        // 将 API 返回的真实 DB session ID 回写 store（修复 sp_... 临时 key 场景）
+        if (res?.data?.sessionId && res.data.sessionId !== store.sessionId) {
+          store.setSessionId(res.data.sessionId)
+        }
       } catch (e: any) {
         console.warn(`[Starpath] Complete attempt ${attempt + 1} failed`, e?.message || e)
         if (!completeOk && attempt < 2) await new Promise(r => setTimeout(r, 1500))

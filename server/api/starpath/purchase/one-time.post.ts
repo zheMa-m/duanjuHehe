@@ -1,6 +1,5 @@
 // @api-auth: public
 import { z } from 'zod'
-import { getDB } from '~~/server/utils/db'
 import { sendSuccess, throwError } from '~~/server/utils/response'
 import { starpathService } from '~~/server/services/starpath-service'
 
@@ -54,16 +53,11 @@ defineRouteMeta({
  */
 export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, purchaseSchema.parse)
-  const db = getDB(event)
 
-  // 1. 验证 session 存在且已完成
-  const { data: session, error: sessionError } = await db
-    .from('questionnaire_sessions')
-    .select('id, campaign_id, status')
-    .eq('id', body.sessionId)
-    .single()
+  // 1. 验证 session 存在且已完成（兼容 UUID 和临时 session_key）
+  const session = await starpathService.resolveSession(event, body.sessionId)
 
-  if (sessionError || !session) {
+  if (!session) {
     throwError(404, 'Session not found')
   }
 
@@ -83,9 +77,9 @@ export default defineEventHandler(async (event) => {
   }
   const paymentMethod = paymentProviderMap[body.paymentMethod] || body.paymentMethod
 
-  // 4. 创建一次性购买订单
+  // 4. 创建一次性购买订单（使用真实 DB session.id）
   const result = await starpathService.createOneTimeOrder(event, {
-    sessionId: body.sessionId,
+    sessionId: session.id,
     campaignId,
     platform: body.platform,
     paymentMethod,

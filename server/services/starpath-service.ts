@@ -72,9 +72,45 @@ const ONE_TIME_PRICES: Record<string, { original: number; discount: number }> = 
   'one-time-report': { original: 19.99, discount: 9.99 },
 }
 
+// ── Helpers ──
+
+/** UUID v4 格式检测 */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // ── Service 函数 ──
 
 export const starpathService = {
+
+  /**
+   * 通用 session 解析：支持 UUID (id) 和临时 session_key 两种标识
+   * 前端 fire-and-forget 模式下 store 可能存储 sp_... 临时 key 或 DB UUID
+   */
+  async resolveSession(event: H3Event, sessionId: string): Promise<{ id: string; campaign_id: string; status: string; current_step?: number } | null> {
+    const db = getDB(event)
+
+    // 1. 如果是合法 UUID，先按 id 查找
+    if (UUID_RE.test(sessionId)) {
+      const { data } = await db
+        .from('questionnaire_sessions')
+        .select('id, campaign_id, status, current_step')
+        .eq('id', sessionId)
+        .single()
+      if (data) return data
+    }
+
+    // 2. 按 session_key 查找（支持 sp_... 临时 key 或 UUID 作为 key 的场景）
+    const { data } = await db
+      .from('questionnaire_sessions')
+      .select('id, campaign_id, status, current_step')
+      .eq('session_key', sessionId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (data && Array.isArray(data) && data.length > 0) return data[0]
+    if (data && !Array.isArray(data)) return data
+
+    return null
+  },
   // ══════════════════════════════════════════════════════════════
   //  Questionnaire
   // ══════════════════════════════════════════════════════════════

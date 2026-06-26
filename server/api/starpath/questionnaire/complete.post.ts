@@ -49,30 +49,26 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, completeSchema.parse)
   const db = getDB(event)
 
-  // 1. 验证 session 存在
-  const { data: session, error: sessionError } = await db
-    .from('questionnaire_sessions')
-    .select('id, campaign_id, status, current_step')
-    .eq('id', body.sessionId)
-    .single()
+  // 1. 验证 session 存在（兼容 UUID 和临时 session_key）
+  const session = await starpathService.resolveSession(event, body.sessionId)
 
-  if (sessionError || !session) {
+  if (!session) {
     throwError(404, 'Session not found')
   }
 
-  // 2. 标记 session 为 completed
-  await starpathService.completeSession(event, body.sessionId)
+  // 2. 标记 session 为 completed（使用真实 DB id）
+  await starpathService.completeSession(event, session.id)
 
   // 3. 检查是否已有报告（避免重复生成）
   const { data: existingReports } = await db
     .from('ai_reports')
     .select('id, status')
-    .eq('session_id', body.sessionId)
+    .eq('session_id', session.id)
     .limit(1)
 
   if (existingReports && existingReports.length > 0) {
     return sendSuccess(event, {
-      sessionId: body.sessionId,
+      sessionId: session.id,
       reportId: existingReports[0].id,
       status: existingReports[0].status,
     }, 'Session completed. Report already exists.')
@@ -80,17 +76,17 @@ export default defineEventHandler(async (event) => {
 
   // 4. 创建报告记录（pending 状态，后台异步生成）
   const campaignId = body.campaignId || session.campaign_id
-  const report = await starpathService.requestReportGeneration(event, body.sessionId, campaignId)
+  const report = await starpathService.requestReportGeneration(event, session.id, campaignId)
 
   await logAuditEvent(
     event,
     null,
-    `STARPATH_QUESTIONNAIRE_COMPLETED:${body.sessionId}:report=${report.id}`,
+    `STARPATH_QUESTIONNAIRE_COMPLETED:${session.id}:report=${report.id}`,
     'SUCCESS'
   )
 
   return sendSuccess(event, {
-    sessionId: body.sessionId,
+    sessionId: session.id,
     reportId: report.id,
     status: report.status,
   }, 'Questionnaire completed. Report generation started.')

@@ -78,7 +78,11 @@ async function createPurchaseOrder(paymentMethod: string): Promise<{ orderId: st
 
   try {
     // 防御性补偿：确保 session 已完成（幂等操作，已 completed 的 session 重复调用无副作用）
-    await ensureSessionCompleted()
+    const completed = await ensureSessionCompleted()
+    if (!completed) {
+      errorMsg.value = t('starpath.purchase.sessionError')
+      return null
+    }
 
     const res = await $fetch<any>('/api/starpath/purchase/one-time', {
       method: 'POST',
