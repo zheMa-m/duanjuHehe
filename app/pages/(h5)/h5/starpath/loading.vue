@@ -50,8 +50,8 @@ onMounted(async () => {
   // 动画 + 完成 API 都结束后再跳转
   await stepTimer
   setTimeout(() => {
-    if (!completeOk && !store.sessionId) {
-      // 无 session → 回问卷首页
+    if (!store.sessionId || !completeOk) {
+      // 无 session 或 complete API 失败 → 回问卷首页
       router.push('/h5/starpath/welcome')
     } else {
       router.push('/h5/starpath/purchase')

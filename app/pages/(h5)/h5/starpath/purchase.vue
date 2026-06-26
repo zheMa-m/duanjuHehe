@@ -53,6 +53,21 @@ onMounted(() => {
 })
 
 /**
+ * 确保 session 为 completed 状态（防御性补偿：应对 loading 页 complete 失败或用户直接访问）
+ */
+async function ensureSessionCompleted(): Promise<boolean> {
+  try {
+    await $fetch('/api/starpath/questionnaire/complete', {
+      method: 'POST',
+      body: { sessionId: store.sessionId },
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * 创建一次性购买订单
  */
 async function createPurchaseOrder(paymentMethod: string): Promise<{ orderId: string; amount: number; currency: string; reportId: string } | null> {
@@ -62,6 +77,9 @@ async function createPurchaseOrder(paymentMethod: string): Promise<{ orderId: st
   }
 
   try {
+    // 防御性补偿：确保 session 已完成（幂等操作，已 completed 的 session 重复调用无副作用）
+    await ensureSessionCompleted()
+
     const res = await $fetch<any>('/api/starpath/purchase/one-time', {
       method: 'POST',
       body: {
