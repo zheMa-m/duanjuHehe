@@ -140,6 +140,76 @@ export const mockSystemConfigsTable: Array<Record<string, any>> = [
 
 
 
+// 内存 Mock 咖啡店表（对应 coffee_shops）— 使用合规 UUID v4
+export const mockCoffeeShopsTable: Array<Record<string, any>> = [
+  {
+    id: '11111111-1111-4111-8111-111111111111',
+    name: 'HEHE Coffee Downtown',
+    address: '123 Main Street, Downtown',
+    city: 'Shanghai',
+    phone: '021-5555-0101',
+    opening_hours: { 'Mon-Fri': '7:00-22:00', 'Sat-Sun': '8:00-23:00' },
+    latitude: 31.2304,
+    longitude: 121.4737,
+    image_url: '',
+    is_active: true,
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '22222222-2222-4222-8222-222222222222',
+    name: 'HEHE Coffee West Hub',
+    address: '456 West Avenue, Tech Park',
+    city: 'Beijing',
+    phone: '010-6666-0202',
+    opening_hours: { 'Mon-Sun': '8:00-21:00' },
+    latitude: 39.9042,
+    longitude: 116.4074,
+    image_url: '',
+    is_active: true,
+    created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '33333333-3333-4333-8333-333333333333',
+    name: 'HEHE Coffee Hidden Garden',
+    address: '789 Old Town Lane',
+    city: 'Shanghai',
+    phone: '021-7777-0303',
+    opening_hours: { 'Tue-Sun': '9:00-20:00' },
+    latitude: 31.2150,
+    longitude: 121.4500,
+    image_url: '',
+    is_active: false,
+    created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+  },
+]
+
+// 内存 Mock 咖啡菜单表（对应 coffee_menu_items）— 使用合规 UUID v4
+const SHOP1 = '11111111-1111-4111-8111-111111111111'
+const SHOP2 = '22222222-2222-4222-8222-222222222222'
+export const mockCoffeeMenuItemsTable: Array<Record<string, any>> = [
+  // ── SHOP 1: Downtown ──
+  { id: 'a1010001-0001-4000-8000-000000000001', shop_id: SHOP1, name: 'Americano', description: 'Classic black coffee made with double espresso shots and hot water', price: 22.00, image_url: '', category: 'classic', is_available: true, sort_order: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000002', shop_id: SHOP1, name: 'Latte', description: 'Espresso with steamed milk and a light layer of foam', price: 28.00, image_url: '', category: 'classic', is_available: true, sort_order: 2, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000003', shop_id: SHOP1, name: 'Cappuccino', description: 'Equal parts espresso, steamed milk, and milk foam', price: 28.00, image_url: '', category: 'classic', is_available: true, sort_order: 3, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000004', shop_id: SHOP1, name: 'Mocha', description: 'Espresso with chocolate syrup and steamed milk, topped with whipped cream', price: 32.00, image_url: '', category: 'classic', is_available: true, sort_order: 4, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000005', shop_id: SHOP1, name: 'Dirty Coffee', description: 'Cold milk topped with a double shot of hot espresso', price: 26.00, image_url: '', category: 'specialty', is_available: true, sort_order: 5, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000006', shop_id: SHOP1, name: 'Cold Brew', description: 'Cold-brewed for 18 hours, smooth and bold', price: 25.00, image_url: '', category: 'specialty', is_available: true, sort_order: 6, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000007', shop_id: SHOP1, name: 'Matcha Latte', description: 'Ceremonial grade matcha whisked with steamed milk', price: 30.00, image_url: '', category: 'tea', is_available: true, sort_order: 7, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000008', shop_id: SHOP1, name: 'Earl Grey Tea', description: 'Premium loose-leaf Earl Grey with bergamot', price: 20.00, image_url: '', category: 'tea', is_available: true, sort_order: 8, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000009', shop_id: SHOP1, name: 'Croissant', description: 'Buttery, flaky French croissant baked fresh daily', price: 15.00, image_url: '', category: 'pastry', is_available: true, sort_order: 9, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000010', shop_id: SHOP1, name: 'Blueberry Muffin', description: 'Moist muffin loaded with fresh blueberries', price: 12.00, image_url: '', category: 'pastry', is_available: true, sort_order: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a1010001-0001-4000-8000-000000000011', shop_id: SHOP1, name: 'Seasonal: Sakura Latte', description: 'Limited spring edition with cherry blossom syrup', price: 35.00, image_url: '', category: 'seasonal', is_available: true, sort_order: 11, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  // ── SHOP 2: West Hub ──
+  { id: 'a2020002-0002-4000-8000-000000000001', shop_id: SHOP2, name: 'Americano', description: 'Classic black coffee made with double espresso shots', price: 20.00, image_url: '', category: 'classic', is_available: true, sort_order: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a2020002-0002-4000-8000-000000000002', shop_id: SHOP2, name: 'Latte', description: 'Espresso with steamed milk and foam', price: 26.00, image_url: '', category: 'classic', is_available: true, sort_order: 2, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a2020002-0002-4000-8000-000000000003', shop_id: SHOP2, name: 'Flat White', description: 'Double espresso with velvety microfoam milk', price: 30.00, image_url: '', category: 'specialty', is_available: true, sort_order: 3, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a2020002-0002-4000-8000-000000000004', shop_id: SHOP2, name: 'Lemon Tea', description: 'Freshly brewed black tea with lemon', price: 18.00, image_url: '', category: 'tea', is_available: true, sort_order: 4, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a2020002-0002-4000-8000-000000000005', shop_id: SHOP2, name: 'Bagel with Cream Cheese', description: 'Toasted bagel served with cream cheese', price: 14.00, image_url: '', category: 'pastry', is_available: true, sort_order: 5, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+]
+
 // 内存 Mock 用户反馈/评价表
 export const mockFeedbacksTable: Array<Record<string, any>> = [
   { id: 'fb-1', user_id: 'mock-user-123', campaign_subdomain: 'h5-v1', type: 'review', rating: 5, comment: '产品体验非常流畅，注册流程简洁高效！', display_name: 'Alice', is_approved: true, admin_reply: null, created_at: new Date(Date.now() - 86400000 * 3).toISOString() },
@@ -196,6 +266,8 @@ function getLocalMockDB() {
     if (tableName === 'subscriptions') return mockSubscriptionsTable
     if (tableName === 'system_configs') return mockSystemConfigsTable
     if (tableName === 'admin_2fa') return mockAdmin2FATable
+    if (tableName === 'coffee_shops') return mockCoffeeShopsTable
+    if (tableName === 'coffee_menu_items') return mockCoffeeMenuItemsTable
     return mockTasksTable
   }
 
@@ -238,6 +310,19 @@ function getLocalMockDB() {
           return opt?.ascending ? valA - valB : valB - valA
         })
         return makeChain(tableName, sorted)
+      },
+      ilike: (col: string, pattern: string) => {
+        // Convert SQL LIKE pattern to regex: % → .*, _ → .
+        const regexStr = pattern
+          .replace(/[.+^${}()|[\]\\]/g, '\\$&') // escape regex chars
+          .replace(/%/g, '.*')
+          .replace(/_/g, '.')
+        const regex = new RegExp('^' + regexStr + '$', 'i')
+        const filtered = dataset.filter((item: any) => {
+          if (item[col] === undefined || item[col] === null) return false
+          return regex.test(String(item[col]))
+        })
+        return makeChain(tableName, filtered)
       },
       range: (from: number, to: number) => {
         const sliced = dataset.slice(from, to + 1)
@@ -501,20 +586,29 @@ function getLocalMockDB() {
           return { data: [newProduct], error: null }
         }
         if (tableName === 'orders') {
-          const newOrder = {
+          const newOrder: Record<string, any> = {
             id: data.id || Math.random().toString(36).substring(2, 9),
             order_no: data.order_no || `ORD-${Date.now().toString(36).toUpperCase()}`,
-            product_id: data.product_id || null,
-            product_name: data.product_name || '',
-            amount: data.amount || 0,
-            currency: data.currency || 'USD',
-            status: data.status || 'pending',
             user_id: data.user_id || null,
-            payment_provider: data.payment_provider || 'stripe',
-            payment_intent_id: data.payment_intent_id || null,
+            status: data.status || 'pending',
+            currency: data.currency || 'USD',
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           }
+          // Merge all provided fields (handles both legacy product fields and coffee-order fields)
+          const knownKeys = new Set(['id', 'order_no', 'user_id', 'status', 'currency', 'created_at', 'updated_at'])
+          for (const key of Object.keys(data)) {
+            if (!knownKeys.has(key) && data[key] !== undefined) {
+              newOrder[key] = data[key]
+            }
+          }
+          // Backward-compat: if legacy fields provided, merge them
+          if (data.product_id !== undefined) newOrder.product_id = data.product_id
+          if (data.product_name !== undefined) newOrder.product_name = data.product_name
+          // amount fallback: prefer total_amount (coffee) over amount (legacy)
+          newOrder.amount = data.total_amount ?? data.amount ?? 0
+          if (data.payment_provider !== undefined) newOrder.payment_provider = data.payment_provider
+          if (data.payment_intent_id !== undefined) newOrder.payment_intent_id = data.payment_intent_id
           mockOrdersTable.unshift(newOrder)
           return { data: [newOrder], error: null }
         }
@@ -597,12 +691,19 @@ function getLocalMockDB() {
         return { data: [data], error: null }
         }
 
-        // 支持链式 .insert().select()：返回带 .select() 方法的对象
+        // 支持链式 .insert().select()：返回带 .select() 和 .single() 方法的对象
         const result = doInsert()
-        return {
-          select: () => Promise.resolve(result),
+        const selectChain = {
+          select: () => selectChain,
+          single: async () => {
+            const r = result
+            return r.data && r.data.length > 0
+              ? { data: r.data[0], error: null }
+              : { data: null, error: { message: 'Not Found' } }
+          },
           then: (resolve: any) => resolve(result),
         }
+        return selectChain
       },
       // ── 更新 ──────────────────────────────────────────────
       update: (data: any) => {

@@ -1,5 +1,6 @@
 
 // @api-auth: user
+import { getQuery } from 'h3'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 import { assertUser } from '~~/server/utils/auth'

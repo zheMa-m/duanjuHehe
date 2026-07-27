@@ -1,25 +1,25 @@
 -- ============================================================================
--- 0001 核心基础：用户档案 + 任务 + 审计日志 + Storage + 回收站
+-- 0001 核心基础：用户档�?+ 任务 + 审计日志 + Storage + 回收�?
 --
--- 本文件是项目必需的"地基"迁移，所有后续模块均依赖此文件。
+-- 本文件是项目必需�?地基"迁移，所有后续模块均依赖此文件�?
 --
 -- 表清单：
---   1. profiles          — 用户档案（auth.users FK，触发器自动创建）
---   2. tasks             — 业务任务（tenant_id 租户隔离 CRUD 示例）
---   3. activity_logs     — 统一审计日志（append-only）
---   4. storage.buckets   — 对象存储桶（avatars / campaign-assets / uploads）
---   5. storage_trash     — 回收站记录（30 天自动过期）
+--   1. profiles          �?用户档案（auth.users FK，触发器自动创建�?
+--   2. tasks             �?业务任务（tenant_id 租户隔离 CRUD 示例�?
+--   3. activity_logs     �?统一审计日志（append-only�?
+--   4. storage.buckets   �?对象存储桶（avatars / campaign-assets / uploads�?
+--   5. storage_trash     �?回收站记录（30 天自动过期）
 --
--- 通用函数：
---   set_updated_at()    — updated_at 自动刷新触发器
---   is_admin()          — SECURITY DEFINER 管理员身份检查
---   handle_new_user()   — auth.users 注册自动创建 profile
+-- 通用函数�?
+--   set_updated_at()    �?updated_at 自动刷新触发�?
+--   is_admin()          �?SECURITY DEFINER 管理员身份检�?
+--   handle_new_user()   �?auth.users 注册自动创建 profile
 -- ============================================================================
 
 BEGIN;
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  Helper Functions                                                        ║
+-- �? Helper Functions                                                        �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 -- 通用 updated_at 自动刷新
@@ -33,7 +33,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  1. profiles — 用户档案表                                                ║
+-- �? 1. profiles �?用户档案�?                                               �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 CREATE TABLE IF NOT EXISTS profiles (
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles FORCE ROW LEVEL SECURITY;
 
--- 管理员身份检查（SECURITY DEFINER 绕过 RLS 递归）
+-- 管理员身份检查（SECURITY DEFINER 绕过 RLS 递归�?
 CREATE OR REPLACE FUNCTION is_admin(uid uuid)
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (
@@ -69,7 +69,7 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
--- username 非空唯一（部分索引允许多 NULL）
+-- username 非空唯一（部分索引允许多 NULL�?
 CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_unique
   ON profiles(username) WHERE username IS NOT NULL;
 
@@ -88,14 +88,14 @@ CREATE POLICY profiles_admin_all ON profiles
 CREATE INDEX IF NOT EXISTS idx_profiles_device_id ON profiles(device_id) WHERE device_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_profiles_provider  ON profiles(auth_provider);
 
--- updated_at 触发器
+-- updated_at 触发�?
 CREATE TRIGGER profiles_set_updated_at
   BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  2. tasks — 业务任务表（CRUD 示例）                                       ║
+-- �? 2. tasks �?业务任务表（CRUD 示例�?                                      �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 CREATE TABLE IF NOT EXISTS tasks (
@@ -128,7 +128,7 @@ CREATE TRIGGER tasks_set_updated_at
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  3. activity_logs — 统一审计日志（append-only）                           ║
+-- �? 3. activity_logs �?统一审计日志（append-only�?                          �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 CREATE TABLE IF NOT EXISTS activity_logs (
@@ -144,12 +144,12 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs FORCE ROW LEVEL SECURITY;
 
--- RLS: 用户查看自己的认证日志
+-- RLS: 用户查看自己的认证日�?
 CREATE POLICY activity_logs_user_select_own ON activity_logs
   FOR SELECT TO authenticated
   USING ((SELECT auth.uid()) = user_id AND category = 'auth');
 
--- RLS: 管理员查看/写入所有日志
+-- RLS: 管理员查�?写入所有日�?
 CREATE POLICY activity_logs_admin_select ON activity_logs
   FOR SELECT TO authenticated
   USING (is_admin((SELECT auth.uid())));
@@ -177,7 +177,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_logs_security   ON activity_logs(created
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  Auth Trigger: 新用户注册自动创建 profile                                 ║
+-- �? Auth Trigger: 新用户注册自动创�?profile                                 �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -212,10 +212,10 @@ CREATE TRIGGER on_auth_user_created
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  4. Supabase Storage Buckets + RLS                                       ║
+-- �? 4. Supabase Storage Buckets + RLS                                       �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
--- 4a. avatars — 用户头像（公开读）
+-- 4a. avatars �?用户头像（公开读）
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'avatars', 'avatars', true,
@@ -242,7 +242,7 @@ CREATE POLICY avatars_public_select ON storage.objects
   FOR SELECT TO public
   USING (bucket_id = 'avatars');
 
--- 4b. campaign-assets — 营销素材（公开读，管理员写）
+-- 4b. campaign-assets �?营销素材（公开读，管理员写�?
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'campaign-assets', 'campaign-assets', true,
@@ -261,7 +261,7 @@ CREATE POLICY campaign_assets_public_select ON storage.objects
   FOR SELECT TO public
   USING (bucket_id = 'campaign-assets');
 
--- 4c. uploads — 私有文件（用户路径隔离）
+-- 4c. uploads �?私有文件（用户路径隔离）
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'uploads', 'uploads', false,
@@ -284,7 +284,7 @@ CREATE POLICY uploads_admin_all ON storage.objects
   FOR ALL TO authenticated
   USING (bucket_id = 'uploads' AND is_admin((SELECT auth.uid())));
 
--- 4d. audit-archives — 审计日志冷归档（私有桶，仅管理员）
+-- 4d. audit-archives �?审计日志冷归档（私有桶，仅管理员�?
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'audit-archives', 'audit-archives', false,
@@ -318,7 +318,7 @@ CREATE POLICY uploads_restrict_anon ON storage.objects
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  5. storage_trash — 回收站记录（30 天自动过期）                           ║
+-- �? 5. storage_trash �?回收站记录（30 天自动过期）                           �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
 CREATE TABLE IF NOT EXISTS storage_trash (
@@ -348,10 +348,26 @@ CREATE INDEX IF NOT EXISTS idx_storage_trash_created ON storage_trash(created_at
 
 
 -- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  Seed: 内置管理员 profiles 记录                                           ║
--- ║  固定 UUID: 9e638ba2-41aa-4434-a68b-6bd9f7ed0963                        ║
+-- �? Seed: 内置管理�?profiles 记录                                           �?
+-- �? 固定 UUID: 9e638ba2-41aa-4434-a68b-6bd9f7ed0963                        �?
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
+-- First create the auth user so the FK constraint on profiles is satisfied
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, confirmation_sent_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role)
+SELECT
+  '9e638ba2-41aa-4434-a68b-6bd9f7ed0963',
+  '00000000-0000-0000-0000-000000000000',
+  'admin@hehe.app',
+  crypt('HeHeAdmin2024', gen_salt('bf')),
+  now(),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(),
+  now(),
+  'authenticated',
+  'authenticated'
+WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '9e638ba2-41aa-4434-a68b-6bd9f7ed0963');
 INSERT INTO public.profiles (id, username, display_name, role, plan_status, auth_provider, is_anonymous, email_verified)
 VALUES (
   '9e638ba2-41aa-4434-a68b-6bd9f7ed0963'::uuid,
