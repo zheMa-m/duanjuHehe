@@ -15,11 +15,11 @@ const emit = defineEmits<{
 }>()
 
 const categories = [
-  { key: 'classic', label: 'Classic Coffee' },
-  { key: 'specialty', label: 'Specialty' },
-  { key: 'tea', label: 'Tea' },
-  { key: 'pastry', label: 'Pastry' },
-  { key: 'seasonal', label: 'Seasonal' },
+  { key: 'classic', label: '经典咖啡' },
+  { key: 'specialty', label: '特色饮品' },
+  { key: 'tea', label: '茶饮' },
+  { key: 'pastry', label: '烘焙糕点' },
+  { key: 'seasonal', label: '季节限定' },
 ] as const
 
 const activeCategory = ref<string>('classic')
@@ -57,15 +57,15 @@ function confirmAdd() {
 }
 
 const sugarOptions: { value: SugarLevel; label: string }[] = [
-  { value: 'full', label: 'Full' },
-  { value: 'half', label: 'Half' },
-  { value: 'none', label: 'None' },
+  { value: 'full', label: '全糖' },
+  { value: 'half', label: '半糖' },
+  { value: 'none', label: '无糖' },
 ]
 
 const iceOptions: { value: IceLevel; label: string }[] = [
-  { value: 'normal', label: 'Normal' },
-  { value: 'less', label: 'Less' },
-  { value: 'none', label: 'None' },
+  { value: 'normal', label: '正常冰' },
+  { value: 'less', label: '少冰' },
+  { value: 'none', label: '去冰' },
 ]
 
 const sizeOptions: { value: SizeOption; label: string }[] = [
@@ -86,7 +86,7 @@ function priceLabel(price: number): string {
       <button class="header-back" @click="emit('back')">
         <span class="i-lucide-arrow-left" />
       </button>
-      <h2 class="header-title">Menu</h2>
+      <h2 class="header-title">菜单</h2>
       <button class="header-cart" @click="emit('goToCart')">
         <span class="i-lucide-shopping-cart" />
       </button>
@@ -145,7 +145,7 @@ function priceLabel(price: number): string {
           <p class="sheet-desc">{{ selectedItem.description }}</p>
 
           <div class="sheet-section">
-            <label class="section-label">Size</label>
+            <label class="section-label">规格</label>
             <div class="option-row">
               <button
                 v-for="opt in sizeOptions"
@@ -158,7 +158,7 @@ function priceLabel(price: number): string {
           </div>
 
           <div class="sheet-section">
-            <label class="section-label">Sugar</label>
+            <label class="section-label">甜度</label>
             <div class="option-row">
               <button
                 v-for="opt in sugarOptions"
@@ -171,7 +171,7 @@ function priceLabel(price: number): string {
           </div>
 
           <div class="sheet-section">
-            <label class="section-label">Ice</label>
+            <label class="section-label">冰量</label>
             <div class="option-row">
               <button
                 v-for="opt in iceOptions"
@@ -184,7 +184,7 @@ function priceLabel(price: number): string {
           </div>
 
           <button class="confirm-btn" @click="confirmAdd">
-            Add to Cart
+            加入购物车
           </button>
         </div>
       </div>

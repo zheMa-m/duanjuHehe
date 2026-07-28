@@ -83,15 +83,8 @@ export default defineNuxtConfig({
         Pragma: 'no-cache',
       },
     },
-    // ── 客户端页面：ISR 3600s + CDN swr ──
-    '/': {
-      isr: 3600,
-      headers: {
-        'Cache-Control': BROWSER_HTML_CACHE,
-        'CDN-Cache-Control': CDN_HTML_CACHE_SITE,
-        Pragma: 'no-cache',
-      },
-    },
+    // ── 根路径重定向到咖啡系统 ──
+    '/': { redirect: '/h5/coffee' },
     '/architecture': {
       isr: 3600,
       headers: {

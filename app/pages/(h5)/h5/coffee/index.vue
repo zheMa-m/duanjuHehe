@@ -10,17 +10,17 @@ import CoffeeOrderSuccess from '~/components/h5/coffee/CoffeeOrderSuccess.vue'
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover' },
-    { name: 'theme-color', content: '#0A0A0F' },
-    { name: 'color-scheme', content: 'dark' },
+    { name: 'theme-color', content: '#FFF8F3' },
+    { name: 'color-scheme', content: 'light' },
   ],
   bodyAttrs: {
-    style: 'background: #0A0A0F; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;',
+    style: 'background: #FFF8F3; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;',
   },
 })
 
 useAppSEO({
-  title: () => 'HEHE Coffee - Order Online',
-  description: () => 'Order your favorite coffee for pickup or dine-in',
+  title: () => 'HEHE 咖啡 - 在线点单',
+  description: () => '选择你喜欢的咖啡，到店自取或堂食',
 })
 
 const {
@@ -175,7 +175,7 @@ onMounted(async () => {
           <div v-if="isPlacingOrder" class="placing-overlay">
             <div class="placing-card">
               <div class="placing-spinner" />
-              <p class="placing-text">Placing your order...</p>
+              <p class="placing-text">正在提交订单...</p>
             </div>
           </div>
         </Transition>
@@ -195,29 +195,39 @@ onMounted(async () => {
 <style scoped>
 /* ==========================================================================
    HEHE Coffee - Mobile Ordering
-   Design: Warm dark tones, coffee-shop atmosphere
+   Design: Warm light tones, coffee-shop atmosphere
    Accent: #B47846 (warm brown amber)
-   Base: #0A0A0F
+   Base: #FFF8F3
    ========================================================================== */
 
 :root {
-  --coffee-base: #0A0A0F;
+  --coffee-base: #FFF8F3;
   --coffee-accent: #B47846;
   --coffee-accent-hover: #C48956;
-  --coffee-accent-glow: rgba(180, 120, 70, 0.25);
-  --coffee-surface-hover: rgba(180, 120, 70, 0.06);
+  --coffee-accent-glow: rgba(180, 120, 70, 0.15);
+  --coffee-surface-hover: rgba(180, 120, 70, 0.08);
 }
 
 .coffee-page {
   min-height: 100vh; min-height: 100dvh;
   background: var(--coffee-base);
-  color: #F1F5F9;
+  color: #3D2C1E;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif;
   -webkit-font-smoothing: antialiased;
+
+  /* Light theme overrides for h5 design tokens */
+  --h5-base: #FFF8F3;
+  --h5-surface: rgba(139, 115, 85, 0.06);
+  --h5-surface-hover: rgba(139, 115, 85, 0.10);
+  --h5-border: rgba(139, 115, 85, 0.12);
+  --h5-border-strong: rgba(139, 115, 85, 0.22);
+  --h5-text-1: #3D2C1E;
+  --h5-text-2: #8B7355;
+  --h5-text-3: #A89B8C;
 }
 
 ::selection {
@@ -255,10 +265,10 @@ onMounted(async () => {
   width: 40vw;
   max-width: 260px;
   aspect-ratio: 1;
-  background: radial-gradient(circle, rgba(100, 116, 139, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(180, 120, 70, 0.06), transparent 70%);
   bottom: 5%;
   left: -15%;
-  opacity: 0.4;
+  opacity: 0.6;
   animation: glow-drift 18s ease-in-out infinite alternate-reverse;
 }
 
@@ -271,10 +281,10 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: rgba(10, 10, 15, 0.85);
+  background: rgba(255, 248, 243, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(139, 115, 85, 0.12);
 }
 
 .bar-left {
@@ -290,9 +300,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--h5-border);
   border-radius: 10px;
-  color: #94A3B8;
+  color: var(--h5-text-3);
   cursor: pointer;
   font-size: 0.9375rem;
   transition: all 0.2s;
@@ -306,7 +316,7 @@ onMounted(async () => {
 .bar-brand {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #F1F5F9;
+  color: var(--h5-text-1);
   letter-spacing: -0.02em;
 }
 
@@ -393,7 +403,7 @@ onMounted(async () => {
 
 .placing-text {
   font-size: 0.8125rem;
-  color: #94A3B8;
+  color: var(--h5-text-2);
 }
 
 /* Animations */

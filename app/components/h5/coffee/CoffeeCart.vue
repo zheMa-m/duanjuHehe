@@ -24,12 +24,12 @@ function sizeLabel(s: string): string {
 }
 
 function sugarLabel(s: string): string {
-  const map: Record<string, string> = { full: 'Full', half: 'Half', none: 'None' }
+  const map: Record<string, string> = { full: '全糖', half: '半糖', none: '无糖' }
   return map[s] || s
 }
 
 function iceLabel(s: string): string {
-  const map: Record<string, string> = { normal: 'Normal', less: 'Less', none: 'None' }
+  const map: Record<string, string> = { normal: '正常冰', less: '少冰', none: '去冰' }
   return map[s] || s
 }
 
@@ -43,14 +43,14 @@ const subtotal = computed(() => props.items.reduce((sum, i) => sum + i.price * i
       <button class="header-back" @click="emit('back')">
         <span class="i-lucide-arrow-left" />
       </button>
-      <h2 class="header-title">Your Order</h2>
+      <h2 class="header-title">我的订单</h2>
       <div class="header-spacer" />
     </div>
 
     <div v-if="items.length === 0" class="cart-empty">
       <span class="empty-icon">&#9749;</span>
-      <p>Your cart is empty</p>
-      <button class="back-menu-btn" @click="emit('back')">Back to Menu</button>
+      <p>购物车是空的</p>
+      <button class="back-menu-btn" @click="emit('back')">返回菜单</button>
     </div>
 
     <template v-else>
@@ -64,8 +64,8 @@ const subtotal = computed(() => props.items.reduce((sum, i) => sum + i.price * i
             </div>
             <div class="item-options">
               <span class="option-tag">{{ sizeLabel(item.size) }}</span>
-              <span class="option-tag">{{ sugarLabel(item.sugar) }} sugar</span>
-              <span class="option-tag">{{ iceLabel(item.ice) }} ice</span>
+              <span class="option-tag">{{ sugarLabel(item.sugar) }}</span>
+              <span class="option-tag">{{ iceLabel(item.ice) }}</span>
             </div>
             <span class="item-price">{{ priceLabel(item.price * item.quantity) }}</span>
           </div>
@@ -77,7 +77,7 @@ const subtotal = computed(() => props.items.reduce((sum, i) => sum + i.price * i
 
       <!-- Order type -->
       <div class="order-type-section">
-        <label class="section-label">Order Type</label>
+        <label class="section-label">取餐方式</label>
         <div class="type-row">
           <button
             class="type-btn"
@@ -85,7 +85,7 @@ const subtotal = computed(() => props.items.reduce((sum, i) => sum + i.price * i
             @click="emit('setOrderType', 'takeout')"
           >
             <span class="type-icon">&#128717;</span>
-            Takeout
+            外带
           </button>
           <button
             class="type-btn"
@@ -93,7 +93,7 @@ const subtotal = computed(() => props.items.reduce((sum, i) => sum + i.price * i
             @click="emit('setOrderType', 'dine_in')"
           >
             <span class="type-icon">&#127860;</span>
-            Dine In
+            堂食
           </button>
         </div>
       </div>
@@ -101,13 +101,13 @@ const subtotal = computed(() => props.items.reduce((sum, i) => sum + i.price * i
       <!-- Summary -->
       <div class="cart-summary">
         <div class="summary-row">
-          <span>Subtotal</span>
+          <span>小计</span>
           <span class="summary-total">{{ priceLabel(subtotal) }}</span>
         </div>
       </div>
 
       <button class="place-btn" @click="emit('place')">
-        Place Order &mdash; {{ priceLabel(subtotal) }}
+        提交订单 &mdash; {{ priceLabel(subtotal) }}
       </button>
     </template>
   </div>

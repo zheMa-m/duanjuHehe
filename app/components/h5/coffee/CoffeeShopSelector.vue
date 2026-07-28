@@ -19,18 +19,18 @@ function formatHours(hours: Record<string, string>): string {
 <template>
   <div class="shop-selector">
     <div class="selector-header">
-      <h2 class="selector-title">{{ shops.length }} Shops Near You</h2>
-      <p class="selector-sub">Select a coffee shop to start ordering</p>
+      <h2 class="selector-title">附近 {{ shops.length }} 家门店</h2>
+      <p class="selector-sub">选择门店开始点单</p>
     </div>
 
     <div v-if="loading" class="loading-state">
       <div class="spinner" />
-      <span>Finding shops...</span>
+      <span>正在查找门店...</span>
     </div>
 
     <div v-else-if="shops.length === 0" class="empty-state">
       <div class="empty-icon">&#9749;</div>
-      <p class="empty-text">No coffee shops available right now</p>
+      <p class="empty-text">暂无可用门店</p>
     </div>
 
     <div v-else class="shop-list">

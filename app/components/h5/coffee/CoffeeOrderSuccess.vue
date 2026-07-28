@@ -14,12 +14,12 @@ function priceLabel(price: number): string {
 }
 
 function sugarLabel(s: string): string {
-  const map: Record<string, string> = { full: 'Full', half: 'Half', none: 'None' }
+  const map: Record<string, string> = { full: '全糖', half: '半糖', none: '无糖' }
   return map[s] || s
 }
 
 function iceLabel(s: string): string {
-  const map: Record<string, string> = { normal: 'Normal', less: 'Less', none: 'None' }
+  const map: Record<string, string> = { normal: '正常冰', less: '少冰', none: '去冰' }
   return map[s] || s
 }
 
@@ -28,7 +28,7 @@ function sizeLabel(s: string): string {
   return map[s] || s
 }
 
-const orderTypeLabel = computed(() => props.order.order_type === 'dine_in' ? 'Dine In' : 'Takeout')
+const orderTypeLabel = computed(() => props.order.order_type === 'dine_in' ? '堂食' : '外带')
 
 function copyPickupCode() {
   navigator.clipboard.writeText(props.order.pickup_code)
@@ -41,31 +41,31 @@ function copyPickupCode() {
       <div class="success-icon-wrap">
         <span class="success-icon">&#9749;</span>
       </div>
-      <h2 class="success-title">Order Placed!</h2>
-      <p class="success-sub">Show this code when picking up</p>
+      <h2 class="success-title">下单成功！</h2>
+      <p class="success-sub">取餐时出示此码</p>
 
       <div class="pickup-card">
         <div class="pickup-code">{{ order.pickup_code }}</div>
         <button class="copy-btn" @click="copyPickupCode">
-          <span class="i-lucide-copy" /> Copy
+          <span class="i-lucide-copy" /> 复制
         </button>
       </div>
 
       <div class="order-details">
         <div class="detail-row">
-          <span class="detail-label">Order Type</span>
+          <span class="detail-label">取餐方式</span>
           <span class="detail-value">{{ orderTypeLabel }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Status</span>
+          <span class="detail-label">状态</span>
           <span class="detail-value detail-status">{{ order.status }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Items</span>
+          <span class="detail-label">商品数量</span>
           <span class="detail-value">{{ order.items.length }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Total</span>
+          <span class="detail-label">合计</span>
           <span class="detail-value detail-total">{{ priceLabel(order.total_amount) }}</span>
         </div>
       </div>
@@ -78,7 +78,7 @@ function copyPickupCode() {
       </div>
 
       <button class="new-order-btn" @click="emit('reset')">
-        Place New Order
+        再来一单
       </button>
     </div>
   </div>

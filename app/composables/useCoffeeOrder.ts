@@ -125,7 +125,7 @@ export function useCoffeeOrder() {
 
   async function placeOrder() {
     if (cartItems.value.length === 0 || !selectedShop.value) {
-      throw new Error('Cart is empty or no shop selected')
+      throw new Error('购物车为空或未选择门店')
     }
 
     isPlacingOrder.value = true
