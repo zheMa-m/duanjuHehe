@@ -4,7 +4,9 @@ import LanguageSwitcher from '~/components/shared/LanguageSwitcher.vue'
 import { resolveAdminHref, resolveApiDocHref } from '~/utils/subdomain'
 
 const { t } = useI18n()
-const { initAuth } = useAuth()
+const { user, isLoggedIn, signOut, initAuth } = useAuth()
+const coinBalance = ref(0)
+const userMenuOpen = ref(false)
 
 useAppSEO({
   title: () => `ReelShort — ${t('reelshort.tagline')}`,
@@ -60,11 +62,20 @@ async function fetchData() {
 
 onMounted(async () => {
   await initAuth()
+  if (isLoggedIn.value) {
+    try {
+      const coinRes = await $fetch<any>('/api/v1/coins/balance')
+      coinBalance.value = coinRes.data?.balance || 0
+    } catch (_) {}
+  }
   fetchData()
   carouselTimer = setInterval(nextSlide, 5000)
 })
 function pauseCarousel() { if (carouselTimer) { clearInterval(carouselTimer); carouselTimer = null } }
 function resumeCarousel() { if (!carouselTimer) carouselTimer = setInterval(nextSlide, 5000) }
+async function handleSignOut() { await signOut(); coinBalance.value = 0; userMenuOpen.value = false; navigateTo('/') }
+function toggleUserMenu() { userMenuOpen.value = !userMenuOpen.value }
+function closeUserMenu() { userMenuOpen.value = false }
 onUnmounted(() => { if (carouselTimer) clearInterval(carouselTimer) })
 </script>
 
@@ -124,6 +135,28 @@ onUnmounted(() => { if (carouselTimer) clearInterval(carouselTimer) })
               </a>
             </div>
           </div>
+
+          <!-- User / Login -->
+          <template v-if="isLoggedIn">
+            <div class="nav-drop" @mouseenter="userMenuOpen = true" @mouseleave="closeUserMenu">
+              <button class="nav-link nav-trigger" @click="toggleUserMenu">
+                🪙 {{ coinBalance.toLocaleString() }}
+                <span class="nav-arrow" :class="{ open: userMenuOpen }">▾</span>
+              </button>
+              <div v-if="userMenuOpen" class="dropdown dropdown-sm">
+                <NuxtLink to="/coins" class="dropdown-item" @click="closeUserMenu">
+                  <span class="drop-icon">🪙</span>
+                  <span class="drop-text">{{ $t('reelshort.myCoins') }}</span>
+                </NuxtLink>
+                <div class="dropdown-divider" />
+                <button class="dropdown-item w-full" @click="handleSignOut">
+                  <span class="drop-icon">🚪</span>
+                  <span class="drop-text">{{ $t('reelshort.signOut') }}</span>
+                </button>
+              </div>
+            </div>
+          </template>
+          <NuxtLink v-else to="/login" class="nav-link nav-login">{{ $t('reelshort.login') }}</NuxtLink>
 
           <a :href="adminHref" target="_blank" class="nav-link nav-admin">{{ $t('reelshort.admin') }}</a>
           <NuxtLink to="/app" class="nav-link app-toggle" title="切换到 App 版">
@@ -308,6 +341,8 @@ onUnmounted(() => { if (carouselTimer) clearInterval(carouselTimer) })
 .nav-trigger { padding-right: 10px; }
 .nav-arrow { font-size: 0.55rem; transition: transform 0.15s; opacity: 0.4; margin-left: 1px; }
 .nav-arrow.open { transform: rotate(180deg); opacity: 1; }
+.nav-login { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); font-weight: 600; }
+.nav-login:hover { background: rgba(245,158,11,0.18); color: #fbbf24; }
 .nav-admin { background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.18); }
 .nav-admin:hover { background: rgba(99,102,241,0.2); color: #c7d2fe; }
 .app-toggle { font-size: 1rem; padding: 6px 10px; width: 36px; justify-content: center; }
@@ -328,8 +363,10 @@ onUnmounted(() => { if (carouselTimer) clearInterval(carouselTimer) })
 .nav-drop::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 8px; }
 .dropdown { position: absolute; top: calc(100% + 8px); left: 0; min-width: 240px; background: #0f0f1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); padding: 6px; z-index: 200; }
 .dropdown-wide { min-width: 220px; }
-.dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 0.8rem; color: #94a3b8; text-decoration: none; transition: all 0.1s; }
+.dropdown-sm { min-width: 180px; right: 0; left: auto; }
+.dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 0.8rem; color: #94a3b8; text-decoration: none; transition: all 0.1s; background: none; border: none; cursor: pointer; font-family: inherit; width: 100%; text-align: left; }
 .dropdown-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+.w-full { width: 100%; }
 .drop-icon { font-size: 0.9rem; flex-shrink: 0; }
 .drop-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drop-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; background: rgba(99,102,241,0.2); color: #a5b4fc; font-weight: 700; }

@@ -56,8 +56,11 @@ async function unlockEpisode() {
   unlocking.value = true
   try {
     const res = await $fetch<any>(`/api/v1/episodes/${episode.value.id}/unlock`, { method: 'POST' })
-    isUnlocked.value = true
     coinBalance.value = res.data?.balance_after || coinBalance.value
+    // 解锁后重新拉取剧集数据，获取 video_url
+    const epRes = await $fetch<any>(`/api/v1/episodes/${episode.value.id}`)
+    episode.value = epRes.data
+    isUnlocked.value = epRes.data?.is_unlocked || epRes.data?.is_free
   } catch (e: any) { alert(e.statusMessage || 'Failed to unlock') }
   finally { unlocking.value = false }
 }
@@ -88,6 +91,7 @@ onMounted(fetchData)
               {{ unlocking ? '...' : $t('reelshort.unlockBtn', { cost: episode.coin_cost }) }}
             </button>
             <p v-if="coinBalance < (episode.coin_cost || 0)" class="insufficient">{{ $t('reelshort.insufficient') }}</p>
+              <NuxtLink v-if="coinBalance < (episode.coin_cost || 0)" to="/coins" class="buy-coins-link">{{ $t('reelshort.purchaseCoin') }} →</NuxtLink>
           </div>
           <img :src="episode.thumbnail_url" class="locked-bg" alt="" />
         </div>
@@ -139,6 +143,8 @@ onMounted(fetchData)
 .unlock-btn { padding: 12px 32px; border-radius: 10px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; cursor: pointer; margin-top: 16px; box-shadow: 0 4px 20px rgba(245,158,11,0.3); }
 .unlock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .insufficient { color: #dc2626 !important; font-size: 12px !important; margin-top: 8px; }
+.buy-coins-link { display: inline-block; margin-top: 12px; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff; background: linear-gradient(135deg, #f59e0b, #d97706); text-decoration: none; transition: all 0.2s; }
+.buy-coins-link:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(245,158,11,0.35); }
 
 .episode-info { max-width: 500px; margin: 0 auto; padding: 20px 24px; }
 .ep-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }

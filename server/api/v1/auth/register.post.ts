@@ -66,6 +66,31 @@ export default defineEventHandler(async (event: H3Event) => {
     throw createError({ statusCode: 400, statusMessage: error.message || 'Registration failed' })
   }
 
+  // 跳过邮箱验证：自动确认用户邮箱，确保注册后可立即登录
+  if (data.user?.id) {
+    try {
+      await db.auth.admin.updateUserById(data.user.id, { email_confirm: true })
+    } catch (_) {
+      // 如果 admin API 不可用（如 MOCK_DB 模式），忽略
+    }
+  }
+
+  // 若 session 为空（开启了邮箱验证的项目），确认后重新登录获取 session
+  let session = data.session
+  if (!session && data.user?.id) {
+    try {
+      const signInRes = await db.auth.signInWithPassword({
+        email: body.email,
+        password: body.password,
+      })
+      if (signInRes.data?.session) {
+        session = signInRes.data.session
+      }
+    } catch (_) {
+      // sign in failed, return without session
+    }
+  }
+
   // 记录注册日志
   await db.from('activity_logs').insert({
     category: 'auth',
@@ -77,10 +102,10 @@ export default defineEventHandler(async (event: H3Event) => {
 
   return sendSuccess(event, {
     user: { id: data.user?.id, email: body.email },
-    session: data.session ? {
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-      expires_at: data.session.expires_at,
+    session: session ? {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at: session.expires_at,
     } : null,
   }, 'Registration successful')
 })
