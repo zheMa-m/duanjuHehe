@@ -4,9 +4,7 @@
 definePageMeta({ ssr: false })
 
 import AdminLoginCard from '~/components/admin/AdminLoginCard.vue'
-import AdminCampaigns from '~/components/admin/AdminCampaigns.vue'
 import AdminOrders from '~/components/admin/AdminOrders.vue'
-import AdminSubscriptions from '~/components/admin/AdminSubscriptions.vue'
 import AdminRevenue from '~/components/admin/AdminRevenue.vue'
 import AdminPayments from '~/components/admin/AdminPayments.vue'
 import AdminToast from '~/components/admin/AdminToast.vue'
@@ -18,9 +16,11 @@ import AdminProfileModal from '~/components/admin/AdminProfileModal.vue'
 import AdminUsers from '~/components/admin/AdminUsers.vue'
 import AdminMedia from '~/components/admin/AdminMedia.vue'
 import AdminApiSecurity from '~/components/admin/AdminApiSecurity.vue'
-import AdminProducts from '~/components/admin/AdminProducts.vue'
-import AdminFeedback from '~/components/admin/AdminFeedback.vue'
-import AdminStarpath from '~/components/admin/AdminStarpath.vue'
+import AdminSeries from '~/components/admin/AdminSeries.vue'
+import AdminEpisodes from '~/components/admin/AdminEpisodes.vue'
+import AdminGenres from '~/components/admin/AdminGenres.vue'
+import AdminCoinPackages from '~/components/admin/AdminCoinPackages.vue'
+import AdminTransactions from '~/components/admin/AdminTransactions.vue'
 import AdminAudit from '~/components/admin/AdminAudit.vue'
 import AdminSidebarGrouped from '~/components/admin/AdminSidebarGrouped.vue'
 import AdminSidebarTabbed from '~/components/admin/AdminSidebarTabbed.vue'
@@ -699,15 +699,14 @@ const handleDeleteUser = async (id: string) => {
           <Transition name="tab-content" mode="out-in">
             <div v-if="!tabSwitching" :key="activeTab">
           <AdminOverview v-if="activeTab === 'dashboard'" :logs="logRes?.data?.items ?? null" :is-loading="!!refreshing.dashboard" @refresh="handleRefresh" />
-          <AdminProducts v-else-if="activeTab === 'products'" :is-loading="!!refreshing.products" @refresh="handleRefresh" @toast="toast" />
-          <!-- 注意：tasks 已迁移至右上角全局面板，不再在主内容区渲染 -->
-          <AdminOrders v-else-if="activeTab === 'orders'" :orders="ordersRes?.data?.items ?? null" :orders-total="ordersRes?.data?.pagination?.total ?? 0" :orders-page="ordersPage" :orders-page-size="ordersPageSize" :is-loading="!!refreshing.orders" @refresh="handleRefresh" @update-status="handleOrderStatusUpdate" @change-page="handleChangeOrdersPage" @toast="toast" />
-          <AdminSubscriptions v-else-if="activeTab === 'subscriptions'" :subscriptions="subsRes?.data?.items ?? null" :subscriptions-total="subsRes?.data?.pagination?.total ?? 0" :subscriptions-page="subsPage" :subscriptions-page-size="subsPageSize" :is-loading="!!refreshing.subscriptions" @refresh="handleRefresh" @change-page="handleChangeSubsPage" @toast="toast" />
+          <AdminCoinPackages v-else-if="activeTab === 'coin-packages'" :is-loading="!!refreshing['coin-packages']" @refresh="handleRefresh" @toast="toast" />
+          <AdminTransactions v-else-if="activeTab === 'transactions'" :is-loading="!!refreshing.transactions" @refresh="handleRefresh" @toast="toast" />
           <AdminRevenue v-else-if="activeTab === 'revenue'" :revenue="revenueRes?.data ?? null" :is-loading="!!refreshing.revenue" @refresh="handleRefresh" @change-days="(d: number) => { revenueDays = d }" />
           <AdminPayments v-else-if="activeTab === 'payments'" />
-          <AdminCampaigns v-else-if="activeTab === 'campaigns'" ref="campaignsRef" :campaigns="campaignsRes?.data?.items ?? null" :campaigns-total="campaignsRes?.data?.pagination?.total ?? 0" :campaigns-page="campaignsPage" :campaigns-page-size="campaignsPageSize" :leads="leadsRes?.data?.items ?? null" :leads-total="leadsRes?.data?.total ?? 0" :leads-page="leadsPage" :leads-page-size="leadsPageSize" :is-loading="!!refreshing.campaigns" @refresh="handleRefresh" @save="saveCampaignConfig" @toggle-status="handleToggleCampaignStatus" @batch-toggle-status="handleBatchToggleCampaignStatus" @reorder="handleReorderCampaigns" @create="createCampaign" @delete-campaign="deleteCampaign" @delete-lead="deleteCampaignLead" @export-leads="exportLeads" @change-leads-page="handleChangeLeadsPage" @filter-leads="handleFilterLeads" @change-campaigns-page="handleChangeCampaignsPage" @toast="toast" />
-          <AdminFeedback v-else-if="activeTab === 'feedback'" :is-loading="!!refreshing.feedback" @refresh="handleRefresh" />
-          <AdminStarpath v-else-if="activeTab === 'starpath'" />
+          <AdminSeries v-else-if="activeTab === 'series'" :is-loading="!!refreshing.series" @refresh="handleRefresh" @toast="toast" />
+          <AdminEpisodes v-else-if="activeTab === 'episodes'" :is-loading="!!refreshing.episodes" @refresh="handleRefresh" @toast="toast" />
+          <AdminGenres v-else-if="activeTab === 'genres'" :is-loading="!!refreshing.genres" @refresh="handleRefresh" @toast="toast" />
+          <AdminOrders v-else-if="activeTab === 'orders'" :orders="ordersRes?.data?.items ?? null" :orders-total="ordersRes?.data?.pagination?.total ?? 0" :orders-page="ordersPage" :orders-page-size="ordersPageSize" :is-loading="!!refreshing.orders" @refresh="handleRefresh" @update-status="handleOrderStatusUpdate" @change-page="handleChangeOrdersPage" @toast="toast" />
           <AdminUsers v-else-if="activeTab === 'users'" :users="usersRes?.data?.items ?? null" :users-total="usersRes?.data?.pagination?.total ?? 0" :users-page="usersPage" :users-page-size="usersPageSize" :stats="userStatsRes?.data ?? null" :is-loading="!!refreshing.users" @refresh="handleRefresh" @update-user="handleUpdateUser" @delete-user="handleDeleteUser" @change-page="handleChangeUsersPage" @filter-role="handleFilterUsersRole" @filter-plan="handleFilterUsersPlan" @search="handleSearchUsers" />
           <AdminMedia v-else-if="activeTab === 'media'" ref="mediaRef" :is-loading="!!refreshing.media" />
           <AdminApiSecurity v-else-if="activeTab === 'security'" @toast="toast" />

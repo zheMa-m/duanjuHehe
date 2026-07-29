@@ -83,8 +83,38 @@ export default defineNuxtConfig({
         Pragma: 'no-cache',
       },
     },
-    // ── 根路径重定向到咖啡系统 ──
-    '/': { redirect: '/h5/coffee' },
+    // ── 官网首页 ISR ──
+    '/': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_SITE,
+        Pragma: 'no-cache',
+      },
+    },
+    '/browse': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_SITE,
+        Pragma: 'no-cache',
+      },
+    },
+    '/series/**': {
+      isr: 3600,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        'CDN-Cache-Control': CDN_HTML_CACHE_SITE,
+        Pragma: 'no-cache',
+      },
+    },
+    '/watch/**': {
+      ssr: false,
+      headers: {
+        'Cache-Control': BROWSER_HTML_CACHE,
+        Pragma: 'no-cache',
+      },
+    },
     '/architecture': {
       isr: 3600,
       headers: {
@@ -178,8 +208,8 @@ export default defineNuxtConfig({
   // ── SEO 基础设施 ──
   site: {
     url: _resolveBaseUrl(),
-    name: 'HeHe App',
-    description: 'HeHe 全栈应用平台 — 智能问券、营销活动、支付一站式解决方案',
+    name: 'ReelShort — Every Second Is Drama',
+    description: 'Bite-sized vertical drama series. Watch free episodes, unlock more with coins. Romance, Billionaire, Werewolf, Revenge & more.',
     defaultLocale: 'zh',
   },
 
@@ -211,8 +241,8 @@ export default defineNuxtConfig({
     injectRegister: false,
     scope: '/admin/',
     manifest: {
-      name: 'HEHE Admin',
-      short_name: 'HEHE',
+      name: 'ReelShort Admin',
+      short_name: 'ReelShort',
       description: 'HEHE 管理后台',
       theme_color: '#0a0e1a',
       background_color: '#0a0e1a',

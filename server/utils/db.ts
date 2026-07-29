@@ -44,37 +44,25 @@ export const mockCampaignsTable: Array<Record<string, any>> = [
     tiktok_pixel_id: null,
   },
   {
-    id: 'c-h5-v1',
-    subdomain: 'h5-v1',
-    title: '✨ HEHE 营销 H5 v1 毛玻璃拟态',
-    subtitle: '柔和毛玻璃质感与渐变光晕，适合品牌种草与轻转化场景。',
-    badge: 'V1 示例',
-    color_from: 'from-rose-600',
-    color_to: 'to-orange-600',
-    ga_measurement_id: null,
-    meta_pixel_id: null,
-    tiktok_pixel_id: null,
-  },
-  {
-    id: 'c-h5-v2',
-    subdomain: 'h5-v2',
-    title: '🎨 HEHE 营销 H5 v2 新野兽派',
-    subtitle: '采用大胆的新野兽派视觉版式，引入 3D 浮动卡片、扫光粒子与极客跑马灯。',
-    badge: '全新 V2 体验',
-    color_from: 'from-green-400',
-    color_to: 'to-emerald-600',
-    ga_measurement_id: null,
-    meta_pixel_id: null,
-    tiktok_pixel_id: null,
-  },
-  {
-    id: 'c-starpath',
-    subdomain: 'starpath',
-    title: 'StarPath — AI 占星报告',
-    subtitle: '个性化 AI 占星分析：认识你的星辰蓝图',
-    badge: 'AI 星盘解读',
+    id: 'c-billionaire',
+    subdomain: 'billionaire-double-life',
+    title: 'The Double Life of My Billionaire Husband',
+    subtitle: 'She married a poor mechanic. But his secret changes everything... Watch now!',
+    badge: '🔥 Trending #1',
     color_from: 'from-purple-600',
     color_to: 'to-indigo-600',
+    ga_measurement_id: null,
+    meta_pixel_id: null,
+    tiktok_pixel_id: null,
+  },
+  {
+    id: 'c-alpha',
+    subdomain: 'forbidden-alpha',
+    title: 'Fated to My Forbidden Alpha',
+    subtitle: 'A forbidden love between a human and the most powerful Alpha.',
+    badge: '⭐ Top Rated',
+    color_from: 'from-blue-600',
+    color_to: 'to-cyan-600',
     ga_measurement_id: null,
     meta_pixel_id: null,
     tiktok_pixel_id: null,
@@ -140,74 +128,145 @@ export const mockSystemConfigsTable: Array<Record<string, any>> = [
 
 
 
-// 内存 Mock 咖啡店表（对应 coffee_shops）— 使用合规 UUID v4
-export const mockCoffeeShopsTable: Array<Record<string, any>> = [
+// ────────────────────────────────────────────────────────────────
+// 视频平台 Mock 数据
+// ────────────────────────────────────────────────────────────────
+
+// 内存 Mock 剧集分类表
+export const mockGenresTable: Array<Record<string, any>> = [
+  { id: 'g-001', name: 'Romance', slug: 'romance', icon: 'i-lucide-heart', sort_order: 1, created_at: new Date().toISOString() },
+  { id: 'g-002', name: 'Drama', slug: 'drama', icon: 'i-lucide-film', sort_order: 2, created_at: new Date().toISOString() },
+  { id: 'g-003', name: 'Fantasy', slug: 'fantasy', icon: 'i-lucide-sparkles', sort_order: 3, created_at: new Date().toISOString() },
+  { id: 'g-004', name: 'Thriller', slug: 'thriller', icon: 'i-lucide-zap', sort_order: 4, created_at: new Date().toISOString() },
+  { id: 'g-005', name: 'Comedy', slug: 'comedy', icon: 'i-lucide-smile', sort_order: 5, created_at: new Date().toISOString() },
+  { id: 'g-006', name: 'Billionaire', slug: 'billionaire', icon: 'i-lucide-crown', sort_order: 6, created_at: new Date().toISOString() },
+  { id: 'g-007', name: 'Revenge', slug: 'revenge', icon: 'i-lucide-swords', sort_order: 7, created_at: new Date().toISOString() },
+  { id: 'g-008', name: 'CEO', slug: 'ceo', icon: 'i-lucide-briefcase', sort_order: 8, created_at: new Date().toISOString() },
+  { id: 'g-009', name: 'Werewolf', slug: 'werewolf', icon: 'i-lucide-moon', sort_order: 9, created_at: new Date().toISOString() },
+  { id: 'g-010', name: 'Mafia', slug: 'mafia', icon: 'i-lucide-shield', sort_order: 10, created_at: new Date().toISOString() },
+]
+
+// 内存 Mock 剧集系列表
+export const mockSeriesTable: Array<Record<string, any>> = [
   {
-    id: '11111111-1111-4111-8111-111111111111',
-    name: 'HEHE Coffee Downtown',
-    address: '123 Main Street, Downtown',
-    city: 'Shanghai',
-    phone: '021-5555-0101',
-    opening_hours: { 'Mon-Fri': '7:00-22:00', 'Sat-Sun': '8:00-23:00' },
-    latitude: 31.2304,
-    longitude: 121.4737,
-    image_url: '',
-    is_active: true,
-    created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
-    updated_at: new Date().toISOString(),
+    id: 's-001', title: 'The Double Life of My Billionaire Husband', slug: 'billionaire-double-life',
+    description: 'She thought she married a poor mechanic. But when his secret is revealed, everything changes...',
+    cover_image: 'https://picsum.photos/seed/series1/400/600', poster_image: 'https://picsum.photos/seed/series1b/800/400',
+    trailer_url: '', genre_id: 'g-006', tags: ['billionaire', 'hidden identity', 'romance', 'revenge'],
+    status: 'published', total_episodes: 60, free_episodes: 5, rating: 4.7, view_count: 12500000, favorite_count: 890000, is_featured: true,
+    sort_order: 1, created_at: new Date(Date.now() - 86400000 * 60).toISOString(), updated_at: new Date().toISOString(),
   },
   {
-    id: '22222222-2222-4222-8222-222222222222',
-    name: 'HEHE Coffee West Hub',
-    address: '456 West Avenue, Tech Park',
-    city: 'Beijing',
-    phone: '010-6666-0202',
-    opening_hours: { 'Mon-Sun': '8:00-21:00' },
-    latitude: 39.9042,
-    longitude: 116.4074,
-    image_url: '',
-    is_active: true,
-    created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
-    updated_at: new Date().toISOString(),
+    id: 's-002', title: 'Fated to My Forbidden Alpha', slug: 'forbidden-alpha',
+    description: 'A human girl discovers she is mated to the most powerful Alpha. But their love is forbidden by ancient law.',
+    cover_image: 'https://picsum.photos/seed/series2/400/600', poster_image: 'https://picsum.photos/seed/series2b/800/400',
+    trailer_url: '', genre_id: 'g-009', tags: ['werewolf', 'alpha', 'forbidden love', 'fated mates'],
+    status: 'published', total_episodes: 75, free_episodes: 5, rating: 4.8, view_count: 18700000, favorite_count: 1200000, is_featured: true,
+    sort_order: 2, created_at: new Date(Date.now() - 86400000 * 45).toISOString(), updated_at: new Date().toISOString(),
   },
   {
-    id: '33333333-3333-4333-8333-333333333333',
-    name: 'HEHE Coffee Hidden Garden',
-    address: '789 Old Town Lane',
-    city: 'Shanghai',
-    phone: '021-7777-0303',
-    opening_hours: { 'Tue-Sun': '9:00-20:00' },
-    latitude: 31.2150,
-    longitude: 121.4500,
-    image_url: '',
-    is_active: false,
-    created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
-    updated_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+    id: 's-003', title: 'Never Divorce a Secret Billionaire Heiress', slug: 'secret-heiress',
+    description: 'Everyone thinks she is a gold digger. Until her true identity as the heiress of a trillion-dollar empire is exposed.',
+    cover_image: 'https://picsum.photos/seed/series3/400/600', poster_image: 'https://picsum.photos/seed/series3b/800/400',
+    trailer_url: '', genre_id: 'g-006', tags: ['billionaire', 'heiress', 'revenge', 'CEO'],
+    status: 'published', total_episodes: 55, free_episodes: 5, rating: 4.6, view_count: 9800000, favorite_count: 650000, is_featured: false,
+    sort_order: 3, created_at: new Date(Date.now() - 86400000 * 30).toISOString(), updated_at: new Date().toISOString(),
+  },
+  {
+    id: 's-004', title: 'The Mafia Boss Bride', slug: 'mafia-boss-bride',
+    description: 'To save her family, she agrees to marry the most feared mafia boss. But he is not what she expected.',
+    cover_image: 'https://picsum.photos/seed/series4/400/600', poster_image: 'https://picsum.photos/seed/series4b/800/400',
+    trailer_url: '', genre_id: 'g-010', tags: ['mafia', 'marriage', 'dark romance', 'thriller'],
+    status: 'published', total_episodes: 50, free_episodes: 5, rating: 4.5, view_count: 7200000, favorite_count: 480000, is_featured: false,
+    sort_order: 4, created_at: new Date(Date.now() - 86400000 * 20).toISOString(), updated_at: new Date().toISOString(),
+  },
+  {
+    id: 's-005', title: 'CEO Above, Me Below', slug: 'ceo-above-me-below',
+    description: 'A clumsy intern accidentally spills coffee on the cold CEO. Instead of firing her, he promotes her to his personal assistant.',
+    cover_image: 'https://picsum.photos/seed/series5/400/600', poster_image: 'https://picsum.photos/seed/series5b/800/400',
+    trailer_url: '', genre_id: 'g-008', tags: ['CEO', 'office romance', 'comedy', 'drama'],
+    status: 'published', total_episodes: 45, free_episodes: 5, rating: 4.4, view_count: 5600000, favorite_count: 320000, is_featured: true,
+    sort_order: 5, created_at: new Date(Date.now() - 86400000 * 10).toISOString(), updated_at: new Date().toISOString(),
   },
 ]
 
-// 内存 Mock 咖啡菜单表（对应 coffee_menu_items）— 使用合规 UUID v4
-const SHOP1 = '11111111-1111-4111-8111-111111111111'
-const SHOP2 = '22222222-2222-4222-8222-222222222222'
-export const mockCoffeeMenuItemsTable: Array<Record<string, any>> = [
-  // ── SHOP 1: Downtown ──
-  { id: 'a1010001-0001-4000-8000-000000000001', shop_id: SHOP1, name: 'Americano', description: 'Classic black coffee made with double espresso shots and hot water', price: 22.00, image_url: '', category: 'classic', is_available: true, sort_order: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000002', shop_id: SHOP1, name: 'Latte', description: 'Espresso with steamed milk and a light layer of foam', price: 28.00, image_url: '', category: 'classic', is_available: true, sort_order: 2, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000003', shop_id: SHOP1, name: 'Cappuccino', description: 'Equal parts espresso, steamed milk, and milk foam', price: 28.00, image_url: '', category: 'classic', is_available: true, sort_order: 3, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000004', shop_id: SHOP1, name: 'Mocha', description: 'Espresso with chocolate syrup and steamed milk, topped with whipped cream', price: 32.00, image_url: '', category: 'classic', is_available: true, sort_order: 4, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000005', shop_id: SHOP1, name: 'Dirty Coffee', description: 'Cold milk topped with a double shot of hot espresso', price: 26.00, image_url: '', category: 'specialty', is_available: true, sort_order: 5, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000006', shop_id: SHOP1, name: 'Cold Brew', description: 'Cold-brewed for 18 hours, smooth and bold', price: 25.00, image_url: '', category: 'specialty', is_available: true, sort_order: 6, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000007', shop_id: SHOP1, name: 'Matcha Latte', description: 'Ceremonial grade matcha whisked with steamed milk', price: 30.00, image_url: '', category: 'tea', is_available: true, sort_order: 7, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000008', shop_id: SHOP1, name: 'Earl Grey Tea', description: 'Premium loose-leaf Earl Grey with bergamot', price: 20.00, image_url: '', category: 'tea', is_available: true, sort_order: 8, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000009', shop_id: SHOP1, name: 'Croissant', description: 'Buttery, flaky French croissant baked fresh daily', price: 15.00, image_url: '', category: 'pastry', is_available: true, sort_order: 9, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000010', shop_id: SHOP1, name: 'Blueberry Muffin', description: 'Moist muffin loaded with fresh blueberries', price: 12.00, image_url: '', category: 'pastry', is_available: true, sort_order: 10, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a1010001-0001-4000-8000-000000000011', shop_id: SHOP1, name: 'Seasonal: Sakura Latte', description: 'Limited spring edition with cherry blossom syrup', price: 35.00, image_url: '', category: 'seasonal', is_available: true, sort_order: 11, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  // ── SHOP 2: West Hub ──
-  { id: 'a2020002-0002-4000-8000-000000000001', shop_id: SHOP2, name: 'Americano', description: 'Classic black coffee made with double espresso shots', price: 20.00, image_url: '', category: 'classic', is_available: true, sort_order: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a2020002-0002-4000-8000-000000000002', shop_id: SHOP2, name: 'Latte', description: 'Espresso with steamed milk and foam', price: 26.00, image_url: '', category: 'classic', is_available: true, sort_order: 2, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a2020002-0002-4000-8000-000000000003', shop_id: SHOP2, name: 'Flat White', description: 'Double espresso with velvety microfoam milk', price: 30.00, image_url: '', category: 'specialty', is_available: true, sort_order: 3, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a2020002-0002-4000-8000-000000000004', shop_id: SHOP2, name: 'Lemon Tea', description: 'Freshly brewed black tea with lemon', price: 18.00, image_url: '', category: 'tea', is_available: true, sort_order: 4, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: 'a2020002-0002-4000-8000-000000000005', shop_id: SHOP2, name: 'Bagel with Cream Cheese', description: 'Toasted bagel served with cream cheese', price: 14.00, image_url: '', category: 'pastry', is_available: true, sort_order: 5, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+// 内存 Mock 分集表（为每部剧集生成前几集）
+function _buildEpisodes(): Array<Record<string, any>> {
+  const eps: Array<Record<string, any>> = []
+  const series = mockSeriesTable
+  for (const s of series) {
+    const count = Math.min(s.total_episodes, 8) // 每部生成前8集mock
+    for (let i = 1; i <= count; i++) {
+      eps.push({
+        id: `ep-${s.id}-${i}`,
+        series_id: s.id,
+        episode_number: i,
+        title: `${s.title} - Episode ${i}`,
+        description: `Episode ${i} of ${s.title}. ${i <= s.free_episodes ? 'Free episode.' : `Unlock with ${5 + i} coins.`}`,
+        video_url: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        thumbnail_url: `https://picsum.photos/seed/ep${s.id}${i}/400/600`,
+        duration_seconds: 60 + Math.floor(Math.random() * 60),
+        is_free: i <= s.free_episodes,
+        coin_cost: i <= s.free_episodes ? 0 : 5 + i,
+        sort_order: i,
+        status: 'published',
+        created_at: new Date(Date.now() - 86400000 * (count - i)).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+    }
+  }
+  return eps
+}
+export const mockEpisodesTable = _buildEpisodes()
+
+// 内存 Mock 金币套餐表
+export const mockCoinPackagesTable: Array<Record<string, any>> = [
+  { id: 'cp-001', name: 'Starter Pack', coins_amount: 500, bonus_coins: 50, price: 4.99, currency: 'USD', is_active: true, sort_order: 1, tenant_id: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'cp-002', name: 'Popular Pack', coins_amount: 1200, bonus_coins: 200, price: 9.99, currency: 'USD', is_active: true, sort_order: 2, tenant_id: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'cp-003', name: 'Value Pack', coins_amount: 2500, bonus_coins: 500, price: 19.99, currency: 'USD', is_active: true, sort_order: 3, tenant_id: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'cp-004', name: 'Super Saver', coins_amount: 5000, bonus_coins: 1500, price: 39.99, currency: 'USD', is_active: true, sort_order: 4, tenant_id: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'cp-005', name: 'Ultimate Bundle', coins_amount: 10000, bonus_coins: 4000, price: 69.99, currency: 'USD', is_active: true, sort_order: 5, tenant_id: '9e638ba2-41aa-4434-a68b-6bd9f7ed0963', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+]
+
+// 内存 Mock 用户金币表
+export const mockUserCoinsTable: Array<Record<string, any>> = [
+  { id: 'uc-001', user_id: 'mock-user-123', balance: 3500, total_earned: 5000, total_spent: 1500, created_at: new Date(Date.now() - 86400000 * 30).toISOString(), updated_at: new Date().toISOString() },
+  { id: 'uc-002', user_id: 'mock-user-456', balance: 800, total_earned: 1000, total_spent: 200, created_at: new Date(Date.now() - 86400000 * 20).toISOString(), updated_at: new Date().toISOString() },
+]
+
+// 内存 Mock 金币流水表
+export const mockCoinTransactionsTable: Array<Record<string, any>> = [
+  { id: 'ct-001', user_id: 'mock-user-123', amount: 5000, balance_after: 5000, type: 'purchase', reference_type: 'coin_package', reference_id: 'cp-005', description: 'Purchased Ultimate Bundle', created_at: new Date(Date.now() - 86400000 * 30).toISOString() },
+  { id: 'ct-002', user_id: 'mock-user-123', amount: -10, balance_after: 4990, type: 'spend', reference_type: 'episode_unlock', reference_id: 'ep-s-001-6', description: 'Unlocked Episode 6', created_at: new Date(Date.now() - 86400000 * 25).toISOString() },
+  { id: 'ct-003', user_id: 'mock-user-123', amount: 5, balance_after: 4995, type: 'earn', reference_type: 'ad_watch', reference_id: null, description: 'Watched ad', created_at: new Date(Date.now() - 86400000 * 20).toISOString() },
+  { id: 'ct-004', user_id: 'mock-user-456', amount: 1200, balance_after: 1200, type: 'purchase', reference_type: 'coin_package', reference_id: 'cp-002', description: 'Purchased Popular Pack', created_at: new Date(Date.now() - 86400000 * 15).toISOString() },
+]
+
+// 内存 Mock 剧集解锁表
+export const mockEpisodeUnlocksTable: Array<Record<string, any>> = [
+  { id: 'eu-001', user_id: 'mock-user-123', episode_id: 'ep-s-001-6', coin_cost: 11, unlocked_at: new Date(Date.now() - 86400000 * 25).toISOString() },
+  { id: 'eu-002', user_id: 'mock-user-123', episode_id: 'ep-s-001-7', coin_cost: 12, unlocked_at: new Date(Date.now() - 86400000 * 24).toISOString() },
+]
+
+// 内存 Mock 观看历史表
+export const mockWatchHistoryTable: Array<Record<string, any>> = [
+  { id: 'wh-001', user_id: 'mock-user-123', episode_id: 'ep-s-001-1', series_id: 's-001', progress_seconds: 75, duration_seconds: 75, completed: true, watched_at: new Date(Date.now() - 86400000 * 3).toISOString() },
+  { id: 'wh-002', user_id: 'mock-user-123', episode_id: 'ep-s-001-2', series_id: 's-001', progress_seconds: 80, duration_seconds: 80, completed: true, watched_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: 'wh-003', user_id: 'mock-user-123', episode_id: 'ep-s-001-3', series_id: 's-001', progress_seconds: 45, duration_seconds: 90, completed: false, watched_at: new Date(Date.now() - 86400000).toISOString() },
+  { id: 'wh-004', user_id: 'mock-user-456', episode_id: 'ep-s-002-1', series_id: 's-002', progress_seconds: 65, duration_seconds: 65, completed: true, watched_at: new Date(Date.now() - 86400000 * 5).toISOString() },
+]
+
+// 内存 Mock 收藏表
+export const mockFavoritesTable: Array<Record<string, any>> = [
+  { id: 'fav-001', user_id: 'mock-user-123', series_id: 's-001', created_at: new Date(Date.now() - 86400000 * 10).toISOString() },
+  { id: 'fav-002', user_id: 'mock-user-123', series_id: 's-002', created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: 'fav-003', user_id: 'mock-user-456', series_id: 's-002', created_at: new Date(Date.now() - 86400000 * 8).toISOString() },
+]
+
+// 内存 Mock 广告观看记录表
+export const mockAdWatchLogsTable: Array<Record<string, any>> = [
+  { id: 'aw-001', user_id: 'mock-user-123', episode_id: 'ep-s-001-6', coins_earned: 5, watched_at: new Date(Date.now() - 86400000 * 20).toISOString() },
+  { id: 'aw-002', user_id: 'mock-user-123', episode_id: 'ep-s-001-7', coins_earned: 5, watched_at: new Date(Date.now() - 3600000 * 2).toISOString() },
 ]
 
 // 内存 Mock 用户反馈/评价表
@@ -266,8 +325,16 @@ function getLocalMockDB() {
     if (tableName === 'subscriptions') return mockSubscriptionsTable
     if (tableName === 'system_configs') return mockSystemConfigsTable
     if (tableName === 'admin_2fa') return mockAdmin2FATable
-    if (tableName === 'coffee_shops') return mockCoffeeShopsTable
-    if (tableName === 'coffee_menu_items') return mockCoffeeMenuItemsTable
+    if (tableName === 'genres') return mockGenresTable
+    if (tableName === 'series') return mockSeriesTable
+    if (tableName === 'episodes') return mockEpisodesTable
+    if (tableName === 'coin_packages') return mockCoinPackagesTable
+    if (tableName === 'user_coins') return mockUserCoinsTable
+    if (tableName === 'coin_transactions') return mockCoinTransactionsTable
+    if (tableName === 'episode_unlocks') return mockEpisodeUnlocksTable
+    if (tableName === 'user_watch_history') return mockWatchHistoryTable
+    if (tableName === 'user_favorites') return mockFavoritesTable
+    if (tableName === 'ad_watch_logs') return mockAdWatchLogsTable
     return mockTasksTable
   }
 
