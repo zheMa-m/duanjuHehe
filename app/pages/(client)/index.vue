@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import LanguageSwitcher from '~/components/shared/LanguageSwitcher.vue'
-import { useH5DemoLinks } from '~/composables/useH5DemoLinks'
-import { resolveAdminHref, resolveApiDocHref } from '~/utils/subdomain'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { initAuth } = useAuth()
-const { demos } = useH5DemoLinks()
 
 useAppSEO({
   title: () => `ReelShort — ${t('reelshort.tagline')}`,
@@ -18,23 +15,34 @@ const trendingSeries = ref<any[]>([])
 const genres = ref<any[]>([])
 const loading = ref(true)
 
-const dropdownOpen = ref('')
+// 轮播状态
+const currentSlide = ref(0)
+let carouselTimer: ReturnType<typeof setInterval> | null = null
 
-function toggleDropdown(key: string) {
-  dropdownOpen.value = dropdownOpen.value === key ? '' : key
+const carouselSlides = computed(() => {
+  return featuredSeries.value.slice(0, 4).map(s => ({
+    ...s,
+    genreName: t(`reelshort.genre_${s.genre_slug || s.genre_id || ''}`) || s.genre || '',
+  }))
+})
+
+function nextSlide() {
+  currentSlide.value = (currentSlide.value + 1) % Math.max(carouselSlides.value.length, 1)
 }
-function closeDropdown() {
-  dropdownOpen.value = ''
+function prevSlide() {
+  const len = Math.max(carouselSlides.value.length, 1)
+  currentSlide.value = (currentSlide.value - 1 + len) % len
+}
+function goSlide(i: number) {
+  currentSlide.value = i
 }
 
-const apiDocHref = computed(() => {
-  if (import.meta.client) return resolveApiDocHref(window.location.origin, '/_scalar')
-  return '/_scalar'
-})
-const adminHref = computed(() => {
-  if (import.meta.client) return resolveAdminHref(window.location.origin)
-  return '/admin'
-})
+// 翻译分类名
+function genreName(g: any) {
+  const key = `reelshort.genre_${g.slug}`
+  const translated = t(key)
+  return translated !== key ? translated : g.name
+}
 
 async function fetchData() {
   try {
@@ -52,6 +60,11 @@ async function fetchData() {
 onMounted(async () => {
   await initAuth()
   fetchData()
+  carouselTimer = setInterval(nextSlide, 5000)
+})
+
+onUnmounted(() => {
+  if (carouselTimer) clearInterval(carouselTimer)
 })
 </script>
 
@@ -64,93 +77,57 @@ onMounted(async () => {
           <span class="logo-icon">🎬</span>
           <span class="logo-text">{{ $t('reelshort.siteName') }}</span>
         </NuxtLink>
-        <nav class="nav-links" @mouseleave="closeDropdown">
+        <nav class="nav-links">
           <NuxtLink to="/browse" class="nav-link">{{ $t('reelshort.browse') }}</NuxtLink>
-
-          <!-- 落地页 Dropdown -->
-          <div class="nav-dropdown" @mouseenter="toggleDropdown('landing')">
-            <button class="nav-link nav-dropdown-trigger">
-              {{ $t('reelshort.landingPages') }}
-              <span class="dropdown-arrow" :class="{ open: dropdownOpen === 'landing' }">▾</span>
-            </button>
-            <div v-if="dropdownOpen === 'landing'" class="dropdown-menu">
-              <a v-for="d in demos" :key="d.id" :href="d.href" target="_blank" class="dropdown-item">
-                <span class="dropdown-item-icon">{{ d.id === 'starpath' ? '🔮' : d.id === 'v1' ? '🪟' : '🎨' }}</span>
-                <span>{{ $t(d.labelKey) }}</span>
-              </a>
-            </div>
-          </div>
-
-          <!-- API / App Dropdown -->
-          <div class="nav-dropdown" @mouseenter="toggleDropdown('more')">
-            <button class="nav-link nav-dropdown-trigger">
-              {{ $t('reelshort.restApi') }}
-              <span class="dropdown-arrow" :class="{ open: dropdownOpen === 'more' }">▾</span>
-            </button>
-            <div v-if="dropdownOpen === 'more'" class="dropdown-menu">
-              <a :href="apiDocHref" target="_blank" class="dropdown-item">
-                <span class="dropdown-item-icon">📖</span>
-                <span>Scalar API Reference</span>
-              </a>
-              <div class="dropdown-divider" />
-              <span class="dropdown-label">{{ $t('reelshort.downloadApp') }}</span>
-              <a href="#" class="dropdown-item">
-                <span class="dropdown-item-icon">📱</span>
-                <span>{{ $t('reelshort.appStore') }}</span>
-              </a>
-              <a href="#" class="dropdown-item">
-                <span class="dropdown-item-icon">🤖</span>
-                <span>{{ $t('reelshort.googlePlay') }}</span>
-              </a>
-            </div>
-          </div>
-
-          <a :href="adminHref" target="_blank" class="nav-link nav-admin">{{ $t('reelshort.admin') }}</a>
+          <a href="/admin" target="_blank" class="nav-link nav-admin">{{ $t('reelshort.admin') }}</a>
           <LanguageSwitcher />
         </nav>
       </div>
     </header>
 
-    <!-- HERO -->
-    <section class="hero">
-      <div class="hero-bg-pattern" />
-      <div class="hero-content">
-        <p class="hero-badge">{{ $t('reelshort.tagline') }}</p>
-        <h1 class="hero-title">{{ $t('reelshort.heroTitle') }}</h1>
-        <p class="hero-desc">{{ $t('reelshort.heroDesc') }}</p>
-        <div class="hero-actions">
-          <NuxtLink to="/browse" class="hero-cta">
-            {{ $t('reelshort.browseSeries') }}
-            <span class="cta-arrow">→</span>
-          </NuxtLink>
-          <NuxtLink
-            v-if="featuredSeries[0]"
-            :to="`/series/${featuredSeries[0].slug}`"
-            class="hero-cta-secondary"
-          >
-            {{ $t('reelshort.watchFeatured') }}
-          </NuxtLink>
-        </div>
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <span class="hero-stat-num">{{ trendingSeries.length }}+</span>
-            <span class="hero-stat-label">{{ $t('reelshort.trendingNow').replace('🔥 ', '') }}</span>
-          </div>
-          <div class="hero-stat-divider" />
-          <div class="hero-stat">
-            <span class="hero-stat-num">{{ genres.length }}+</span>
-            <span class="hero-stat-label">{{ $t('reelshort.exploreGenres') }}</span>
-          </div>
-          <div class="hero-stat-divider" />
-          <div class="hero-stat">
-            <span class="hero-stat-num">{{ $t('reelshort.tagline') }}</span>
-            <span class="hero-stat-label">Free to Start</span>
+    <!-- HERO CAROUSEL -->
+    <section class="hero-carousel">
+      <div class="carousel-track" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
+        <div
+          v-for="(slide, i) in carouselSlides"
+          :key="slide.id"
+          class="carousel-slide"
+        >
+          <img :src="slide.poster_image || slide.cover_image" :alt="slide.title" class="slide-bg" />
+          <div class="slide-overlay" />
+          <div class="slide-content">
+            <span class="slide-genre">{{ slide.genreName }}</span>
+            <h2 class="slide-title">{{ slide.title }}</h2>
+            <p class="slide-desc">{{ slide.description?.slice(0, 120) }}...</p>
+            <div class="slide-meta">
+              <span>⭐ {{ slide.rating || '4.5' }}</span>
+              <span>{{ slide.total_episodes }} {{ $t('reelshort.episodes') }}</span>
+              <span>{{ slide.free_episodes }} {{ $t('reelshort.free').toLowerCase() }}</span>
+            </div>
+            <NuxtLink :to="`/series/${slide.slug}`" class="slide-cta">
+              {{ $t('reelshort.watchNow') }}
+            </NuxtLink>
           </div>
         </div>
       </div>
+
+      <!-- 左右箭头 -->
+      <button v-if="carouselSlides.length > 1" class="carousel-arrow left" @click="prevSlide">‹</button>
+      <button v-if="carouselSlides.length > 1" class="carousel-arrow right" @click="nextSlide">›</button>
+
+      <!-- 指示点 -->
+      <div v-if="carouselSlides.length > 1" class="carousel-dots">
+        <button
+          v-for="(_, i) in carouselSlides"
+          :key="i"
+          class="carousel-dot"
+          :class="{ active: currentSlide === i }"
+          @click="goSlide(i)"
+        />
+      </div>
     </section>
 
-    <!-- GENRE CARDS -->
+    <!-- EXPLORE GENRES -->
     <section class="section genres-section">
       <div class="section-inner">
         <div class="section-header">
@@ -159,13 +136,13 @@ onMounted(async () => {
         </div>
         <div class="genres-grid">
           <NuxtLink
-            v-for="g in genres.slice(0, 8)"
+            v-for="g in genres"
             :key="g.id"
             :to="`/browse?genre=${g.id}`"
             class="genre-card"
           >
             <span class="genre-card-icon">{{ g.icon || '🎭' }}</span>
-            <span class="genre-card-name">{{ g.name }}</span>
+            <span class="genre-card-name">{{ genreName(g) }}</span>
           </NuxtLink>
         </div>
       </div>
@@ -216,436 +193,217 @@ onMounted(async () => {
 
 <style scoped>
 /* ═══════════════════════════════════════════════
-   LIGHT SAAS STYLE HOMEPAGE
+   REELSHORT HOMEPAGE — Video Carousel + Genres
    ═══════════════════════════════════════════════ */
 
 .home-root {
   min-height: 100vh;
-  background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
-  color: #0f172a;
+  background: #050510;
+  color: #f1f5f9;
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
 
 /* ─── HEADER ─── */
 .home-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid #e8ecf1;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(5,5,16,0.88); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .home-header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  max-width: 1300px; margin: 0 auto; padding: 0 24px;
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
 }
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  flex-shrink: 0;
-}
+.logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
 .logo-icon { font-size: 1.25rem; }
-.logo-text {
-  font-weight: 800;
-  font-size: 1.125rem;
-  color: #0f172a;
-  letter-spacing: -0.02em;
-}
-.nav-links { display: flex; gap: 4px; align-items: center; }
+.logo-text { font-weight: 800; font-size: 1.125rem; color: #f1f5f9; letter-spacing: -0.02em; }
+.nav-links { display: flex; gap: 6px; align-items: center; }
 .nav-link {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #475569;
-  text-decoration: none;
-  transition: all 0.15s;
+  padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500;
+  color: #94a3b8; text-decoration: none; transition: all 0.15s;
 }
-.nav-link:hover { color: #0f172a; background: #f1f5f9; }
+.nav-link:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); }
 .nav-admin {
-  background: #eef2ff;
-  color: #6366f1;
-  border: 1px solid #e0e7ff;
+  background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25);
 }
-.nav-admin:hover { background: #e0e7ff; color: #4f46e5; }
+.nav-admin:hover { background: rgba(99,102,241,0.25); color: #c7d2fe; }
 
-/* ─── NAV DROPDOWN ─── */
-.nav-dropdown { position: relative; }
-.nav-dropdown-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
+/* ─── HERO CAROUSEL ─── */
+.hero-carousel {
+  position: relative; width: 100%; height: 85vh; overflow: hidden;
+  margin-top: 0;
 }
-.dropdown-arrow { font-size: 0.625rem; transition: transform 0.15s; }
-.dropdown-arrow.open { transform: rotate(180deg); }
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 6px;
-  min-width: 200px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
-  padding: 6px;
-  z-index: 200;
+.carousel-track {
+  display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  color: #475569;
-  text-decoration: none;
-  transition: all 0.1s;
+.carousel-slide {
+  min-width: 100%; height: 100%; position: relative;
+  display: flex; align-items: flex-end; justify-content: flex-start;
 }
-.dropdown-item:hover { background: #f1f5f9; color: #0f172a; }
-.dropdown-item-icon { font-size: 1rem; flex-shrink: 0; }
-.dropdown-divider { height: 1px; background: #e8ecf1; margin: 4px 8px; }
-.dropdown-label {
-  display: block;
-  padding: 6px 12px 4px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.slide-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; filter: brightness(0.4);
 }
-
-/* ─── HERO ─── */
-.hero {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 140px 24px 80px;
-  overflow: hidden;
-  text-align: center;
+.slide-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(5,5,16,1) 0%, rgba(5,5,16,0.4) 40%, rgba(5,5,16,0.1) 100%);
 }
-.hero-bg-pattern {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(99, 102, 241, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 80% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
-  pointer-events: none;
+.slide-content {
+  position: relative; z-index: 2; max-width: 600px;
+  padding: 0 64px 80px;
 }
-.hero-content {
-  max-width: 680px;
-  position: relative;
-  z-index: 2;
+.slide-genre {
+  display: inline-block; padding: 5px 14px; border-radius: 9999px;
+  font-size: 0.75rem; font-weight: 600; color: #fbbf24;
+  background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.25);
+  margin-bottom: 16px;
 }
-.hero-badge {
-  display: inline-block;
-  padding: 6px 16px;
-  border-radius: 9999px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #6366f1;
-  background: #eef2ff;
-  border: 1px solid #e0e7ff;
-  margin-bottom: 24px;
+.slide-title {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem); font-weight: 900; line-height: 1.15;
+  color: #ffffff; margin-bottom: 10px; letter-spacing: -0.03em;
 }
-.hero-title {
-  font-size: clamp(2.5rem, 5.5vw, 3.75rem);
-  font-weight: 900;
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-  color: #0f172a;
-  margin-bottom: 20px;
+.slide-desc {
+  font-size: 0.9375rem; color: #94a3b8; line-height: 1.6; margin-bottom: 12px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.hero-desc {
-  font-size: 1.125rem;
-  color: #64748b;
-  line-height: 1.7;
-  margin-bottom: 36px;
-  max-width: 480px;
-  margin-left: auto;
-  margin-right: auto;
+.slide-meta {
+  display: flex; gap: 16px; font-size: 0.8125rem; color: #64748b; margin-bottom: 20px;
 }
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 48px;
-}
-.hero-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 14px 32px;
-  border-radius: 12px;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3), 0 1px 3px rgba(0, 0, 0, 0.08);
+.slide-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 14px 32px; border-radius: 12px; font-size: 0.9375rem; font-weight: 700;
+  color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  text-decoration: none; box-shadow: 0 4px 20px rgba(99,102,241,0.4);
   transition: all 0.2s;
 }
-.hero-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4), 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-.cta-arrow { font-size: 1rem; transition: transform 0.2s; }
-.hero-cta:hover .cta-arrow { transform: translateX(3px); }
+.slide-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.55); }
 
-.hero-cta-secondary {
-  display: inline-flex;
-  align-items: center;
-  padding: 14px 32px;
-  border-radius: 12px;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #334155;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  text-decoration: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s;
+/* 轮播箭头 */
+.carousel-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
+  width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.08); color: #fff; font-size: 1.75rem;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px); transition: all 0.2s; line-height: 1;
 }
-.hero-cta-secondary:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
+.carousel-arrow:hover { background: rgba(255,255,255,0.18); }
+.carousel-arrow.left { left: 20px; }
+.carousel-arrow.right { right: 20px; }
 
-/* hero stats row */
-.hero-stats {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
+/* 指示点 */
+.carousel-dots {
+  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; z-index: 10;
 }
-.hero-stat { text-align: center; }
-.hero-stat-num {
-  display: block;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.3;
+.carousel-dot {
+  width: 8px; height: 8px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.25); transition: all 0.2s;
 }
-.hero-stat-label {
-  font-size: 0.8125rem;
-  color: #64748b;
-  font-weight: 500;
-}
-.hero-stat-divider {
-  width: 1px;
-  height: 28px;
-  background: #e2e8f0;
-}
+.carousel-dot.active { background: #818cf8; box-shadow: 0 0 8px rgba(129,140,248,0.5); }
 
 /* ─── SECTIONS ─── */
 .section { padding: 64px 24px; }
-.section-inner { max-width: 1200px; margin: 0 auto; }
+.section-inner { max-width: 1300px; margin: 0 auto; }
 .section-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 28px;
+  display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px;
 }
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.02em;
-}
-.see-all {
-  font-size: 0.875rem;
-  color: #6366f1;
-  text-decoration: none;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.see-all:hover { color: #4f46e5; }
+.section-title { font-size: 1.5rem; font-weight: 800; color: #f1f5f9; letter-spacing: -0.02em; }
+.see-all { font-size: 0.875rem; color: #818cf8; text-decoration: none; font-weight: 600; }
+.see-all:hover { color: #a5b4fc; }
 
 /* ─── GENRES GRID ─── */
-.genres-section {
-  background: #ffffff;
-  border-top: 1px solid #f1f5f9;
-}
+.genres-section { background: rgba(255,255,255,0.01); border-top: 1px solid rgba(255,255,255,0.04); }
 .genres-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 12px;
 }
 .genre-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 24px 16px 20px;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid #e8ecf1;
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 24px 16px 20px; border-radius: 14px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  text-decoration: none; color: inherit; transition: all 0.2s;
 }
 .genre-card:hover {
-  transform: translateY(-3px);
-  border-color: #c7d2fe;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08);
+  transform: translateY(-3px); border-color: rgba(99,102,241,0.35);
+  box-shadow: 0 8px 24px rgba(99,102,241,0.08); background: rgba(255,255,255,0.05);
 }
 .genre-card-icon { font-size: 1.75rem; }
-.genre-card-name {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #334155;
-  text-align: center;
-}
+.genre-card-name { font-size: 0.8125rem; font-weight: 600; color: #cbd5e1; text-align: center; }
 
 /* ─── RANKINGS ─── */
-.rankings-section {
-  background: #fafbfc;
-  border-top: 1px solid #f1f5f9;
-}
-.rankings-loading {
-  text-align: center;
-  padding: 60px 0;
-  color: #94a3b8;
-  font-size: 0.9375rem;
-}
+.rankings-section { background: rgba(255,255,255,0.01); border-top: 1px solid rgba(255,255,255,0.04); }
+.rankings-loading { text-align: center; padding: 60px 0; color: #64748b; }
 .rankings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border: 1px solid #e8ecf1;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; overflow: hidden;
+  background: rgba(255,255,255,0.02);
 }
 .ranking-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  text-decoration: none;
-  color: inherit;
-  transition: background 0.15s;
-  border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+  text-decoration: none; color: inherit; transition: background 0.15s;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 .ranking-item:last-child { border-bottom: none; }
-.ranking-item:hover { background: #fafbfc; }
+.ranking-item:hover { background: rgba(255,255,255,0.04); }
 .ranking-item:hover .ranking-arrow { opacity: 1; transform: translateX(0); }
 
 .ranking-pos {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #64748b;
-  background: #f1f5f9;
-  flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 8px; display: flex;
+  align-items: center; justify-content: center; font-size: 0.875rem;
+  font-weight: 700; color: #64748b; background: rgba(255,255,255,0.06); flex-shrink: 0;
 }
 .ranking-pos-top {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
 }
-
 .ranking-cover {
-  width: 56px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 56px; height: 80px; object-fit: cover; border-radius: 8px;
+  flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .ranking-info { flex: 1; min-width: 0; }
 .ranking-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #0f172a;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin-bottom: 4px;
+  font-size: 0.9375rem; font-weight: 600; color: #e2e8f0; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px;
 }
 .ranking-meta { display: flex; gap: 16px; align-items: center; }
-.ranking-rating { font-size: 0.8125rem; color: #64748b; font-weight: 500; }
-.ranking-eps { font-size: 0.8125rem; color: #94a3b8; }
-
+.ranking-rating { font-size: 0.8125rem; color: #94a3b8; font-weight: 500; }
+.ranking-eps { font-size: 0.8125rem; color: #64748b; }
 .ranking-arrow {
-  font-size: 1rem;
-  color: #94a3b8;
-  opacity: 0;
-  transform: translateX(-6px);
-  transition: all 0.2s;
-  flex-shrink: 0;
+  font-size: 1rem; color: #94a3b8; opacity: 0; transform: translateX(-6px);
+  transition: all 0.2s; flex-shrink: 0;
 }
 
 /* ─── FOOTER ─── */
-.footer {
-  padding: 40px 24px;
-  border-top: 1px solid #e8ecf1;
-  background: #ffffff;
-}
+.footer { padding: 40px 24px; border-top: 1px solid rgba(255,255,255,0.04); }
 .footer-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-size: 0.8125rem;
-  color: #94a3b8;
+  max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between;
+  align-items: center; flex-wrap: wrap; gap: 16px; font-size: 0.8125rem; color: #475569;
 }
 .footer-brand { display: flex; align-items: center; gap: 6px; }
-.footer-logo { font-weight: 700; color: #475569; }
-.footer-tagline { color: #94a3b8; }
-.footer-copy { color: #cbd5e1; }
+.footer-logo { font-weight: 700; color: #94a3b8; }
+.footer-tagline { color: #64748b; }
+.footer-copy { color: #334155; }
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 768px) {
-  .hero { padding: 120px 20px 60px; }
-  .hero-title { font-size: 2.25rem; }
-  .hero-desc { font-size: 1rem; }
-  .hero-stats { gap: 20px; }
-  .hero-stat-num { font-size: 1.0625rem; }
-  .hero-cta, .hero-cta-secondary { width: 100%; justify-content: center; }
-  .hero-actions { flex-direction: column; width: 100%; }
+  .hero-carousel { height: 70vh; }
+  .slide-content { padding: 0 24px 60px; }
+  .slide-title { font-size: 1.5rem; }
+  .carousel-arrow { width: 36px; height: 36px; font-size: 1.25rem; }
+  .carousel-arrow.left { left: 8px; }
+  .carousel-arrow.right { right: 8px; }
   .genres-grid { grid-template-columns: repeat(4, 1fr); }
   .section { padding: 48px 20px; }
   .footer-inner { flex-direction: column; text-align: center; }
 }
-
 @media (max-width: 480px) {
-  .hero-title { font-size: 1.75rem; }
-  .genres-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-carousel { height: 60vh; }
+  .slide-content { padding: 0 16px 48px; }
+  .slide-title { font-size: 1.25rem; }
+  .slide-desc { display: none; }
+  .genres-grid { grid-template-columns: repeat(3, 1fr); }
   .ranking-item { padding: 14px 16px; gap: 12px; }
   .ranking-cover { width: 44px; height: 64px; }
-  .hero-stats { flex-direction: column; gap: 12px; }
-  .hero-stat-divider { width: 24px; height: 1px; }
 }
 </style>

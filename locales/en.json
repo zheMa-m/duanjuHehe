@@ -574,7 +574,19 @@
     "bingeBadge": "🔥 Binge-Worthy Drama",
     "landingPages": "Landing",
     "restApi": "REST API",
-    "downloadApp": "Download App"
+    "downloadApp": "Download App",
+    "genre_romance": "Romance",
+    "genre_drama": "Drama",
+    "genre_fantasy": "Fantasy",
+    "genre_thriller": "Thriller",
+    "genre_comedy": "Comedy",
+    "genre_billionaire": "Billionaire",
+    "genre_revenge": "Revenge",
+    "genre_ceo": "CEO",
+    "genre_werewolf": "Werewolf",
+    "genre_mafia": "Mafia",
+    "genre_hidden-identity": "Hidden Identity",
+    "genre_forbidden-love": "Forbidden Love"
   },
   "starpath": {
     "title": "智能问卷 Astrology",

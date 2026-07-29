@@ -574,7 +574,19 @@
     "bingeBadge": "🔥 上头神剧",
     "landingPages": "落地页",
     "restApi": "REST API",
-    "downloadApp": "下载 App"
+    "downloadApp": "下载 App",
+    "genre_romance": "浪漫",
+    "genre_drama": "剧情",
+    "genre_fantasy": "奇幻",
+    "genre_thriller": "惊悚",
+    "genre_comedy": "喜剧",
+    "genre_billionaire": "豪门",
+    "genre_revenge": "复仇",
+    "genre_ceo": "总裁",
+    "genre_werewolf": "狼人",
+    "genre_mafia": "黑帮",
+    "genre_hidden-identity": "马甲",
+    "genre_forbidden-love": "禁忌之恋"
   },
   "starpath": {
     "title": "智能问卷 占星问卷",
