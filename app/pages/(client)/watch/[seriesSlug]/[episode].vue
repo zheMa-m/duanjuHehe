@@ -40,8 +40,16 @@ async function fetchData() {
   } catch (_) {} finally { loading.value = false }
 }
 
+const FALLBACK_VIDEO = 'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/42afb619_sample-01-flying-dance.mp4'
 const prevEpisode = computed(() => allEpisodes.value.find((e: any) => e.episode_number === episodeNum.value - 1))
 const nextEpisode = computed(() => allEpisodes.value.find((e: any) => e.episode_number === episodeNum.value + 1))
+
+function onVideoError(e: Event) {
+  const v = e.target as HTMLVideoElement
+  if (!v.src.includes('ForBiggerBlazes')) {
+    v.src = FALLBACK_VIDEO
+  }
+}
 
 async function unlockEpisode() {
   if (!episode.value || unlocking.value) return
@@ -93,6 +101,7 @@ onMounted(fetchData)
           autoplay
           playsinline
           @ended="nextEpisode ? $router.push(`/watch/${seriesSlug}/${nextEpisode.episode_number}`) : null"
+          @error="onVideoError"
         />
       </div>
 

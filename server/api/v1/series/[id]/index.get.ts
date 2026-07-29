@@ -31,7 +31,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // Fetch episodes
-  const { data: episodes } = await db.from('episodes').select('id, episode_number, title, thumbnail_url, duration_seconds, is_free, coin_cost, sort_order, status').eq('series_id', series.id).eq('status', 'published').order('sort_order', { ascending: true })
+  const { data: episodes } = await db.from('episodes').select('id, episode_number, title, video_url, thumbnail_url, duration_seconds, is_free, coin_cost, sort_order, status').eq('series_id', series.id).eq('status', 'published').order('sort_order', { ascending: true })
+
+  // 自动补全封面：取第一个分集缩略图
+  if (!series.cover_image && episodes?.length) {
+    const firstWithThumb = episodes.find((ep: any) => ep.thumbnail_url)
+    if (firstWithThumb) series.cover_image = firstWithThumb.thumbnail_url
+  }
 
   return sendSuccess(event, {
     ...series,

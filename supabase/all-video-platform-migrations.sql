@@ -492,7 +492,16 @@ BEGIN
           WHEN ep_num <= s.free_episodes THEN 'A new chapter unfolds. Secrets are revealed and tensions rise. (Free episode)'
           ELSE 'The drama intensifies. Relationships are tested and new alliances form. Unlock with coins to continue.'
         END,
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/' || CASE (ep_num % 8)
+          WHEN 0 THEN 'ForBiggerBlazes.mp4'
+          WHEN 1 THEN 'ForBiggerEscapes.mp4'
+          WHEN 2 THEN 'ForBiggerFun.mp4'
+          WHEN 3 THEN 'ForBiggerJoyrides.mp4'
+          WHEN 4 THEN 'ForBiggerMeltdowns.mp4'
+          WHEN 5 THEN 'SubaruOutbackOnStreetAndDirt.mp4'
+          WHEN 6 THEN 'WeAreGoingOnBullrun.mp4'
+          WHEN 7 THEN 'WhatCarCanYouGetForAGrand.mp4'
+        END,
         'https://picsum.photos/seed/ep' || replace(s.id::text, '-', '') || ep_num || '/400/600',
         60 + (random() * 60)::INTEGER,
         ep_num <= s.free_episodes,

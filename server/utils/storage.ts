@@ -13,7 +13,7 @@ import { getDB } from './db'
 // ── Bucket 常量与类型 ─────────────────────────────────────────────
 
 // 系统内置桶（不可删除）
-export const DEFAULT_BUCKETS = ['campaign-assets'] as const
+export const DEFAULT_BUCKETS = ['campaign-assets', 'series-videos'] as const
 export const DEFAULT_BUCKET_NAMES = new Set<string>(DEFAULT_BUCKETS)
 
 // 动态桶模型：类型改为 string
@@ -33,6 +33,12 @@ export const DEFAULT_BUCKET_CONFIG: Record<string, BucketConfig> = {
     public: true,
     maxSize: 10 * 1024 * 1024,      // 10 MB
     allowedMime: ['image/*', 'video/mp4'],
+    adminOnly: true,
+  },
+  'series-videos': {
+    public: true,
+    maxSize: 50 * 1024 * 1024,      // 50 MB
+    allowedMime: ['video/mp4', 'video/webm', 'image/*'],
     adminOnly: true,
   },
 }

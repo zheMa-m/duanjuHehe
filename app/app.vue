@@ -69,6 +69,36 @@ useHead(computed(() => ({
 const appError = ref<Error | null>(null)
 const pageKey = ref(0)
 
+// 全局图片 fallback：空 src 或加载失败时显示渐变占位图
+const FALLBACK_SVG = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#312e81"/></linearGradient></defs><rect width="400" height="600" fill="url(#g)"/><text x="200" y="280" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="64" font-family="sans-serif">🎬</text><text x="200" y="340" text-anchor="middle" fill="rgba(255,255,255,0.2)" font-size="14" font-family="sans-serif">NO IMAGE</text></svg>`)
+
+function fixBrokenImages() {
+  document.querySelectorAll('img').forEach((img) => {
+    if (!img.src || img.src === window.location.href || img.src.endsWith('/')) {
+      img.src = FALLBACK_SVG
+    }
+    if (!img.onerror) {
+      img.onerror = () => { if (img.src !== FALLBACK_SVG) img.src = FALLBACK_SVG }
+    }
+  })
+}
+
+let imgFixTimer: ReturnType<typeof setTimeout> | null = null
+function scheduleImgFix() {
+  if (imgFixTimer) clearTimeout(imgFixTimer)
+  imgFixTimer = setTimeout(fixBrokenImages, 200)
+}
+
+onMounted(() => {
+  fixBrokenImages()
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(() => scheduleImgFix()).observe(document.body, { childList: true, subtree: true })
+  }
+})
+
+// 路由切换时重新扫描
+watch(() => route.fullPath, () => { scheduleImgFix() })
+
 onErrorCaptured((err) => {
   appError.value = err instanceof Error ? err : new Error(String(err))
   return false
@@ -239,6 +269,7 @@ img {
 
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
 </style>
 
 <style scoped>
@@ -246,6 +277,27 @@ img {
   min-height: 100vh;
   background: var(--bg-base);
   color: var(--text-base);
+}
+
+/* ─── App 手机模式 ─── */
+.app-mode {
+  background: #e8ecf1;
+  display: flex;
+  justify-content: center;
+}
+.phone-frame {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  background: #f8fafc;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.phone-screen {
+  min-height: calc(100vh - 48px - 56px);
+  padding-bottom: 56px;
+  overflow-x: hidden;
 }
 
 .error-fallback {

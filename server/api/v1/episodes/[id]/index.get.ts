@@ -1,13 +1,12 @@
-// @api-auth: user
+// @api-auth: public
 import { defineEventHandler, getRouterParam } from 'h3'
-import { assertUser } from '~~/server/utils/auth'
 import { getDB } from '~~/server/utils/db'
 import { sendSuccess } from '~~/server/utils/response'
 
 defineRouteMeta({
   openAPI: {
     tags: ['分集'],
-    summary: '获取单集详情（含解锁状态）',
+    summary: '获取单集详情（含解锁状态，免费集无需登录）',
     parameters: [
       { in: 'path', name: 'id', schema: { type: 'string' }, required: true },
     ],
@@ -15,7 +14,6 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = assertUser(event)
   const db = getDB(event)
   const id = getRouterParam(event, 'id') || ''
 
@@ -25,7 +23,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Episode not found' })
   }
 
-  // Check unlock status
+  // Get user from context (may be null for anonymous/unauthenticated)
+  const user = event.context.user
+
+  // Check unlock status: free episodes always unlocked, paid need auth + check
   let isUnlocked = episode.is_free === true
   if (!isUnlocked && user) {
     const { data: unlock } = await db.from('episode_unlocks').select('*').eq('user_id', user.id).eq('episode_id', id).single()

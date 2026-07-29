@@ -34,5 +34,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: error.message })
   }
 
-  return sendSuccess(event, { items: data || [], type }, 'Fetched discover list successfully')
+  // 自动补全封面
+  const items = data || []
+  const withoutCover = items.filter((s: any) => !s.cover_image)
+  if (withoutCover.length > 0) {
+    const ids = withoutCover.map((s: any) => s.id)
+    const { data: firstEps } = await db.from('episodes')
+      .select('series_id, thumbnail_url').in('series_id', ids).eq('status', 'published').order('sort_order')
+    if (firstEps) {
+      const map = new Map<string, string>()
+      for (const ep of firstEps) { if (!map.has(ep.series_id) && ep.thumbnail_url) map.set(ep.series_id, ep.thumbnail_url) }
+      for (const item of items) { if (!item.cover_image && map.has(item.id)) item.cover_image = map.get(item.id) }
+    }
+  }
+
+  return sendSuccess(event, { items, type }, 'Fetched discover list successfully')
 })

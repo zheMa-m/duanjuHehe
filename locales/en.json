@@ -575,6 +575,8 @@
     "landingPages": "Landing",
     "restApi": "REST API",
     "downloadApp": "Download App",
+    "newReleases": "New Releases",
+    "freeHot": "Free Hot",
     "genre_romance": "Romance",
     "genre_drama": "Drama",
     "genre_fantasy": "Fantasy",
@@ -586,7 +588,15 @@
     "genre_werewolf": "Werewolf",
     "genre_mafia": "Mafia",
     "genre_hidden-identity": "Hidden Identity",
-    "genre_forbidden-love": "Forbidden Love"
+    "genre_forbidden-love": "Forbidden Love",
+    "genre_dance": "Dance",
+    "genre_guozhuang": "Guozhuang Dance",
+    "genre_exotic": "Exotic Style",
+    "genre_fashion": "Fashion",
+    "series_tibetan-dance": "Tibetan Dance Collection",
+    "series_guozhuang-dance": "Guozhuang Dance",
+    "series_exotic-dance": "Exotic Dance",
+    "series_street-style": "Street Style"
   },
   "starpath": {
     "title": "智能问卷 Astrology",

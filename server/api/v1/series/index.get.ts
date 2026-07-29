@@ -52,8 +52,25 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: error.message || 'Failed to fetch series' })
   }
 
+  // 自动补全封面：无 cover_image 的系列用第一个分集的缩略图
+  const items = data || []
+  const seriesWithoutCover = items.filter((s: any) => !s.cover_image)
+  if (seriesWithoutCover.length > 0) {
+    const seriesIds = seriesWithoutCover.map((s: any) => s.id)
+    const { data: firstEps } = await db.from('episodes')
+      .select('series_id, thumbnail_url')
+      .in('series_id', seriesIds)
+      .eq('status', 'published')
+      .order('sort_order', { ascending: true })
+    if (firstEps) {
+      const thumbMap = new Map<string, string>()
+      for (const ep of firstEps) { if (!thumbMap.has(ep.series_id) && ep.thumbnail_url) thumbMap.set(ep.series_id, ep.thumbnail_url) }
+      for (const item of items) { if (!item.cover_image && thumbMap.has(item.id)) item.cover_image = thumbMap.get(item.id) }
+    }
+  }
+
   return sendSuccess(event, {
-    items: data || [],
+    items,
     pagination: { page, pageSize, total: count || 0 },
   }, 'Fetched series successfully')
 })

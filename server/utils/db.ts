@@ -144,6 +144,10 @@ export const mockGenresTable: Array<Record<string, any>> = [
   { id: 'g-008', name: 'CEO', slug: 'ceo', icon: 'i-lucide-briefcase', sort_order: 8, created_at: new Date().toISOString() },
   { id: 'g-009', name: 'Werewolf', slug: 'werewolf', icon: 'i-lucide-moon', sort_order: 9, created_at: new Date().toISOString() },
   { id: 'g-010', name: 'Mafia', slug: 'mafia', icon: 'i-lucide-shield', sort_order: 10, created_at: new Date().toISOString() },
+  { id: 'g-011', name: '舞蹈', slug: 'dance', icon: 'i-lucide-music', sort_order: 11, created_at: new Date().toISOString() },
+  { id: 'g-012', name: '锅庄舞', slug: 'guozhuang', icon: 'i-lucide-sparkles', sort_order: 12, created_at: new Date().toISOString() },
+  { id: 'g-013', name: '异域风情', slug: 'exotic', icon: 'i-lucide-star', sort_order: 13, created_at: new Date().toISOString() },
+  { id: 'g-014', name: '时尚穿搭', slug: 'fashion', icon: 'i-lucide-shirt', sort_order: 14, created_at: new Date().toISOString() },
 ]
 
 // 内存 Mock 剧集系列表
@@ -188,14 +192,58 @@ export const mockSeriesTable: Array<Record<string, any>> = [
     status: 'published', total_episodes: 45, free_episodes: 5, rating: 4.4, view_count: 5600000, favorite_count: 320000, is_featured: true,
     sort_order: 5, created_at: new Date(Date.now() - 86400000 * 10).toISOString(), updated_at: new Date().toISOString(),
   },
+  {
+    id: 's-006', title: '藏族舞蹈精选', slug: 'tibetan-dance',
+    description: '阿卓最新藏族舞蹈精选合集，包含锅庄舞、民族服装展示等精彩内容，带你感受雪域高原的独特魅力。',
+    cover_image: '', poster_image: '',
+    trailer_url: '', genre_id: 'g-011', tags: ['藏族', '舞蹈', '民族风', '锅庄'],
+    status: 'published', total_episodes: 10, free_episodes: 10, rating: 4.9, view_count: 2500000, favorite_count: 180000, is_featured: true,
+    sort_order: 6, created_at: new Date(Date.now() - 86400000 * 5).toISOString(), updated_at: new Date().toISOString(),
+  },
+  {
+    id: 's-007', title: '锅庄舞合集', slug: 'guozhuang-dance',
+    description: '精彩绝伦的藏族锅庄舞表演，传统与现代完美融合，展现藏文化独特的艺术魅力。',
+    cover_image: '', poster_image: '',
+    trailer_url: '', genre_id: 'g-012', tags: ['锅庄舞', '藏族', '传统文化'],
+    status: 'published', total_episodes: 10, free_episodes: 10, rating: 4.8, view_count: 1800000, favorite_count: 120000, is_featured: true,
+    sort_order: 7, created_at: new Date(Date.now() - 86400000 * 4).toISOString(), updated_at: new Date().toISOString(),
+  },
+  {
+    id: 's-008', title: '西域风情', slug: 'exotic-dance',
+    description: '西域风情舞蹈系列，异域风情与古典韵味交织，带你走进神秘的西域世界。',
+    cover_image: '', poster_image: '',
+    trailer_url: '', genre_id: 'g-013', tags: ['异域风情', '西域', '舞蹈', '肚皮舞'],
+    status: 'published', total_episodes: 10, free_episodes: 10, rating: 4.7, view_count: 1200000, favorite_count: 90000, is_featured: false,
+    sort_order: 8, created_at: new Date(Date.now() - 86400000 * 3).toISOString(), updated_at: new Date().toISOString(),
+  },
+  {
+    id: 's-009', title: '街拍穿搭', slug: 'street-style',
+    description: '时尚街拍与穿搭灵感，展现自信与气质。户外舞蹈与日常穿搭的完美结合。',
+    cover_image: '', poster_image: '',
+    trailer_url: '', genre_id: 'g-014', tags: ['街拍', '穿搭', '时尚', '户外'],
+    status: 'published', total_episodes: 10, free_episodes: 10, rating: 4.6, view_count: 900000, favorite_count: 60000, is_featured: false,
+    sort_order: 9, created_at: new Date(Date.now() - 86400000 * 2).toISOString(), updated_at: new Date().toISOString(),
+  },
 ]
 
 // 内存 Mock 分集表（为每部剧集生成前几集）
+const VIDEO_SAMPLES = [
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/42afb619_sample-01-flying-dance.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/f860e50a_sample-02-shine-bright.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/ab1e91ae_sample-03-be-yourself.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/7c1adf07_sample-04-street-style.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/979487b6_sample-05-new-year-dance.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/28496ec5_sample-06-flying-dance-2.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/4e0c571a_sample-07-partner-dance.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/e8049c87_sample-08-persist-dance.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/6bc334e1_sample-09-guzhuang-dance.mp4',
+  'https://omjtyrfjfonebiwfmzfz.supabase.co/storage/v1/object/public/series-videos/other/2f196ce5_sample-10-free-spirit.mp4',
+]
+
 function _buildEpisodes(): Array<Record<string, any>> {
   const eps: Array<Record<string, any>> = []
-  const series = mockSeriesTable
-  for (const s of series) {
-    const count = Math.min(s.total_episodes, 8) // 每部生成前8集mock
+  for (const s of mockSeriesTable) {
+    const count = Math.min(s.total_episodes, 8)
     for (let i = 1; i <= count; i++) {
       eps.push({
         id: `ep-${s.id}-${i}`,
@@ -203,9 +251,9 @@ function _buildEpisodes(): Array<Record<string, any>> {
         episode_number: i,
         title: `${s.title} - Episode ${i}`,
         description: `Episode ${i} of ${s.title}. ${i <= s.free_episodes ? 'Free episode.' : `Unlock with ${5 + i} coins.`}`,
-        video_url: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        video_url: VIDEO_SAMPLES[(i - 1) % VIDEO_SAMPLES.length],
         thumbnail_url: `https://picsum.photos/seed/ep${s.id}${i}/400/600`,
-        duration_seconds: 60 + Math.floor(Math.random() * 60),
+        duration_seconds: 15 + Math.floor(Math.random() * 45),
         is_free: i <= s.free_episodes,
         coin_cost: i <= s.free_episodes ? 0 : 5 + i,
         sort_order: i,

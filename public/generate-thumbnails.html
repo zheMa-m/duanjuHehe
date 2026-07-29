@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>视频缩略图生成器</title>
+<style>
+  body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 16px; background: #111; color: #eee; }
+  h1 { font-size: 1.4rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: #1a1a2e; border-radius: 10px; overflow: hidden; }
+  .card canvas { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; background: #000; }
+  .card .label { padding: 8px; font-size: 11px; color: #aaa; text-align: center; }
+  button { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; margin: 4px; }
+  .btn-go { background: #6366f1; color: #fff; }
+  .btn-save { background: #22c55e; color: #fff; }
+  .btn-dl { background: #f59e0b; color: #fff; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status { padding: 8px; font-size: 13px; color: #fbbf24; }
+</style>
+</head>
+<body>
+<h1>🎬 视频缩略图生成器</h1>
+<p>从 public/videos/samples/ 中的视频提取第1秒帧，自动保存到 public/images/thumbnails/</p>
+<p class="status" id="status">准备就绪</p>
+<button class="btn-go" onclick="autoAll()">🚀 一键生成 + 保存（全部自动）</button>
+<button class="btn-save" onclick="saveAllToServer()" id="btnSave" disabled>💾 仅保存</button>
+<button class="btn-dl" onclick="downloadAll()" id="btnDl" disabled>📥 下载</button>
+<div class="grid" id="grid"></div>
+
+<script>
+const SAMPLES = [
+  'sample-01-flying-dance.mp4', 'sample-02-shine-bright.mp4',
+  'sample-03-be-yourself.mp4', 'sample-04-street-style.mp4',
+  'sample-05-new-year-dance.mp4', 'sample-06-flying-dance-2.mp4',
+  'sample-07-partner-dance.mp4', 'sample-08-persist-dance.mp4',
+  'sample-09-guzhuang-dance.mp4', 'sample-10-free-spirit.mp4',
+];
+const captured = [];
+
+async function captureFrame(videoSrc, timeSec = 1) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'auto';
+    video.muted = true;
+    video.src = '/videos/samples/' + videoSrc;
+    video.onloadeddata = () => { video.currentTime = Math.min(timeSec, video.duration * 0.3 || 1); };
+    video.onseeked = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = Math.round(400 * (video.videoHeight / video.videoWidth)) || 600;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      resolve(canvas); video.remove();
+    };
+    video.onerror = () => { reject(new Error('Failed')); video.remove(); };
+    setTimeout(() => reject(new Error('Timeout')), 10000);
+  });
+}
+
+async function generateAll() {
+  const grid = document.getElementById('grid'), status = document.getElementById('status');
+  grid.innerHTML = ''; captured.length = 0;
+  document.getElementById('btnSave').disabled = true;
+  document.getElementById('btnDl').disabled = true;
+
+  for (const name of SAMPLES) {
+    status.textContent = '⏳ ' + name;
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = '<div style="aspect-ratio:2/3;background:#000;display:flex;align-items:center;justify-content:center;color:#666;font-size:13px">⏳</div><div class="label">'+name+'</div>';
+    grid.appendChild(card);
+    try {
+      const canvas = await captureFrame(name);
+      card.querySelector('div').replaceWith(canvas);
+      captured.push({ name: name.replace('.mp4','.png'), canvas });
+      status.textContent = '✅ ' + name;
+    } catch(e) {
+      card.querySelector('div').innerHTML = '❌';
+      status.textContent = '❌ ' + name;
+    }
+  }
+  status.textContent = '✅ 完成 '+captured.length+' 个';
+  document.getElementById('btnSave').disabled = captured.length === 0;
+  document.getElementById('btnDl').disabled = captured.length === 0;
+}
+
+async function autoAll() {
+  await generateAll();
+  if (captured.length > 0) {
+    document.getElementById('status').textContent = '💾 自动保存中...';
+    await saveAllToServer();
+    document.getElementById('status').textContent = '🎉 全部完成！' + captured.length + ' 个缩略图已保存，数据库已自动关联。刷新页面即可看到真实视频封面！';
+  }
+}
+
+async function saveAllToServer() {
+  const status = document.getElementById('status');
+  let saved = 0;
+  for (const {name, canvas} of captured) {
+    const dataUrl = canvas.toDataURL('image/png');
+    try {
+      const res = await fetch('/api/admin/thumbnails/save', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name, data: dataUrl })
+      });
+      if (res.ok) { saved++; status.textContent = '💾 已保存: ' + name + ' ('+saved+'/'+captured.length+')'; }
+      else { status.textContent = '❌ 保存失败: ' + name; }
+    } catch(e) { status.textContent = '❌ 请求失败: ' + e.message; }
+  }
+  status.textContent = '✅ 已保存 '+saved+' 个缩略图到 public/images/thumbnails/！请刷新项目页面查看效果';
+}
+
+function downloadAll() {
+  for (const {name, canvas} of captured) {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+}
+</script>
+</body>
+</html>

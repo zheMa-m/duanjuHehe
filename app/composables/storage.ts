@@ -168,7 +168,8 @@ export function useStorage() {
 
     // 3. 构建公开 URL（仅 public bucket 有意义）
     let publicUrl: string | null = null
-    if (bucket === 'campaign-assets') {
+    const publicBuckets = ['campaign-assets', 'series-videos']
+    if (publicBuckets.includes(bucket)) {
       const supabaseUrl = config.public.supabaseUrl as string
       if (supabaseUrl && !supabaseUrl.includes('placeholder')) {
         publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`

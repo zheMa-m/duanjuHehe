@@ -27,8 +27,17 @@ logs
 
 supabase/.temp
 
+# Video processing temp files (hosted on Supabase Storage)
+public/videos/compressed/
+public/videos/samples/
+public/images/thumbnails/
+scripts/video-urls.json
+
 .codebuddy
 .cursorrules
 
 .devcontainer
 .vscode
+
+# Legacy (removed)
+coffeeSystem/
