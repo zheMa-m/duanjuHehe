@@ -571,7 +571,10 @@
     "googlePlay": "🤖 Google Play",
     "startWatching": "▶ Start Watching Free",
     "freeNote": "First {count} episodes free!",
-    "bingeBadge": "🔥 Binge-Worthy Drama"
+    "bingeBadge": "🔥 Binge-Worthy Drama",
+    "landingPages": "Landing",
+    "restApi": "REST API",
+    "downloadApp": "Download App"
   },
   "starpath": {
     "title": "智能问卷 Astrology",

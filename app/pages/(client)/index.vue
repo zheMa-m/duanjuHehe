@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import LanguageSwitcher from '~/components/shared/LanguageSwitcher.vue'
+import { useH5DemoLinks } from '~/composables/useH5DemoLinks'
+import { resolveAdminHref, resolveApiDocHref } from '~/utils/subdomain'
 
 const { t } = useI18n()
 const { initAuth } = useAuth()
+const { demos } = useH5DemoLinks()
 
 useAppSEO({
   title: () => `ReelShort — ${t('reelshort.tagline')}`,
@@ -14,6 +17,24 @@ const featuredSeries = ref<any[]>([])
 const trendingSeries = ref<any[]>([])
 const genres = ref<any[]>([])
 const loading = ref(true)
+
+const dropdownOpen = ref('')
+
+function toggleDropdown(key: string) {
+  dropdownOpen.value = dropdownOpen.value === key ? '' : key
+}
+function closeDropdown() {
+  dropdownOpen.value = ''
+}
+
+const apiDocHref = computed(() => {
+  if (import.meta.client) return resolveApiDocHref(window.location.origin, '/_scalar')
+  return '/_scalar'
+})
+const adminHref = computed(() => {
+  if (import.meta.client) return resolveAdminHref(window.location.origin)
+  return '/admin'
+})
 
 async function fetchData() {
   try {
@@ -43,9 +64,48 @@ onMounted(async () => {
           <span class="logo-icon">🎬</span>
           <span class="logo-text">{{ $t('reelshort.siteName') }}</span>
         </NuxtLink>
-        <nav class="nav-links">
+        <nav class="nav-links" @mouseleave="closeDropdown">
           <NuxtLink to="/browse" class="nav-link">{{ $t('reelshort.browse') }}</NuxtLink>
-          <a href="/admin" target="_blank" class="nav-link nav-admin">{{ $t('reelshort.admin') }}</a>
+
+          <!-- 落地页 Dropdown -->
+          <div class="nav-dropdown" @mouseenter="toggleDropdown('landing')">
+            <button class="nav-link nav-dropdown-trigger">
+              {{ $t('reelshort.landingPages') }}
+              <span class="dropdown-arrow" :class="{ open: dropdownOpen === 'landing' }">▾</span>
+            </button>
+            <div v-if="dropdownOpen === 'landing'" class="dropdown-menu">
+              <a v-for="d in demos" :key="d.id" :href="d.href" target="_blank" class="dropdown-item">
+                <span class="dropdown-item-icon">{{ d.id === 'starpath' ? '🔮' : d.id === 'v1' ? '🪟' : '🎨' }}</span>
+                <span>{{ $t(d.labelKey) }}</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- API / App Dropdown -->
+          <div class="nav-dropdown" @mouseenter="toggleDropdown('more')">
+            <button class="nav-link nav-dropdown-trigger">
+              {{ $t('reelshort.restApi') }}
+              <span class="dropdown-arrow" :class="{ open: dropdownOpen === 'more' }">▾</span>
+            </button>
+            <div v-if="dropdownOpen === 'more'" class="dropdown-menu">
+              <a :href="apiDocHref" target="_blank" class="dropdown-item">
+                <span class="dropdown-item-icon">📖</span>
+                <span>Scalar API Reference</span>
+              </a>
+              <div class="dropdown-divider" />
+              <span class="dropdown-label">{{ $t('reelshort.downloadApp') }}</span>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-item-icon">📱</span>
+                <span>{{ $t('reelshort.appStore') }}</span>
+              </a>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-item-icon">🤖</span>
+                <span>{{ $t('reelshort.googlePlay') }}</span>
+              </a>
+            </div>
+          </div>
+
+          <a :href="adminHref" target="_blank" class="nav-link nav-admin">{{ $t('reelshort.admin') }}</a>
           <LanguageSwitcher />
         </nav>
       </div>
@@ -219,6 +279,56 @@ onMounted(async () => {
   border: 1px solid #e0e7ff;
 }
 .nav-admin:hover { background: #e0e7ff; color: #4f46e5; }
+
+/* ─── NAV DROPDOWN ─── */
+.nav-dropdown { position: relative; }
+.nav-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dropdown-arrow { font-size: 0.625rem; transition: transform 0.15s; }
+.dropdown-arrow.open { transform: rotate(180deg); }
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  min-width: 200px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+  padding: 6px;
+  z-index: 200;
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #475569;
+  text-decoration: none;
+  transition: all 0.1s;
+}
+.dropdown-item:hover { background: #f1f5f9; color: #0f172a; }
+.dropdown-item-icon { font-size: 1rem; flex-shrink: 0; }
+.dropdown-divider { height: 1px; background: #e8ecf1; margin: 4px 8px; }
+.dropdown-label {
+  display: block;
+  padding: 6px 12px 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
 /* ─── HERO ─── */
 .hero {

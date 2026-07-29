@@ -571,7 +571,10 @@
     "googlePlay": "🤖 Google Play",
     "startWatching": "▶ 开始免费观看",
     "freeNote": "前 {count} 集免费！",
-    "bingeBadge": "🔥 上头神剧"
+    "bingeBadge": "🔥 上头神剧",
+    "landingPages": "落地页",
+    "restApi": "REST API",
+    "downloadApp": "下载 App"
   },
   "starpath": {
     "title": "智能问卷 占星问卷",
