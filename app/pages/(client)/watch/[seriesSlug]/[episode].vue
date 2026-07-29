@@ -112,11 +112,11 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.watch-root { min-height: 100vh; background: #000; color: #f1f5f9; }
-.watch-header { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); }
-.back-link { color: #818cf8; text-decoration: none; font-size: 14px; }
-.coin-display { font-size: 14px; font-weight: 600; color: #fbbf24; }
-.loading { text-align: center; padding: 100px; color: #64748b; }
+.watch-root { min-height: 100vh; background: #f8fafc; color: #0f172a; }
+.watch-header { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: rgba(255,255,255,0.82); backdrop-filter: blur(12px); }
+.back-link { color: #6366f1; text-decoration: none; font-size: 14px; }
+.coin-display { font-size: 14px; font-weight: 600; color: #d97706; }
+.loading { text-align: center; padding: 100px; color: #94a3b8; }
 
 .player-container { position: relative; width: 100%; max-width: 500px; margin: 0 auto; background: #000; aspect-ratio: 9/16; }
 .video-player { width: 100%; height: 100%; object-fit: contain; }
@@ -125,18 +125,18 @@ onMounted(fetchData)
 .locked-content { position: relative; z-index: 1; text-align: center; padding: 32px; }
 .lock-icon { font-size: 3rem; display: block; margin-bottom: 16px; }
 .locked-content h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
-.locked-content p { color: #94a3b8; margin-bottom: 8px; font-size: 14px; }
-.balance-text { color: #fbbf24 !important; }
+.locked-content p { color: #475569; margin-bottom: 8px; font-size: 14px; }
+.balance-text { color: #d97706 !important; }
 .unlock-btn { padding: 12px 32px; border-radius: 10px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; cursor: pointer; margin-top: 16px; box-shadow: 0 4px 20px rgba(245,158,11,0.3); }
 .unlock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.insufficient { color: #f87171 !important; font-size: 12px !important; margin-top: 8px; }
+.insufficient { color: #dc2626 !important; font-size: 12px !important; margin-top: 8px; }
 
 .episode-info { max-width: 500px; margin: 0 auto; padding: 20px 24px; }
 .ep-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-.ep-desc { font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px; }
+.ep-desc { font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 16px; }
 .ep-nav { display: flex; gap: 12px; }
-.nav-btn { flex: 1; padding: 10px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); color: #94a3b8; text-decoration: none; transition: all 0.15s; }
-.nav-btn:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+.nav-btn { flex: 1; padding: 10px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 500; background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; text-decoration: none; transition: all 0.15s; }
+.nav-btn:hover { background: #e2e8f0; color: #1e293b; }
 .nav-btn.disabled { opacity: 0.3; pointer-events: none; }
-@media (min-width: 768px) { .watch-root { max-width: 500px; margin: 0 auto; border-left: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); } }
+@media (min-width: 768px) { .watch-root { max-width: 500px; margin: 0 auto; border-left: 1px solid #e8ecf1; border-right: 1px solid #e8ecf1; } }
 </style>

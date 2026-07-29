@@ -67,8 +67,8 @@ const hovered = ref(false)
 
 .nav-compact__bg {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, #08080f 0%, #0a0a14 100%);
-  border-right: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, #f8fafc 0%, #0a0a14 100%);
+  border-right: 1px solid rgba(0,0,0,0.05);
   box-shadow: 2px 0 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
 }
 
@@ -114,15 +114,15 @@ const hovered = ref(false)
   justify-content: center;
   border-radius: 9px; border: none; outline: none;
   background: transparent; cursor: pointer;
-  color: rgba(255,255,255,0.35);
+  color: rgba(0,0,0,0.35);
   transition: all 0.15s ease;
 }
 .nav-compact-item--expanded {
   justify-content: flex-start; padding: 9px 12px;
 }
 .nav-compact-item:hover {
-  color: rgba(255,255,255,0.78);
-  background: rgba(255,255,255,0.04);
+  color: rgba(0,0,0,0.78);
+  background: rgba(0,0,0,0.04);
 }
 .nav-compact-item--active {
   color: #fff !important;

@@ -59,8 +59,8 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 
 .nav-tabbed__bg {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, #08080f 0%, #0a0a14 100%);
-  border-right: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, #f8fafc 0%, #0a0a14 100%);
+  border-right: 1px solid rgba(0,0,0,0.05);
   box-shadow: 2px 0 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.1);
 }
 
@@ -103,8 +103,8 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 .nav-tabbed__domain-count {
   font-size: 9px; font-family: ui-monospace, monospace;
   padding: 1px 6px; border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.15);
 }
 
 /* 导航 */
@@ -113,7 +113,7 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
   flex: 1; overflow-y: auto; padding: 4px 12px;
 }
 .nav-tabbed__nav::-webkit-scrollbar { width: 3px; }
-.nav-tabbed__nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 2px; }
+.nav-tabbed__nav::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.04); border-radius: 2px; }
 
 /* 子菜单项 */
 .nav-tab-item {
@@ -123,14 +123,14 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
   border-radius: 8px; border: none; outline: none;
   background: transparent; cursor: pointer; text-align: left;
   font-size: 14px; font-weight: 450;
-  color: var(--admin-text-muted, rgba(255,255,255,0.38));
+  color: var(--admin-text-muted, rgba(0,0,0,0.38));
   letter-spacing: -0.008em;
   transition: all 0.15s ease;
   margin-bottom: 2px;
 }
 .nav-tab-item:hover {
-  color: var(--admin-text-secondary, rgba(255,255,255,0.78));
-  background: rgba(255,255,255,0.04);
+  color: var(--admin-text-secondary, rgba(0,0,0,0.78));
+  background: rgba(0,0,0,0.04);
 }
 .nav-tab-item--active {
   color: var(--admin-text-primary, #fff) !important;
@@ -143,7 +143,7 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 /* 圆点指示器 */
 .nav-tab-item__dot {
   width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
-  background: rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.10);
   transition: all 0.2s ease;
 }
 .nav-tab-item__dot--active {
@@ -155,10 +155,10 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 /* 图标 */
 .nav-tab-item__icon {
   font-size: 16px; flex-shrink: 0;
-  color: var(--admin-text-muted, rgba(255,255,255,0.40));
+  color: var(--admin-text-muted, rgba(0,0,0,0.40));
   transition: opacity 0.15s, color 0.15s;
 }
-.nav-tab-item:hover .nav-tab-item__icon { color: var(--admin-text-secondary, rgba(255,255,255,0.65)); }
+.nav-tab-item:hover .nav-tab-item__icon { color: var(--admin-text-secondary, rgba(0,0,0,0.65)); }
 .nav-tab-item__icon--active {
   color: var(--brand-accent-soft) !important;
 }
@@ -173,8 +173,8 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 .nav-tab-item__kbd {
   font-size: 9px; font-family: ui-monospace, monospace;
   padding: 1px 5px; border-radius: 3px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.04);
   color: rgba(255,255,255,0.12);
   margin-left: auto; flex-shrink: 0;
 }
@@ -183,6 +183,6 @@ const currentDomain = computed(() => tabDomains.find(d => d.id === props.activeD
 .nav-tabbed__footer {
   position: relative; z-index: 1;
   flex-shrink: 0; padding: 12px 20px;
-  border-top: 1px solid rgba(255,255,255,0.03);
+  border-top: 1px solid rgba(0,0,0,0.03);
 }
 </style>

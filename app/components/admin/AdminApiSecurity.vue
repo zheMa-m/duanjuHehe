@@ -676,10 +676,10 @@ const handleSigToggle = async () => {
     </div>
 
     <!-- 子 tab 导航 -->
-    <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)] flex-wrap gap-0.5">
+    <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(0,0,0,0.02)] flex-wrap gap-0.5">
       <button v-for="t in subTabs" :key="t.key" @click="subTab = t.key"
         class="text-[11px] font-semibold px-4 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0 flex items-center gap-1.5"
-        :class="subTab === t.key ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]' : 'bg-transparent text-white/60 hover:text-white/90'">
+        :class="subTab === t.key ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(0,0,0,0.05)]' : 'bg-transparent text-white/60 hover:text-white/90'">
         <span :class="[t.iconClass, 'text-sm']" /> {{ t.label }}
       </button>
     </div>
@@ -735,7 +735,7 @@ const handleSigToggle = async () => {
         <div class="bg-white/[0.04] rounded-2xl p-5 shadow-lg shadow-black/20 border border-white/[0.06] flex flex-col items-center text-center">
           <div class="relative w-24 h-24 mb-3">
             <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
-              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="8" />
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(0,0,0,0.04)" stroke-width="8" />
               <circle cx="50" cy="50" r="42" fill="none"
                 :stroke="securityScore >= 80 ? '#30d158' : securityScore >= 60 ? '#ff9f0a' : '#ff453a'"
                 stroke-width="8" stroke-linecap="round"

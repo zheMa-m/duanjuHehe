@@ -95,38 +95,38 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.detail-root { min-height: 100vh; background: #050510; color: #f1f5f9; }
+.detail-root { min-height: 100vh; background: #f8fafc; color: #0f172a; }
 .detail-header { padding: 16px 24px; }
-.back-link { color: #818cf8; text-decoration: none; font-size: 14px; }
-.loading { text-align: center; padding: 100px; color: #64748b; }
+.back-link { color: #6366f1; text-decoration: none; font-size: 14px; }
+.loading { text-align: center; padding: 100px; color: #94a3b8; }
 
 .hero { position: relative; padding: 40px 24px; background-size: cover; background-position: center; }
-.hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, #050510 0%, rgba(5,5,16,0.6) 50%, rgba(5,5,16,0.3) 100%); }
+.hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, #f8fafc 0%, rgba(248,250,252,0.6) 50%, rgba(248,250,252,0.3) 100%); }
 .hero-content { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; display: flex; gap: 32px; align-items: flex-start; }
-.hero-cover { width: 180px; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); flex-shrink: 0; }
+.hero-cover { width: 180px; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.08); flex-shrink: 0; }
 .hero-info { flex: 1; }
 .hero-title { font-size: 1.75rem; font-weight: 800; margin-bottom: 8px; }
-.hero-meta { display: flex; gap: 16px; font-size: 13px; color: #94a3b8; margin-bottom: 12px; }
-.hero-desc { color: #94a3b8; line-height: 1.6; font-size: 14px; margin-bottom: 12px; }
+.hero-meta { display: flex; gap: 16px; font-size: 13px; color: #475569; margin-bottom: 12px; }
+.hero-desc { color: #475569; line-height: 1.6; font-size: 14px; margin-bottom: 12px; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-.tag { padding: 4px 10px; border-radius: 9999px; font-size: 11px; background: rgba(255,255,255,0.06); color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); }
+.tag { padding: 4px 10px; border-radius: 9999px; font-size: 11px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 .hero-actions { display: flex; gap: 12px; }
-.watch-btn { padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); text-decoration: none; box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
-.fav-btn { padding: 12px 20px; border-radius: 10px; font-size: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94a3b8; cursor: pointer; }
-.fav-btn.active { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.1); }
+.watch-btn { padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #6366f1, #4f46e5); text-decoration: none; box-shadow: 0 4px 20px rgba(99,102,241,0.25); }
+.fav-btn { padding: 12px 20px; border-radius: 10px; font-size: 14px; background: #ffffff; border: 1px solid #e2e8f0; color: #475569; cursor: pointer; }
+.fav-btn.active { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
 
 .episodes-section { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
 .section-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 16px; }
 .episode-list { display: flex; flex-direction: column; gap: 8px; }
-.episode-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); text-decoration: none; color: inherit; transition: all 0.15s; }
-.episode-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+.episode-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; background: #ffffff; border: 1px solid #e2e8f0; text-decoration: none; color: inherit; transition: all 0.15s; }
+.episode-item:hover { background: #f1f5f9; border-color: #cbd5e1; }
 .ep-thumb { width: 80px; height: 45px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
 .ep-info { flex: 1; min-width: 0; }
-.ep-num { font-size: 12px; color: #818cf8; font-weight: 600; display: block; }
-.ep-title { font-size: 13px; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.ep-num { font-size: 12px; color: #6366f1; font-weight: 600; display: block; }
+.ep-title { font-size: 13px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .ep-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.free-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: rgba(34,197,94,0.15); color: #22c55e; }
-.coin-badge { font-size: 11px; color: #fbbf24; }
-.ep-dur { font-size: 11px; color: #64748b; font-family: monospace; }
+.free-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: #dcfce7; color: #16a34a; }
+.coin-badge { font-size: 11px; color: #d97706; }
+.ep-dur { font-size: 11px; color: #94a3b8; font-family: monospace; }
 @media (max-width: 640px) { .hero-content { flex-direction: column; align-items: center; text-align: center; } .hero-cover { width: 140px; } }
 </style>

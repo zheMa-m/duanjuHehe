@@ -121,12 +121,12 @@ onMounted(fetchFeedbacks)
 .rating-bars { display: flex; flex-direction: column; gap: 5px; }
 .rating-row { display: flex; align-items: center; gap: 8px; font-size: 10px; }
 .rating-star { color: #D4A853; width: 14px; font-size: 10px; }
-.rating-track { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 100px; overflow: hidden; }
+.rating-track { flex: 1; height: 4px; background: rgba(0,0,0,0.06); border-radius: 100px; overflow: hidden; }
 .rating-fill { height: 100%; background: #D4A853; border-radius: 100px; transition: width 0.6s cubic-bezier(0.16,1,0.3,1); }
 .rating-num { color: #64748B; width: 18px; text-align: right; font-family: 'JetBrains Mono',monospace; font-size: 9px; }
 
 .feedback-list { display: flex; flex-direction: column; gap: 10px; }
-.feedback-card { padding: 14px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; transition: border-color 0.2s ease; }
+.feedback-card { padding: 14px; background: rgba(0,0,0,0.25); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; transition: border-color 0.2s ease; }
 .feedback-card:hover { border-color: rgba(255,255,255,0.12); }
 .feedback-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .feedback-name { font-size: 11px; font-weight: 600; color: #F1F5F9; }
@@ -152,10 +152,10 @@ onMounted(fetchFeedbacks)
 }
 .write-trigger:hover { border-color: rgba(212,168,83,0.3); color: #D4A853; background: rgba(212,168,83,0.06); }
 
-.write-form { padding: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; display: flex; flex-direction: column; gap: 12px; }
+.write-form { padding: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; display: flex; flex-direction: column; gap: 12px; }
 .star-picker { display: flex; align-items: center; gap: 4px; }
 .picker-label { font-size: 10px; color: #64748B; margin-right: 8px; }
-.star-btn { font-size: 18px; color: rgba(255,255,255,0.1); background: none; border: none; cursor: pointer; transition: transform 0.15s ease, color 0.15s ease; padding: 0 2px; }
+.star-btn { font-size: 18px; color: rgba(0,0,0,0.10); background: none; border: none; cursor: pointer; transition: transform 0.15s ease, color 0.15s ease; padding: 0 2px; }
 .star-btn:hover { transform: scale(1.2); }
 .star-active { color: #D4A853; }
 

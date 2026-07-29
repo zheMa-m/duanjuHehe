@@ -124,7 +124,7 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-sidebar__bg {
   position: absolute; inset: 0;
   background: var(--admin-bg, #08080f);
-  border-right: 1px solid var(--admin-border-subtle, rgba(255,255,255,0.06));
+  border-right: 1px solid var(--admin-border-subtle, rgba(0,0,0,0.06));
 }
 
 /* ─── Header / Logo ─── */
@@ -141,7 +141,7 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-sidebar__logo {
   position: relative; width: 32px; height: 32px; flex-shrink: 0;
   border-radius: 10px;
-  background: var(--admin-brand, #818cf8);
+  background: var(--admin-brand, #6366f1);
   display: flex; align-items: center; justify-content: center;
   
 }
@@ -159,7 +159,7 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .nav-sidebar__brand-sub {
-  font-size: 10px; color: rgba(255,255,255,0.22);
+  font-size: 10px; color: rgba(0,0,0,0.22);
   font-family: ui-monospace, monospace; margin-top: 1px;
 }
 
@@ -170,20 +170,20 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   transition: all 0.15s;
 }
 .nav-sidebar__collapse-btn:hover {
-  color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.04);
+  color: rgba(0,0,0,0.55); background: rgba(0,0,0,0.04);
 }
 
 .nav-sidebar__expand {
   position: absolute; top: 20px; right: -13px; z-index: 30;
   width: 26px; height: 26px; border-radius: 50%;
-  background: #111114; border: 1px solid rgba(255,255,255,0.08);
+  background: #ffffff; border: 1px solid rgba(0,0,0,0.08);
   display: flex; align-items: center; justify-content: center;
-  color: rgba(255,255,255,0.35); cursor: pointer;
+  color: rgba(0,0,0,0.35); cursor: pointer;
   
   transition: all 0.2s;
 }
 .nav-sidebar__expand:hover {
-  color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.8); border-color: rgba(0,0,0,0.15);
 }
 
 /* ─── 导航区 ─── */
@@ -193,7 +193,7 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 }
 .nav-sidebar__nav::-webkit-scrollbar { width: 3px; }
 .nav-sidebar__nav::-webkit-scrollbar-track { background: transparent; }
-.nav-sidebar__nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 2px; }
+.nav-sidebar__nav::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.04); border-radius: 2px; }
 
 /* ─── 菜单项 ─── */
 .nav-item {
@@ -211,7 +211,7 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 }
 .nav-item:hover {
   color: var(--admin-text-secondary, rgba(255,255,255,0.82));
-  background: rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.04);
 }
 .nav-item--active {
   color: var(--admin-text-primary, #fff) !important;
@@ -228,17 +228,17 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-item__bar {
   position: absolute; left: 0; top: 22%; bottom: 22%;
   width: 3px; border-radius: 0 3px 3px 0;
-  background: var(--admin-brand, #818cf8);
+  background: var(--admin-brand, #6366f1);
   
 }
 
 /* 图标 */
 .nav-item__icon {
   font-size: 17px; flex-shrink: 0;
-  color: var(--admin-text-muted, rgba(255,255,255,0.40));
+  color: var(--admin-text-muted, rgba(0,0,0,0.40));
   transition: opacity 0.15s, color 0.15s, filter 0.15s;
 }
-.nav-item:hover .nav-item__icon { color: var(--admin-text-secondary, rgba(255,255,255,0.65)); }
+.nav-item:hover .nav-item__icon { color: var(--admin-text-secondary, rgba(0,0,0,0.65)); }
 .nav-item__icon--active {
   color: var(--brand-accent-soft) !important;
 
@@ -254,9 +254,9 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
 .nav-item__kbd {
   font-size: 9px; font-family: ui-monospace, monospace;
   padding: 1px 6px; border-radius: 4px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.14);
   margin-left: auto; flex-shrink: 0;
 }
 
@@ -281,12 +281,12 @@ const isCollapsed = (id: string) => !!collapsedGroups.value[id]
   font-size: 12px; color: rgba(255,255,255,0.12);
   transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), color 0.15s;
 }
-.nav-group__header:hover .nav-group__chevron { color: rgba(255,255,255,0.25); }
+.nav-group__header:hover .nav-group__chevron { color: rgba(0,0,0,0.25); }
 .nav-group__chevron--up { transform: rotate(-90deg); }
 
 .nav-group__divider {
   height: 1px; margin: 12px 16px;
-  background: rgba(255,255,255,0.04); border-radius: 1px;
+  background: rgba(0,0,0,0.04); border-radius: 1px;
 }
 
 .nav-group__items {

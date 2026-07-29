@@ -327,7 +327,7 @@ const formatUptime = (seconds: number) => {
   background-image: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.15) 50%,
+    rgba(0,0,0,0.15) 50%,
     rgba(255, 255, 255, 0) 100%
   );
   background-size: 200px 100%;

@@ -334,7 +334,7 @@ async function saveAnalytics() {
         <!-- 运行时 -->
         <div class="bg-white/[0.03] rounded-2xl p-5 border border-white/[0.05] shadow-lg">
           <div class="flex items-center gap-2.5 mb-3">
-            <div class="w-2.5 h-2.5 rounded-full bg-[#818cf8]" />
+            <div class="w-2.5 h-2.5 rounded-full bg-[#6366f1]" />
             <span class="text-sm font-semibold text-white/95">应用运行时</span>
           </div>
           <div class="text-[11px] font-mono space-y-1.5 pl-1">

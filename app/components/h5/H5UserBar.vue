@@ -40,28 +40,28 @@ async function handleLogout() { await signOut(); emit('logout') }
 <style scoped>
 .user-bar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0.6rem 1rem; background: rgba(255,255,255,0.04);
+  padding: 0.6rem 1rem; background: rgba(0,0,0,0.04);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
   font-size: 0.8rem; color: #F1F5F9; transition: background 0.3s ease;
 }
 .user-info { display: flex; align-items: center; gap: 0.5rem; }
 .avatar {
   width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
-  background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(255,255,255,0.1); transition: border-color 0.2s ease;
+  background: rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(0,0,0,0.10); transition: border-color 0.2s ease;
 }
 .avatar:hover { border-color: rgba(212,168,83,0.3); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-placeholder { font-weight: 700; font-size: 0.75rem; color: #D4A853; }
 .display-name { font-weight: 600; color: #F1F5F9; font-size: 0.75rem; }
 .logout-btn {
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.10);
   border-radius: 8px; padding: 0.3rem 0.7rem; font-size: 0.7rem; color: #94A3B8;
   cursor: pointer; transition: all 0.2s ease;
 }
-.logout-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); color: #F1F5F9; }
+.logout-btn:hover { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.18); color: #F1F5F9; }
 .guest-info { display: flex; align-items: center; gap: 0.4rem; }
 .guest-icon { font-size: 14px; opacity: 0.5; color: #94A3B8; }
 .guest-label { color: #94A3B8; font-weight: 500; font-size: 0.75rem; }

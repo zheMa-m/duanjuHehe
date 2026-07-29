@@ -260,14 +260,14 @@ async function handleChangePlan() {
     <!-- 筛选栏 -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
       <div class="overflow-x-auto max-w-full">
-        <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)] whitespace-nowrap">
+        <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(0,0,0,0.02)] whitespace-nowrap">
           <button
             v-for="s in statusList"
             :key="s"
             @click="statusFilter = s"
             class="text-[10px] font-semibold px-3 py-2 sm:px-4.5 sm:py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0 whitespace-nowrap"
             :class="statusFilter === s 
-              ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]' 
+              ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(0,0,0,0.05)]' 
               : 'bg-transparent text-white/60 hover:text-white/90'"
           >
             {{ statusLabel[s] || s }}

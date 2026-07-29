@@ -253,14 +253,14 @@ const providerLabel: Record<string, string> = {
         class="w-full sm:w-52 bg-white/[0.03] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none transition-all"
       />
       <div class="overflow-x-auto max-w-full">
-        <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)] whitespace-nowrap">
+        <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(0,0,0,0.02)] whitespace-nowrap">
           <button
             v-for="tab in userFilterTabs"
             :key="tab.key + tab.type"
             @click="handleTabClick(tab)"
             class="text-[10px] font-semibold px-3 py-2 sm:px-4.5 sm:py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0 whitespace-nowrap"
             :class="isActiveTab(tab)
-              ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]'
+              ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(0,0,0,0.05)]'
               : 'bg-transparent text-white/60 hover:text-white/90'"
           >
             {{ tab.label }}

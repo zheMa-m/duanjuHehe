@@ -167,12 +167,12 @@ defineExpose({ open })
   position: relative;
   width: 540px; max-height: 440px;
   border-radius: 16px; overflow: hidden;
-  background: #12121a;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.06);
   box-shadow:
     0 32px 64px rgba(0,0,0,0.7),
-    0 0 0 1px rgba(255,255,255,0.03),
-    inset 0 1px rgba(255,255,255,0.04);
+    0 0 0 1px rgba(0,0,0,0.03),
+    inset 0 1px rgba(0,0,0,0.04);
   display: flex; flex-direction: column;
 }
 
@@ -188,23 +188,23 @@ defineExpose({ open })
 .palette__search {
   display: flex; align-items: center; gap: 10px;
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
   position: relative;
 }
 .palette__search-icon {
-  font-size: 18px; color: rgba(255,255,255,0.22); flex-shrink: 0;
+  font-size: 18px; color: rgba(0,0,0,0.22); flex-shrink: 0;
 }
 .palette__input {
   flex: 1; background: transparent; border: none; outline: none;
   font-size: 15px; color: #fff;
   font-weight: 400; letter-spacing: -0.01em;
 }
-.palette__input::placeholder { color: rgba(255,255,255,0.18); }
+.palette__input::placeholder { color: rgba(0,0,0,0.18); }
 .palette__esc {
   font-size: 10px; font-family: ui-monospace, monospace;
   padding: 2px 7px; border-radius: 5px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.06);
   color: rgba(255,255,255,0.2);
 }
 
@@ -213,18 +213,18 @@ defineExpose({ open })
   flex: 1; overflow-y: auto; padding: 8px;
 }
 .palette__results::-webkit-scrollbar { width: 4px; }
-.palette__results::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 2px; }
+.palette__results::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.04); border-radius: 2px; }
 
 .palette__section-label {
   padding: 6px 12px 4px;
   font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.06em;
-  color: rgba(255,255,255,0.18);
+  color: rgba(0,0,0,0.18);
 }
 
 .palette__divider {
   height: 1px; margin: 6px 12px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.04);
 }
 
 /* ─── 最近使用 Chips ─── */
@@ -235,17 +235,17 @@ defineExpose({ open })
 .palette__recent-chip {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 12px; border-radius: 20px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.05);
   font-size: 12px; font-weight: 450;
-  color: rgba(255,255,255,0.45);
+  color: rgba(0,0,0,0.45);
   cursor: pointer; transition: all 0.12s;
 }
 .palette__recent-chip:hover,
 .palette__recent-chip--selected {
   background: rgba(99,102,241,0.08);
   border-color: rgba(99,102,241,0.15);
-  color: rgba(255,255,255,0.85);
+  color: rgba(0,0,0,0.85);
 }
 
 /* ─── 结果项 ─── */
@@ -266,7 +266,7 @@ defineExpose({ open })
 }
 .palette-item--selected .palette-item__icon,
 .palette-item:hover .palette-item__icon {
-  color: #a5b4fc;
+  color: #4f46e5;
 }
 .palette-item__label {
   flex: 1; font-size: 14px; font-weight: 450;
@@ -280,9 +280,9 @@ defineExpose({ open })
 .palette-item__kbd {
   font-size: 10px; font-family: ui-monospace, monospace;
   padding: 2px 6px; border-radius: 4px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.14);
   flex-shrink: 0;
 }
 .palette-item__enter {
@@ -290,7 +290,7 @@ defineExpose({ open })
   transition: color 0.1s;
 }
 .palette-item--selected .palette-item__enter {
-  color: rgba(255,255,255,0.25);
+  color: rgba(0,0,0,0.25);
 }
 
 /* ─── 空态 ─── */
@@ -304,20 +304,20 @@ defineExpose({ open })
 .palette__footer {
   display: flex; align-items: center; gap: 16px;
   padding: 10px 18px;
-  border-top: 1px solid rgba(255,255,255,0.04);
-  background: rgba(255,255,255,0.01);
+  border-top: 1px solid rgba(0,0,0,0.04);
+  background: rgba(0,0,0,0.01);
 }
 .palette__footer-hint {
   display: flex; align-items: center; gap: 4px;
-  font-size: 11px; color: rgba(255,255,255,0.15);
+  font-size: 11px; color: rgba(0,0,0,0.15);
   font-family: ui-monospace, monospace;
 }
 .palette__footer-hint kbd {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.06);
   font-size: 10px;
 }
 

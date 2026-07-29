@@ -25,9 +25,9 @@ const { localeLabel, toggleLocale } = useLocaleDetect()
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(0,0,0,0.15);
   border-radius: 6px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.05);
   color: rgba(255,255,255,0.7);
   font-size: 11px;
   font-weight: 500;
@@ -36,8 +36,8 @@ const { localeLabel, toggleLocale } = useLocaleDetect()
   backdrop-filter: blur(4px);
 }
 .lang-switch-btn:hover {
-  background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.10);
+  border-color: rgba(0,0,0,0.25);
   color: #fff;
 }
 .lang-icon {

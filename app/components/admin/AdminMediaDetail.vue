@@ -292,5 +292,5 @@ async function confirmDelete() {
 <style scoped>
 .scrollbar-thin::-webkit-scrollbar { width: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.10); border-radius: 999px; }
 </style>

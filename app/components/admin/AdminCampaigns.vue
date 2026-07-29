@@ -383,14 +383,14 @@ defineExpose({ onSaved: () => {} })
 
     <!-- 状态筛选胶囊 + 批量操作栏 -->
     <div class="flex items-center gap-3 flex-wrap">
-      <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
+      <div class="inline-flex bg-white/[0.02] border border-white/[0.06] p-1 rounded-full shadow-[inset_0_1px_rgba(0,0,0,0.02)]">
         <button
           v-for="s in [{ key: 'all', label: '全部活动' }, { key: 'active', label: '运行中' }, { key: 'inactive', label: '已下线' }]"
           :key="s.key"
           @click="statusFilter = s.key"
           class="text-[10px] font-semibold px-4.5 py-2.5 rounded-full transition-all cursor-pointer focus:outline-none border-0"
           :class="statusFilter === s.key
-            ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(255,255,255,0.05)]'
+            ? 'bg-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_rgba(0,0,0,0.05)]'
             : 'bg-transparent text-white/60 hover:text-white/90'"
         >
           {{ s.label }}

@@ -157,9 +157,14 @@ function handleRetry() {
 }
 
 :root {
-  --bg-base: #0a0e1a;
-  --text-base: #e2e8f0;
-  --border-base: #1e2d4d;
+  --bg-base: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-hover: #f1f5f9;
+  --text-base: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-base: #e2e8f0;
+  --border-light: #e8ecf1;
   --font-sans: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --brand-accent: #6366f1;
@@ -168,10 +173,22 @@ function handleRetry() {
   --brand-accent-soft: #a5b4fc;
   --brand-blue-500: #3b82f6;
   --brand-violet: #bf5af2;
-  --brand-status-ok: #30d158;
-  --brand-status-err: #ff453a;
-  --brand-status-warn: #ff9f0a;
+  --brand-status-ok: #22c55e;
+  --brand-status-err: #ef4444;
+  --brand-status-warn: #f59e0b;
   --brand-status-info: #bf5af2;
+  /* Admin light theme tokens */
+  --admin-bg: #f8fafc;
+  --admin-bg-elevated: rgba(0,0,0,0.03);
+  --admin-bg-input: rgba(0,0,0,0.02);
+  --admin-bg-hover: rgba(0,0,0,0.04);
+  --admin-border-subtle: rgba(0,0,0,0.06);
+  --admin-border-medium: rgba(0,0,0,0.10);
+  --admin-text-primary: #0f172a;
+  --admin-text-secondary: #475569;
+  --admin-text-muted: #64748b;
+  --admin-text-ultra-muted: #94a3b8;
+  --admin-brand: #6366f1;
 }
 
 *,
@@ -203,11 +220,11 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-base); }
 ::-webkit-scrollbar-thumb { background: var(--border-base); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #2d4470; }
+::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
 ::selection {
-  background: rgba(79, 142, 247, 0.3);
-  color: #ffffff;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--text-base);
 }
 
 a {
@@ -252,7 +269,7 @@ img {
 }
 .error-fallback__desc {
   font-size: 0.875rem;
-  color: rgba(255,255,255,0.45);
+  color: rgba(0,0,0,0.45);
   max-width: 400px;
   margin-bottom: 1.5rem;
 }
